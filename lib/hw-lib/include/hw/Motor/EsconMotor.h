@@ -8,7 +8,7 @@ struct MotorConfiguration
 {
     // PinName pwm;
     PinName enable;
-    PinName currFeedback;
+    uint32_t currFeedback;
     PinName analog;
     float offset_bias;
     float amp_scale;

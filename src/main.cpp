@@ -49,6 +49,7 @@ int main()
     hw.init();
     app.set_hw(&hw);
 
+
     DEBUG_INFO("hw constructed\n");
 
     app.get_ref_gen_factory().add("constant", make_constant_ref_gen_builder());

@@ -102,7 +102,7 @@ bool forecast::Hardware::motorEnvironmentInit() {
 bool forecast::Hardware::torqueSensorInit() {
   torque_sensor =
       new AnalogInput(TORQUE_SENSOR_PIN, ADC_PCLK2, ADC_Right, ADC_15s, ADC_12b,
-                      ADC_Continuous, ADC_Dma, TORQUE_SENSOR_BUFFER_SIZE);
+                      ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
 
   /* Enable the ADC - In continous mode the ADC start is done automatically */
   auto enabled = torque_sensor->enable();

@@ -5,7 +5,7 @@ float constrain_float(float val, float min, float max);
 
 EsconMotor::EsconMotor(MotorConfiguration conf, float Kt, float Jm, float maxCurr) : 
     enable(conf.enable), 
-    currFeedback(conf.currFeedback),
+    currFeedback(conf.currFeedback,ADC_PCLK2, ADC_Right, ADC_15s, ADC_12b, ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE),
     analogPhase(conf.analog),
     Jm(Jm),
     Kt(Kt),
@@ -13,7 +13,7 @@ EsconMotor::EsconMotor(MotorConfiguration conf, float Kt, float Jm, float maxCur
     offset_bias(conf.offset_bias),
     amp_scale(conf.amp_scale)
 {
-    //ntd
+    //ntd      
 }
 
 void EsconMotor::setEnable(bool enable)
