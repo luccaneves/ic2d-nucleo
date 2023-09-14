@@ -331,64 +331,39 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
         _Conversor->SQR4 = 0U;
     #elif TARGET_STM32F4
         //configure the time sample
-      /*  if (_Channel < ADC_CHANNEL_10)
+        if (_Channel < 10)
         {
-            //_Conversor->SMPR1 = 0U;
-            //_Conversor->SMPR2 = Sample<<(_Channel*3);
-
-
-            _Conversor->SMPR2 &= ~ADC_SMPR2(ADC_SMPR2_SMP0, _Channel);
-                
-    
-            _Conversor->SMPR2 |= ADC_SMPR2(Sample, _Channel);
-
-            
+            _Conversor->SMPR2 |= Sample<<(_Channel*3);
         }
         else
         {
-            _Conversor->SMPR1 &= ~ADC_SMPR1(ADC_SMPR1_SMP10, _Channel);
-
-            _Conversor->SMPR1 |= ADC_SMPR1(Sample, _Channel);
-
-            //_Conversor->SMPR1 = Sample<<(_Channel*3);
-            //_Conversor->SMPR2 = 0U;
-        }*/
+            _Conversor->SMPR1 |= Sample<<(_Channel*3);
+        }
         //configure the channel for convertion
 
-
-       /*if (conversionRank < 7U)
+       if (conversionRank < 7U)
         {
-
-            _Conversor->SQR3 &= ~ADC_SQR3_RK(ADC_SQR3_SQ1, conversionRank);
-            
- 
-            _Conversor->SQR3 |= ADC_SQR3_RK(_Channel, conversionRank);
+            _Conversor->SQR3 |= (_Channel << conversionRank);
         }
      
         else if (conversionRank < 13U)
         {
 
-            _Conversor->SQR2 &= ~ADC_SQR2_RK(ADC_SQR2_SQ7, conversionRank);
-            
-       
-            _Conversor->SQR2 |= ADC_SQR2_RK(_Channel, conversionRank);
+            _Conversor->SQR2 |= (_Channel << (conversionRank - 7));
         }
    
         else
         {
     
-            _Conversor->SQR1 &= ~ADC_SQR1_RK(ADC_SQR1_SQ13, conversionRank);
-            
-     
-            _Conversor->SQR1 |= ADC_SQR1_RK(_Channel, conversionRank);
-        }*/
+            _Conversor->SQR1 |= (_Channel << (conversionRank - 13));
+        }
 
-        _Conversor->SMPR1 = 0U;
-        _Conversor->SMPR2 = 0U;
+        //_Conversor->SMPR1 = 0U;
+        //_Conversor->SMPR2 = 0U;
 
-        _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
-        _Conversor->SQR2 = 0U;
-        _Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10);
+        //_Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
+        //_Conversor->SQR2 = 0U;
+        //_Conversor->SQR3 |= (_Channel << conversionRank);
 
     #endif
 
@@ -401,7 +376,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
 
     if (Dma == ADC_Dma)
     {
-        if(counterNumberADC == (NUMBER_ADC_CHANNELS_USED + 1)){
+        if(conversionRank == (NUMBER_ADC_CHANNELS_USED){
             _pointer = (uint16_t *)malloc(_Size_buffer*2);
             #ifdef TARGET_STM32L4
                 #if defined(ADC1)

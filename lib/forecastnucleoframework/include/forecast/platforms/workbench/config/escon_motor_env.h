@@ -4,7 +4,7 @@
 namespace envMotor{
 
     constexpr PinName MOTOR_ENABLE_PIN = PC_11;
-    constexpr uint32_t MOTOR_CURRENT_FEEDBACK_PIN = ADC_CHANNEL_1;
+    constexpr uint32_t MOTOR_CURRENT_FEEDBACK_PIN = 1;
     constexpr PinName MOTOR_ANALOG_PIN = PA_5;
     constexpr float offset_bias = 0.00;
     constexpr float amp_scale = 1.00;

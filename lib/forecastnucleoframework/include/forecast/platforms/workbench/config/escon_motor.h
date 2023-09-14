@@ -4,7 +4,7 @@
 namespace motorControl {
 
     constexpr PinName MOTOR_ENABLE_PIN = PC_10;
-    constexpr uint32_t MOTOR_CURRENT_FEEDBACK_PIN = ADC_CHANNEL_4;
+    constexpr uint32_t MOTOR_CURRENT_FEEDBACK_PIN = 4;
     constexpr PinName MOTOR_ANALOG_PIN = PA_4;
 
 #ifdef IC2D_SETUP
