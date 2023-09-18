@@ -27,37 +27,42 @@ public:
     logs["t"] = &current_time;
     logs["dt"] = &dt;
 
-    logs["tauM"] = &tauM;
-    logs["dtauM"] = &dtauM;
-    logs["ddtauM"] = &ddtauM;
+    logs["Control Signal"] = &tauM;
+    //logs["dtauM"] = &dtauM;
+    //logs["ddtauM"] = &ddtauM;
 
-    logs["tauE"] = &tauE;
-    logs["dtauE"] = &dtauE;
-    logs["ddtauE"] = &ddtauE;
+    //logs["tauE"] = &tauE;
+    //logs["dtauE"] = &dtauE;
+    //logs["ddtauE"] = &ddtauE;
 
-    logs["thetaE"] = &tauE;
-    logs["dthetaE"] = &dtauE;
-    logs["ddthetaE"] = &ddtauE;
+    //logs["thetaE"] = &tauE;
+    //logs["dthetaE"] = &dtauE;
+    //logs["ddthetaE"] = &ddtauE;
 
-    logs["tauS"] = &tauS;
-    logs["dtauS"] = &dtauS;
-    logs["ddtauS"] = &ddtauS;
+    logs["F2"] = &tauS;
+    logs["dF2"] = &dtauS;
+    logs["ddF2"] = &ddtauS;
 
-    logs["tauSensor"] = &tauSensor;
-    logs["dtauSensor"] = &dtauSensor;
-    logs["ddtauSensor"] = &ddtauSensor;
+    logs["F1"] = &tauSensor;
+    logs["dF1"] = &dtauSensor;
+    logs["ddF1"] = &ddtauSensor;
 
-    logs["thetaM"] = &thetaM;
-    logs["dthetaM"] = &dthetaM;
-    logs["ddthetaM"] = &ddthetaM;
+    logs["x1"] = &thetaM;
+    logs["dx1"] = &dthetaM;
+    logs["ddx1"] = &ddthetaM;
 
-    logs["thetaE"] = &thetaE;
-    logs["dthetaE"] = &dthetaE;
-    logs["ddthetaE"] = &ddthetaE;
+    logs["x2"] = &thetaE;
+    logs["dx2"] = &dthetaE;
+    logs["ddx2"] = &ddthetaE;
 
-    logs["thetaEnvMotor"] = &thetaEnvMotor;
-    logs["dthetaEnvMotor"] = &dthetaEnvMotor;
-    logs["ddthetaEnvMotor"] = &ddthetaEnvMotor;
+    logs["pA"] = &pressureSensorA;
+    logs["pB"] = &pressureSensorB;
+    logs["pS"] = &pressureSensorS;
+    logs["pT"] = &pressureSensorT;
+
+    //logs["thetaEnvMotor"] = &thetaEnvMotor;
+    //logs["dthetaEnvMotor"] = &dthetaEnvMotor;
+    //logs["ddthetaEnvMotor"] = &ddthetaEnvMotor;
   }
 
   // ~Hardware() {
@@ -110,6 +115,13 @@ public:
    */
   inline void set_start_time(float time) override { start_t = time; }
 
+ /**
+   * @brief   Set the duration of the experiment.
+   *
+   * @param  time The duartion of the experiment
+   */
+  inline void set_duration_time(float time) override { duration_t = time; }
+
   /**
    * @brief   Return the start time of the experiment.
    *
@@ -123,6 +135,13 @@ public:
    * @return  curr_t
    */
   virtual inline float get_current_time() const override { return t - start_t; }
+
+  /**
+   * @brief   Return the hw time t from the duration of the experiment.
+   *
+   * @return  duration_t
+   */
+  virtual inline float get_duration_time() const override { return duration_t; }
 
   /**std::make_unique<control::Control>()
    * @brief   Return the torque applied by the motor (current feedback)
@@ -247,6 +266,27 @@ public:
     }
   }
 
+  /**
+   * @brief   Return the pressure measured by the sensors
+   *
+   * @return  pressure
+   */
+  virtual inline float get_pressure(size_t sensor_idx) const {
+    switch (sensor_idx) {
+    case 0: // pressure A
+      return pressureSensorA;
+    case 1: // Pressure B
+      return pressureSensorB;
+    case 2: // pressure S
+      return pressureSensorS;
+    case 3: // Pressure T
+      return pressureSensorT;
+    default:
+      app.send_error("invalid sensor index in get_pressure");
+      return 0.f;
+    }
+  }
+
   virtual inline float get_output() const override { return output; }
   virtual inline float get_d_output() const override { return doutput; }
   virtual inline float get_dd_output() const override { return ddoutput; }
@@ -286,7 +326,18 @@ protected:
 
   bool motorEnvironmentInit(); ///< Initialize the motor
 
-  bool torqueSensorInit(); ///< Initialize the torque sensor
+  bool torqueSensorInit(); ///< Initialize the torque sensor 1
+
+  bool torqueSensor2Init(); ///< Initialize the torque sensor 2
+
+  bool pressureSensorAInit(); ///< Initialize the pressure sensor a
+  
+  bool pressureSensorBInit(); ///< Initialize the pressure sensor b
+
+  bool pressureSensorSInit(); ///< Initialize the pressure sensor s
+  
+  bool pressureSensorTInit(); ///< Initialize the pressure sensor t
+
 
   DigitalEncoderAB *encoder_motor = nullptr;     ///< Motor encoder
   DigitalEncoderAB *encoder_env = nullptr;       ///< Environment encoder
@@ -296,10 +347,16 @@ protected:
   EsconMotor *env_motor = nullptr;     ///< Motor used for the env. simulation
 
   AnalogInput *torque_sensor = nullptr; ///< Torque sensor
+  AnalogInput *load_cell2_sensor = nullptr; ///< Torque sensor 
+  AnalogInput *pressure_sensor_a = nullptr; ///< Pressure sensor a
+  AnalogInput *pressure_sensor_b = nullptr; ///< Pressure sensor b
+  AnalogInput *pressure_sensor_s = nullptr; ///< Pressure sensor s
+  AnalogInput *pressure_sensor_t = nullptr; ///< Pressure sensor t
 
   utility::AnalogFilter* lowPassTauSensor;
+  utility::AnalogFilter* lowPassLoacCell2;
 
-  float t, dt, current_time;
+  float t, dt, current_time, duration_t;
   float start_t;
 
   float tauM;
@@ -314,6 +371,7 @@ protected:
   float tauS;
   float dtauS;
   float ddtauS;
+  float tauSOffset;
 
   float tauSensor;
   float dtauSensor;
@@ -355,6 +413,11 @@ protected:
   float output;
   float doutput;
   float ddoutput;
+
+  float pressureSensorA;
+  float pressureSensorB;
+  float pressureSensorT;
+  float pressureSensorS;
 };
 } // namespace forecast
 

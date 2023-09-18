@@ -34,8 +34,28 @@ forecast::Status forecast::Hardware::init() {
   if (not torqueSensorInit())
     return Status::TORQUE_SENSOR_INIT_ERR;
 
+  if (not torqueSensor2Init())
+    return Status::TORQUE_SENSOR_2_INIT_ERR;
+
+  if (not pressureSensorAInit())
+    return Status::PRESSURE_SENSOR_A_INIT_ERR;
+
+  if (not pressureSensorBInit())
+    return Status::PRESSURE_SENSOR_B_INIT_ERR;
+
+  if (not pressureSensorSInit())
+    return Status::PRESSURE_SENSOR_S_INIT_ERR;
+
+  if (not pressureSensorTInit())
+    return Status::PRESSURE_SENSOR_T_INIT_ERR;
+
+  //load_cell2_sensor = new AnalogInput(PC_1);
+  
   lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(2.0f);
   lowPassTauSensor->clean();
+
+  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(2.0f);
+  lowPassLoacCell2->clean();
 
   return Status::NO_ERROR;
 }
@@ -102,14 +122,72 @@ bool forecast::Hardware::motorEnvironmentInit() {
 bool forecast::Hardware::torqueSensorInit() {
   torque_sensor =
       new AnalogInput(TORQUE_SENSOR_PIN, ADC_PCLK2, ADC_Right, ADC_15s, ADC_12b,
-                      ADC_Continuous, ADC_Dma, TORQUE_SENSOR_BUFFER_SIZE);
+                      ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
 
   /* Enable the ADC - In continous mode the ADC start is done automatically */
-  auto enabled = torque_sensor->enable();
-  tauSensorOffset = torque_sensor->read_average_float() * 3.3f;
+  //auto enabled = torque_sensor->enable();
+  //tauSensorOffset = torque_sensor->read_average_float() * 3.3f;
 
-  return enabled == -1 ? false : true;
+  return true;
+  }
+
+  bool forecast::Hardware::torqueSensor2Init() {
+  load_cell2_sensor =
+      new AnalogInput(TORQUE_SENSOR_2_PIN, ADC_PCLK2, ADC_Right, ADC_15s, ADC_12b,
+                      ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
+
+  /* Enable the ADC - In continous mode the ADC start is done automatically */
+  //auto enabled = load_cell2_sensor->enable();
+  //tauSOffset = load_cell2_sensor->read_average_float() * 3.3f;
+
+  return true;
 }
+
+
+bool forecast::Hardware::pressureSensorAInit() {
+  pressure_sensor_a =
+      new AnalogInput(PRESSURE_SENSOR_A_PIN, ADC_PCLK2, ADC_Right, ADC_15s, ADC_12b,
+                      ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
+
+  /* Enable the ADC - In continous mode the ADC start is done automatically */
+  //auto enabled = pressure_sensor_a->enable();
+
+  return true;
+}
+
+bool forecast::Hardware::pressureSensorBInit() {
+  pressure_sensor_b =
+      new AnalogInput(PRESSURE_SENSOR_B_PIN, ADC_PCLK2, ADC_Right, ADC_15s, ADC_12b,
+                      ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
+
+  /* Enable the ADC - In continous mode the ADC start is done automatically */
+  //auto enabled = pressure_sensor_b->enable();
+
+  return true;
+}
+
+bool forecast::Hardware::pressureSensorSInit() {
+  pressure_sensor_s =
+      new AnalogInput(PRESSURE_SENSOR_S_PIN, ADC_PCLK2, ADC_Right, ADC_15s, ADC_12b,
+                      ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
+
+  /* Enable the ADC - In continous mode the ADC start is done automatically */
+ // auto enabled = pressure_sensor_s->enable();
+
+  return true;
+}
+
+bool forecast::Hardware::pressureSensorTInit() {
+  pressure_sensor_t =
+      new AnalogInput(PRESSURE_SENSOR_T_PIN, ADC_PCLK2, ADC_Right, ADC_15s, ADC_12b,
+                      ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
+
+  /* Enable the ADC - In continous mode the ADC start is done automatically */
+  auto enabled = pressure_sensor_t->enable();
+
+  return true;
+}
+
 
 void forecast::Hardware::update(float dt) {
   /* Time update */
@@ -148,26 +226,28 @@ void forecast::Hardware::update(float dt) {
   prev_tauM = tauM;
   prev_dtauM = dtauM;
 
-  /* Environment motor update  (from Escon feedback) */
+  /* Environment motor update  (from Escon feedback) *//*
   tauE = env_motor->getTorqueFeedback();
   dtauE = (tauE - prev_tauE) / dt;
   ddtauE = (dtauE - prev_dtauE) / dt;
   prev_tauE = tauE;
-  prev_dtauE = dtauE;
+  prev_dtauE = dtauE;*/
 
   // /* Spring torque update */
+  /*
   tauS = KS * (thetaM - thetaE);
   dtauS = (tauS - prev_tauS) / dt;
   ddtauS = (dtauS - prev_dtauS) / dt;
   prev_tauS = tauS;
-  prev_dtauS = dtauS;
+  prev_dtauS = dtauS; 
+  */
 
 
   float amplitude_voltage(1);
-  //float center_voltage(LOADCELL_250_OFFSET);
   float center_voltage(LOADCELL_5K_OFFSET);
+  //float center_voltage(LOADCELL_5K_OFFSET);
   
-  // Board voltage from USB: 3.324 V
+  // Read Load Cell 1 - Board voltage from USB: 3.324 V
   float signed_voltage = torque_sensor->read_average_float() * 3.324f - center_voltage;
   if (signed_voltage >= 0.00f) {
     amplitude_voltage = 3.324 - center_voltage;
@@ -178,13 +258,33 @@ void forecast::Hardware::update(float dt) {
   }
 
   float tauSensor_filt = lowPassTauSensor->process(tauSensor, dt);
-  tauSensor = tauSensor_filt + 11.0f; // Bias in Newton, hydraulic tests 2023-07-19
+  //tauSensor = tauSensor_filt - 181.0f; // Bias in Newton, hydraulic tests 2023-07-19
+  tauSensor = tauSensor_filt + 95.0f; // Bias in Newton, hydraulic tests 2023-09-11
 
 
   dtauSensor = (tauSensor - prev_tauSensor) / dt;
   ddtauSensor = (dtauSensor - prev_dtauSensor) / dt;
   prev_tauSensor = tauSensor;
   prev_dtauSensor = dtauSensor;
+
+  // Chambers pressure reading
+  pressureSensorA = pressure_sensor_a->read_average_float() * PRESSURE_RANGE;
+  pressureSensorB = pressure_sensor_b->read_average_float() * PRESSURE_RANGE;
+  pressureSensorS = pressure_sensor_s->read_average_float() * PRESSURE_RANGE;
+  pressureSensorT = pressure_sensor_t->read_average_float() * PRESSURE_RANGE;
+
+
+  // Read Load Cell 2
+  float lc2_signed_voltage = load_cell2_sensor->read_average_float() * 3.324f - 1.749;
+  if (lc2_signed_voltage >= 0.00f) {
+    amplitude_voltage = 3.324 -center_voltage;
+    tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
+  } else{
+    amplitude_voltage = center_voltage - 0.00;
+    tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
+  }
+  float tauS_filt = lowPassLoacCell2->process(-tauS, dt);
+  tauS = tauS_filt - 88.0f; // Bias in Newton, hydraulic tests 2023-09-11
 }
 
 void forecast::Hardware::home() 

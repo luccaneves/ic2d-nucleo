@@ -3,6 +3,8 @@
 uint8_t AnalogInput::_using_ADC1 = 0;
 uint8_t AnalogInput::_using_ADC2 = 0;
 uint8_t AnalogInput::_using_ADC3 = 0;
+uint32_t AnalogInput::counterNumberADC = 1;
+uint16_t* AnalogInput::_pointer = nullptr;
 
 AnalogInput::AnalogInput(PinName pin) {
     bool first_instance;
@@ -206,18 +208,45 @@ AnalogInput::AnalogInput(PinName pin, ADCPrescaler Prescaler, ADCAlign Alignment
     _initialized = true;
 }
 
-AnalogInput::AnalogInput(PinName pin, ADCPrescaler Prescaler, ADCAlign Alignment, ADCSample Sample, ADCResolution Resolution, ADCContinuous Continuous, ADCDma Dma, uint32_t Size_buffer) {
+AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alignment, ADCSample Sample, ADCResolution Resolution, ADCContinuous Continuous, ADCDma Dma, uint32_t Size_buffer) {
     bool first_instance;
     uint32_t i, j, k;
     ADC_Common_TypeDef ADC_Common;
-    uint32_t function = pinmap_function(pin, PinMap_ADC);
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    /*uint32_t function = pinmap_function(pin, PinMap_ADC);
     //find for ADC (1, 2 or 3)
     _Conversor = (ADC_TypeDef *)pinmap_peripheral(pin, PinMap_ADC);
     //configure the GPIO
-    pinmap_pinout(pin, PinMap_ADC);
+    pinmap_pinout(pin, PinMap_ADC);*/
     //find for channel (1, 2, ... or 15)
-    _Channel = STM_PIN_CHANNEL(function);
+
+    _Channel = channel;
+    _Conversor = ADC1;
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    /**ADC1 GPIO Configuration
+    PC0     ------> ADC1_IN10
+    PA0-WKUP     ------> ADC1_IN0
+    PA1     ------> ADC1_IN1
+    
+    */
+    
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_4;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     //enable the clock of the ADC
+
+
+    conversionRank = counterNumberADC;
+
     #ifdef TARGET_STM32L4
         #if defined(ADC1)
             if ((ADCName &)_Conversor == ADC_1) {
@@ -253,8 +282,12 @@ AnalogInput::AnalogInput(PinName pin, ADCPrescaler Prescaler, ADCAlign Alignment
     #elif TARGET_STM32F4
         #if defined(ADC1)
             if ((ADCName &)_Conversor == ADC_1) {
-                __HAL_RCC_ADC1_CLK_ENABLE();
-                if (_using_ADC1 == 0) first_instance = true;
+                
+                if (_using_ADC1 == 0) {
+                    __HAL_RCC_ADC1_CLK_ENABLE();
+                    first_instance = true;
+                }
+                
                 else first_instance = false;
                 _using_ADC1++;
             }
@@ -298,121 +331,174 @@ AnalogInput::AnalogInput(PinName pin, ADCPrescaler Prescaler, ADCAlign Alignment
         _Conversor->SQR4 = 0U;
     #elif TARGET_STM32F4
         //configure the time sample
-        if (_Channel < 10)
+      /*  if (_Channel < ADC_CHANNEL_10)
         {
-            _Conversor->SMPR1 = 0U;
-            _Conversor->SMPR2 = Sample<<(_Channel*3);
+            //_Conversor->SMPR1 = 0U;
+            //_Conversor->SMPR2 = Sample<<(_Channel*3);
+
+
+            _Conversor->SMPR2 &= ~ADC_SMPR2(ADC_SMPR2_SMP0, _Channel);
+                
+    
+            _Conversor->SMPR2 |= ADC_SMPR2(Sample, _Channel);
+
+            
         }
         else
         {
-            _Conversor->SMPR1 = Sample<<(_Channel*3);
-            _Conversor->SMPR2 = 0U;
-        }
+            _Conversor->SMPR1 &= ~ADC_SMPR1(ADC_SMPR1_SMP10, _Channel);
+
+            _Conversor->SMPR1 |= ADC_SMPR1(Sample, _Channel);
+
+            //_Conversor->SMPR1 = Sample<<(_Channel*3);
+            //_Conversor->SMPR2 = 0U;
+        }*/
         //configure the channel for convertion
-        _Conversor->SQR1 = 0U;
-        _Conversor->SQR2 = 0U;
-        _Conversor->SQR3 = _Channel;
+
+
+       /*if (conversionRank < 7U)
+        {
+
+            _Conversor->SQR3 &= ~ADC_SQR3_RK(ADC_SQR3_SQ1, conversionRank);
+            
+ 
+            _Conversor->SQR3 |= ADC_SQR3_RK(_Channel, conversionRank);
+        }
+     
+        else if (conversionRank < 13U)
+        {
+
+            _Conversor->SQR2 &= ~ADC_SQR2_RK(ADC_SQR2_SQ7, conversionRank);
+            
+       
+            _Conversor->SQR2 |= ADC_SQR2_RK(_Channel, conversionRank);
+        }
+   
+        else
+        {
+    
+            _Conversor->SQR1 &= ~ADC_SQR1_RK(ADC_SQR1_SQ13, conversionRank);
+            
+     
+            _Conversor->SQR1 |= ADC_SQR1_RK(_Channel, conversionRank);
+        }*/
+
+        _Conversor->SMPR1 = 0U;
+        _Conversor->SMPR2 = 0U;
+
+        _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
+        _Conversor->SQR2 = (14) + (15 << 5);
+        _Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10) + (11 << 15) + (12 << 20) + (13 << 25);
+
     #endif
+
+    counterNumberADC++;
     
     //check if using DMA
     if (Size_buffer > 65535) _Size_buffer = 65535;
     else if (Size_buffer == 0) _Size_buffer = 1;
     else _Size_buffer = Size_buffer;
+
     if (Dma == ADC_Dma)
     {
-        _pointer = (uint16_t *)malloc(_Size_buffer*2);
-        #ifdef TARGET_STM32L4
-            #if defined(ADC1)
-                if ((ADCName &)_Conversor == ADC_1)
-                {
-                    if ((DMA1_Channel1->CCR & DMA_CCR_EN) == 0)
+        if(counterNumberADC == (NUMBER_ADC_CHANNELS_USED + 1)){
+            _pointer = (uint16_t *)malloc(_Size_buffer*2);
+            #ifdef TARGET_STM32L4
+                #if defined(ADC1)
+                    if ((ADCName &)_Conversor == ADC_1)
                     {
-                        if(__DMA1_IS_CLK_DISABLED()) __DMA1_CLK_ENABLE();
-                        _Stream_DMA = DMA1_Channel1;
-                        DMA1_CSELR->CSELR = (DMA1_CSELR->CSELR & 0xFFFFFFF0) | (DMA_REQUEST_0<<0);
+                        if ((DMA1_Channel1->CCR & DMA_CCR_EN) == 0)
+                        {
+                            if(__DMA1_IS_CLK_DISABLED()) __DMA1_CLK_ENABLE();
+                            _Stream_DMA = DMA1_Channel1;
+                            DMA1_CSELR->CSELR = (DMA1_CSELR->CSELR & 0xFFFFFFF0) | (DMA_REQUEST_0<<0);
+                        }
+                        else if ((DMA2_Channel3->CCR & DMA_CCR_EN) == 0)
+                        {
+                            if(__DMA2_IS_CLK_DISABLED()) __DMA2_CLK_ENABLE();
+                            _Stream_DMA = DMA2_Channel3;
+                            DMA2_CSELR->CSELR = (DMA2_CSELR->CSELR & 0xFFFFF0FF) | (DMA_REQUEST_0<<8);
+                        }
                     }
-                    else if ((DMA2_Channel3->CCR & DMA_CCR_EN) == 0)
+                #endif
+                #if defined(ADC2)
+                    if ((ADCName &)_Conversor == ADC_2)
                     {
-                        if(__DMA2_IS_CLK_DISABLED()) __DMA2_CLK_ENABLE();
-                        _Stream_DMA = DMA2_Channel3;
-                        DMA2_CSELR->CSELR = (DMA2_CSELR->CSELR & 0xFFFFF0FF) | (DMA_REQUEST_0<<8);
+                        if ((DMA1_Channel2->CCR & DMA_CCR_EN) == 0)
+                        {
+                            if(__DMA1_IS_CLK_DISABLED()) __DMA1_CLK_ENABLE();
+                            _Stream_DMA = DMA1_Channel2;
+                            DMA1_CSELR->CSELR = (DMA1_CSELR->CSELR & 0xFFFFFF0F) | (DMA_REQUEST_0<<4);
+                        }
+                        else if ((DMA2_Channel4->CCR & DMA_CCR_EN) == 0)
+                        {
+                            if(__DMA2_IS_CLK_DISABLED()) __DMA2_CLK_ENABLE();
+                            _Stream_DMA = DMA2_Channel4;
+                            DMA2_CSELR->CSELR = (DMA2_CSELR->CSELR & 0xFFFF0FFF) | (DMA_REQUEST_0<<12);
+                        }
                     }
-                }
+                #endif
+                _Stream_DMA->CCR = DMA_CCR_CIRC | DMA_CCR_MINC | DMA_CCR_PSIZE_0 | DMA_CCR_MSIZE_0 | DMA_CCR_PL;
+                _Stream_DMA->CNDTR = _Size_buffer;
+                _Stream_DMA->CPAR = (uint32_t)&_Conversor->DR;
+                _Stream_DMA->CMAR = (uint32_t)_pointer;
+                _Stream_DMA->CCR |= DMA_CCR_EN;
+            #elif TARGET_STM32F4
+                if (__DMA2_IS_CLK_DISABLED()) __DMA2_CLK_ENABLE();
+                #if defined(ADC1)
+                    if ((ADCName &)_Conversor == ADC_1)
+                    {
+                        if ((DMA2_Stream0->CR & 0x1) == 0)
+                        {
+                            _Stream_DMA = DMA2_Stream0;
+                            _Stream_DMA->CR = 0U;
+                        }
+                        else if ((DMA2_Stream4->CR & 0x1) == 0)
+                        {
+                            _Stream_DMA = DMA2_Stream4;
+                            _Stream_DMA->CR = 0U;
+                        }
+                    }
+                #endif
+                #if defined(ADC2)
+                    if ((ADCName &)_Conversor == ADC_2) {
+                        if ((DMA2_Stream2->CR & 0x1) == 0)
+                        {
+                            _Stream_DMA = DMA2_Stream2;
+                            _Stream_DMA->CR = 0x02000000;
+                        }
+                        else if ((DMA2_Stream3->CR & 0x1) == 0)
+                        {
+                            _Stream_DMA = DMA2_Stream3;
+                            _Stream_DMA->CR = 0x02000000;
+                        }
+                    }
+                #endif
+                #if defined(ADC3)
+                    if ((ADCName &)_Conversor == ADC_3) {
+                        if ((DMA2_Stream0->CR & 0x1) == 0)
+                        {
+                            _Stream_DMA = DMA2_Stream0;
+                            _Stream_DMA->CR = 0x04000000;
+                        }
+                        else if ((DMA2_Stream1->CR & 0x1) == 0)
+                        {
+                            _Stream_DMA = DMA2_Stream1;
+                            _Stream_DMA->CR = 0x04000000;
+                        }
+                    }
+                #endif
+                _Stream_DMA->CR |= 0x00032D00;
+                _Stream_DMA->NDTR = _Size_buffer;
+                _Stream_DMA->PAR = (uint32_t)&_Conversor->DR;
+                _Stream_DMA->M0AR = (uint32_t)_pointer;
+                _Stream_DMA->CR |= 1;
             #endif
-            #if defined(ADC2)
-                if ((ADCName &)_Conversor == ADC_2)
-                {
-                    if ((DMA1_Channel2->CCR & DMA_CCR_EN) == 0)
-                    {
-                        if(__DMA1_IS_CLK_DISABLED()) __DMA1_CLK_ENABLE();
-                        _Stream_DMA = DMA1_Channel2;
-                        DMA1_CSELR->CSELR = (DMA1_CSELR->CSELR & 0xFFFFFF0F) | (DMA_REQUEST_0<<4);
-                    }
-                    else if ((DMA2_Channel4->CCR & DMA_CCR_EN) == 0)
-                    {
-                        if(__DMA2_IS_CLK_DISABLED()) __DMA2_CLK_ENABLE();
-                        _Stream_DMA = DMA2_Channel4;
-                        DMA2_CSELR->CSELR = (DMA2_CSELR->CSELR & 0xFFFF0FFF) | (DMA_REQUEST_0<<12);
-                    }
-                }
-            #endif
-            _Stream_DMA->CCR = DMA_CCR_CIRC | DMA_CCR_MINC | DMA_CCR_PSIZE_0 | DMA_CCR_MSIZE_0 | DMA_CCR_PL;
-            _Stream_DMA->CNDTR = _Size_buffer;
-            _Stream_DMA->CPAR = (uint32_t)&_Conversor->DR;
-            _Stream_DMA->CMAR = (uint32_t)_pointer;
-            _Stream_DMA->CCR |= DMA_CCR_EN;
-        #elif TARGET_STM32F4
-            if (__DMA2_IS_CLK_DISABLED()) __DMA2_CLK_ENABLE();
-            #if defined(ADC1)
-                if ((ADCName &)_Conversor == ADC_1)
-                {
-                    if ((DMA2_Stream0->CR & 0x1) == 0)
-                    {
-                        _Stream_DMA = DMA2_Stream0;
-                        _Stream_DMA->CR = 0U;
-                    }
-                    else if ((DMA2_Stream4->CR & 0x1) == 0)
-                    {
-                        _Stream_DMA = DMA2_Stream4;
-                        _Stream_DMA->CR = 0U;
-                    }
-                }
-            #endif
-            #if defined(ADC2)
-                if ((ADCName &)_Conversor == ADC_2) {
-                    if ((DMA2_Stream2->CR & 0x1) == 0)
-                    {
-                        _Stream_DMA = DMA2_Stream2;
-                        _Stream_DMA->CR = 0x02000000;
-                    }
-                    else if ((DMA2_Stream3->CR & 0x1) == 0)
-                    {
-                        _Stream_DMA = DMA2_Stream3;
-                        _Stream_DMA->CR = 0x02000000;
-                    }
-                }
-            #endif
-            #if defined(ADC3)
-                if ((ADCName &)_Conversor == ADC_3) {
-                    if ((DMA2_Stream0->CR & 0x1) == 0)
-                    {
-                        _Stream_DMA = DMA2_Stream0;
-                        _Stream_DMA->CR = 0x04000000;
-                    }
-                    else if ((DMA2_Stream1->CR & 0x1) == 0)
-                    {
-                        _Stream_DMA = DMA2_Stream1;
-                        _Stream_DMA->CR = 0x04000000;
-                    }
-                }
-            #endif
-            _Stream_DMA->CR |= 0x00032D00;
-            _Stream_DMA->NDTR = _Size_buffer;
-            _Stream_DMA->PAR = (uint32_t)&_Conversor->DR;
-            _Stream_DMA->M0AR = (uint32_t)_pointer;
-            _Stream_DMA->CR |= 1;
-        #endif
-        Continuous = ADC_Continuous;
+            Continuous = ADC_Continuous;
+        }
+        else{
+            //_pointer = (uint16_t *)_Stream_DMA->M0AR;
+        }
     }
     //configure the ADC
     #ifdef TARGET_STM32L4
@@ -422,7 +508,7 @@ AnalogInput::AnalogInput(PinName pin, ADCPrescaler Prescaler, ADCAlign Alignment
     #elif TARGET_STM32F4
         if (first_instance)
         {
-            _Conversor->CR1 = Resolution;
+            _Conversor->CR1 = Resolution | (1 << 8);
             _Conversor->CR2 = Alignment | Continuous | Dma;
         }
         else _Conversor->CR2 |= (Continuous | Dma);
@@ -737,9 +823,9 @@ uint32_t AnalogInput::read_average_word()
     }
     else if (_usage_dma)
     {
-        for (i = 0; i < _Size_buffer; i++) sum += _pointer[i];
-        if (_usage_fast_divider) average = sum>>_Divider;
-        else average = sum/_Divider;
+        for (i = 0; i < NUMBER_READS_PER_CHANNELS; i++) sum += _pointer[NUMBER_ADC_CHANNELS_USED*(i) + (conversionRank - 1)];
+
+        average = sum>>NUMBER_BIT_SHIFT;
     }
     else if (_continuous_mode)
     {
@@ -784,7 +870,8 @@ uint16_t AnalogInput::read_last_word()
         last_pointer = _Size_buffer - actual_buffer_position;
         if (last_pointer == 0) last_pointer = _Size_buffer-1;
         else last_pointer -= 1;
-        last_value = _pointer[last_pointer];
+        last_value = _pointer[(NUMBER_ADC_CHANNELS_USED)*(NUMBER_READS_PER_CHANNELS - 1) + (conversionRank - 1)];
+    
     }
     else if (_continuous_mode)
     {

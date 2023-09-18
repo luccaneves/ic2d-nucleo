@@ -130,12 +130,18 @@ typedef enum{
  * Public attributes is
  * 
  */
+
+#define NUMBER_ADC_CHANNELS_USED 8
+#define NUMBER_READS_PER_CHANNELS 16
+#define DMA_BUFFER_SIZE NUMBER_ADC_CHANNELS_USED*NUMBER_READS_PER_CHANNELS
+#define NUMBER_BIT_SHIFT 4 /*Deve ser tal que x = log2 NUMBER_READS_PER_CHANNELS*/
+
 class AnalogInput
 {
 public:
     AnalogInput(PinName pin);
     AnalogInput(PinName pin, ADCPrescaler Prescaler, ADCAlign Alignment, ADCSample Sample, ADCResolution Resolution);
-    AnalogInput(PinName pin, ADCPrescaler Prescaler, ADCAlign Alignment, ADCSample Sample, ADCResolution Resolution, ADCContinuous Continuous, ADCDma Dma, uint32_t Size_buffer);
+    AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alignment, ADCSample Sample, ADCResolution Resolution, ADCContinuous Continuous, ADCDma Dma, uint32_t Size_buffer);
     ~AnalogInput();
     int8_t enable();
     int8_t unable();
@@ -154,6 +160,8 @@ public:
     static uint8_t _using_ADC1;
     static uint8_t _using_ADC2;
     static uint8_t _using_ADC3;
+    static uint32_t counterNumberADC;
+    uint32_t conversionRank;
 
 private:
     ADC_TypeDef *_Conversor;
@@ -170,7 +178,7 @@ private:
     bool _injection_convertion;
     uint32_t _Size_buffer;
     uint32_t _Divider;
-    uint16_t *_pointer;
+    static uint16_t *_pointer;
 };
 
 #endif // ANALOG_INPUT_H
