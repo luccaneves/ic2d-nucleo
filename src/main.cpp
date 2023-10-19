@@ -21,6 +21,9 @@
 #include <forecast/controllers/EnvRenderingControl.hpp>
 #include <forecast/controllers/AdmittanceControl.hpp>
 #include <forecast/controllers/ImpedanceControl.hpp>
+#include <forecast/controllers/Bypass.hpp>
+#include <forecast/controllers/ForcePID_VC.hpp>
+#include <forecast/controllers/FeedbackLin.hpp>
 
 /** Refgen Headers */
 #include <forecast/reference_generators/ConstantRefGen.hpp>
@@ -49,7 +52,6 @@ int main()
     hw.init();
     app.set_hw(&hw);
 
-
     DEBUG_INFO("hw constructed\n");
 
     app.get_ref_gen_factory().add("constant", make_constant_ref_gen_builder());
@@ -65,7 +67,9 @@ int main()
     app.get_controller_factory().add("NoController", make_no_controller_builder());
     app.get_controller_factory().add("Admittance", make_admittance_control_builder());
     app.get_controller_factory().add("Impedance", make_impedance_control_builder());
-    //app.get_controller_factory().add("Bypass", make_Bypass_builder());
+    app.get_controller_factory().add("Bypass", make_Bypass_builder());
+    app.get_controller_factory().add("ForcePIDVC", make_Force_PID_VC_builder());
+    app.get_controller_factory().add("FeedbackLin", make_feedback_lin_builder());
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 

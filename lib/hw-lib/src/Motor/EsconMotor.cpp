@@ -13,7 +13,7 @@ EsconMotor::EsconMotor(MotorConfiguration conf, float Kt, float Jm, float maxCur
     offset_bias(conf.offset_bias),
     amp_scale(conf.amp_scale)
 {
-    //ntd      
+    //ntd
 }
 
 void EsconMotor::setEnable(bool enable)

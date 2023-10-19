@@ -24,7 +24,11 @@ enum class Status : uint8_t {
     TORQUE_SENSOR_INIT_ERR,  ///< Identify a wrong torque sensor initialization
     FREQ_NOT_KEPT,           ///< Identify that the loop frequency isn't kept
     COMMUNICATION_ERROR,     ///< Identify that a communication error is
-                             ///< occurred
+    PRESSURE_SENSOR_A_INIT_ERR,    ///< occurred
+    PRESSURE_SENSOR_B_INIT_ERR,
+    PRESSURE_SENSOR_S_INIT_ERR,    
+    PRESSURE_SENSOR_T_INIT_ERR,
+    TORQUE_SENSOR_2_INIT_ERR,                         ///< occurred
 };
 
 class Error {

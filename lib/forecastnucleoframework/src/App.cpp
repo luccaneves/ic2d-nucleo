@@ -9,6 +9,8 @@
 
 using namespace forecast;
 
+#define LOG_FREQ 2000
+
 namespace ticker {
 
 // variables and structure for creating the ticker
@@ -537,6 +539,9 @@ void App::handle_cmd_start_loop(uint8_t *payload) {
   // sending the payload
   send(com::Type::ACK, payload, 1, true);
 
+  // set duration time
+  hw->set_duration_time(params[1]);
+  
   // start the control loop
   exec_control_loop(params[0], params[1]);
 
@@ -550,7 +555,7 @@ void App::handle_cmd_standby(uint8_t *payload) {
   // sending the payload
   send(com::Type::ACK, payload, 1, true);
 }
-
+int send_counter = 0;
 bool App::exec_control_loop(unsigned long freq, float duration) {
   if (not ticker::init(freq)) {
     error.set("cannot intialize the ticker for the desired freq");
@@ -642,26 +647,32 @@ bool App::exec_control_loop(unsigned long freq, float duration) {
     }
 
     // adding hw logs
+    if(send_counter == ((freq/LOG_FREQ) - 1)){
+      const auto hw_log_size = hw_logs.size();
+      for (size_t i = 0; i < hw_log_size; ++i)
+        logs[i] = *hw_logs[i];
 
-    const auto hw_log_size = hw_logs.size();
-    for (size_t i = 0; i < hw_log_size; ++i)
-      logs[i] = *hw_logs[i];
+      // add controllers logs
+      for (size_t i = hw_log_size; i < controllers.size() + hw_log_size; ++i) {
+        auto ctrl_logs = controllers[i - hw_log_size]->ctrl->get_logs();
+        for (size_t j = 0; j < ctrl_logs.size(); ++j)
+          if (controllers[i - hw_log_size]->logs[j])
+            logs[i] = *ctrl_logs[j];
+      }
+      // sending the logs
 
-    // add controllers logs
-    for (size_t i = hw_log_size; i < controllers.size() + hw_log_size; ++i) {
-      auto ctrl_logs = controllers[i - hw_log_size]->ctrl->get_logs();
-      for (size_t j = 0; j < ctrl_logs.size(); ++j)
-        if (controllers[i - hw_log_size]->logs[j])
-          logs[i] = *ctrl_logs[j];
+      send(com::Type::LOGS, reinterpret_cast<const void *>(logs),
+          log_size * sizeof(float));
+          send_counter = 0;
     }
-    // sending the logs
+    else{
 
-    send(com::Type::LOGS, reinterpret_cast<const void *>(logs),
-         log_size * sizeof(float));
+      send_counter++;
+    }
 
     if (ticker::flag) {
-      error.set("cannot keep the loop frequency (" + std::to_string(freq) +
-                ").Manual reset may be neccessary");
+      error.set("cannot keep the loop frequency (" + std::to_string(freq) + ") " + "or log frequency ("  + std::to_string(LOG_FREQ) + ") "  +
+                ".Manual reset may be neccessary");
       send_error(error.msg());
       DEBUG_INFO("%s\n", error.msg().c_str());
 

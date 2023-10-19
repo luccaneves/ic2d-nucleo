@@ -233,7 +233,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
     
     */
     
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -331,39 +331,64 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
         _Conversor->SQR4 = 0U;
     #elif TARGET_STM32F4
         //configure the time sample
-        if (_Channel < 10)
+      /*  if (_Channel < ADC_CHANNEL_10)
         {
-            _Conversor->SMPR2 |= Sample<<(_Channel*3);
+            //_Conversor->SMPR1 = 0U;
+            //_Conversor->SMPR2 = Sample<<(_Channel*3);
+
+
+            _Conversor->SMPR2 &= ~ADC_SMPR2(ADC_SMPR2_SMP0, _Channel);
+                
+    
+            _Conversor->SMPR2 |= ADC_SMPR2(Sample, _Channel);
+
+            
         }
         else
         {
-            _Conversor->SMPR1 |= Sample<<(_Channel*3);
-        }
+            _Conversor->SMPR1 &= ~ADC_SMPR1(ADC_SMPR1_SMP10, _Channel);
+
+            _Conversor->SMPR1 |= ADC_SMPR1(Sample, _Channel);
+
+            //_Conversor->SMPR1 = Sample<<(_Channel*3);
+            //_Conversor->SMPR2 = 0U;
+        }*/
         //configure the channel for convertion
 
-       if (conversionRank < 7U)
+
+       /*if (conversionRank < 7U)
         {
-            _Conversor->SQR3 |= (_Channel << conversionRank);
+
+            _Conversor->SQR3 &= ~ADC_SQR3_RK(ADC_SQR3_SQ1, conversionRank);
+            
+ 
+            _Conversor->SQR3 |= ADC_SQR3_RK(_Channel, conversionRank);
         }
      
         else if (conversionRank < 13U)
         {
 
-            _Conversor->SQR2 |= (_Channel << (conversionRank - 7));
+            _Conversor->SQR2 &= ~ADC_SQR2_RK(ADC_SQR2_SQ7, conversionRank);
+            
+       
+            _Conversor->SQR2 |= ADC_SQR2_RK(_Channel, conversionRank);
         }
    
         else
         {
     
-            _Conversor->SQR1 |= (_Channel << (conversionRank - 13));
-        }
+            _Conversor->SQR1 &= ~ADC_SQR1_RK(ADC_SQR1_SQ13, conversionRank);
+            
+     
+            _Conversor->SQR1 |= ADC_SQR1_RK(_Channel, conversionRank);
+        }*/
 
-        //_Conversor->SMPR1 = 0U;
-        //_Conversor->SMPR2 = 0U;
+        _Conversor->SMPR1 = 0U;
+        _Conversor->SMPR2 = 0U;
 
-        //_Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
-        //_Conversor->SQR2 = 0U;
-        //_Conversor->SQR3 |= (_Channel << conversionRank);
+        _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
+        _Conversor->SQR2 = (14)/*PC4*/ + (15 << 5)/*PC5*/;
+        _Conversor->SQR3 = (4 << 0)/*PA4*/ + (1 << 5)/*PA1*/ + (10 << 10)/*PC0*/ + (11 << 15)/*PC1*/ + (12 << 20)/*PC2*/ + (13 << 25)/*PC3*/;
 
     #endif
 
@@ -376,7 +401,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
 
     if (Dma == ADC_Dma)
     {
-        if(conversionRank == (NUMBER_ADC_CHANNELS_USED){
+        if(counterNumberADC == (NUMBER_ADC_CHANNELS_USED + 1)){
             _pointer = (uint16_t *)malloc(_Size_buffer*2);
             #ifdef TARGET_STM32L4
                 #if defined(ADC1)
@@ -475,8 +500,6 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
             //_pointer = (uint16_t *)_Stream_DMA->M0AR;
         }
     }
-
-
     //configure the ADC
     #ifdef TARGET_STM32L4
         if (first_instance) _Conversor->CFGR = Dma | Resolution | Alignment | Continuous;
@@ -803,7 +826,6 @@ uint32_t AnalogInput::read_average_word()
         for (i = 0; i < NUMBER_READS_PER_CHANNELS; i++) sum += _pointer[NUMBER_ADC_CHANNELS_USED*(i) + (conversionRank - 1)];
 
         average = sum>>NUMBER_BIT_SHIFT;
-       
     }
     else if (_continuous_mode)
     {
@@ -849,6 +871,7 @@ uint16_t AnalogInput::read_last_word()
         if (last_pointer == 0) last_pointer = _Size_buffer-1;
         else last_pointer -= 1;
         last_value = _pointer[(NUMBER_ADC_CHANNELS_USED)*(NUMBER_READS_PER_CHANNELS - 1) + (conversionRank - 1)];
+    
     }
     else if (_continuous_mode)
     {

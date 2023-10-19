@@ -84,6 +84,15 @@ public:
   }
 
   /**
+   * @brief   Set the duration of the experiment.
+   *
+   * @param  time The duration of the experiment
+   */
+  virtual inline void set_duration_time(float time) {
+    app.fatal_error("Hardware setDurationT() function not implemented");
+  }
+
+  /**
    * @brief   Return the start time of the experiment.
    *
    * @return  start_t
@@ -99,6 +108,15 @@ public:
    */
   virtual inline float get_current_time() const {
     app.fatal_error("Hardware getStartT() function not implemented");
+  }
+
+  /**
+   * @brief   Return the hw time t from the duration of the experiment.
+   *
+   * @return  duration_t
+   */
+  virtual inline float get_duration_time() const {
+    app.fatal_error("Hardware getDurationT() function not implemented");
   }
 
   /**
@@ -129,6 +147,15 @@ public:
   }
   virtual inline float get_dd_tau_s(size_t sensor_idx) const {
     app.fatal_error("Hardware getDDTauS() function not implemented");
+  }
+
+  /**
+   * @brief   Return the pressures measured by the pressure sensors
+   *
+   * @return  pressure
+   */
+  virtual inline float get_pressure(size_t sensor_idx) const {
+    app.fatal_error("Hardware getPressure() function not implemented");
   }
 
   /**

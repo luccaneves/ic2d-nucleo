@@ -152,7 +152,7 @@ class App {
     Error error; // used for signaling any possible error
 
    public:
-    App(unsigned int txBuffSz = 256,
+    App(unsigned int txBuffSz = 1024,
         unsigned int rxBuffSz = 256,
         unsigned int baudrate = 921600);
 
