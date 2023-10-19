@@ -51,7 +51,7 @@ forecast::Status forecast::Hardware::init() {
 
   //load_cell2_sensor = new AnalogInput(PC_1);
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(8.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(20.0f);
   lowPassTauSensor->clean();
 
   lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(2.0f);

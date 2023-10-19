@@ -383,8 +383,14 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
             _Conversor->SQR1 |= ADC_SQR1_RK(_Channel, conversionRank);
         }*/
 
-        _Conversor->SMPR1 = 0U;
-        _Conversor->SMPR2 = 0U;
+        /*Valor de 0 a 7 - > Tempo de conversão do canal do ADC*/
+        uint8_t value = 7;
+
+
+        for (int i = 0; i < 10; i++){
+            _Conversor->SMPR1 |= (value << 3*i);
+            _Conversor->SMPR2 |= (value << 3*i);
+        }
 
         _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
         _Conversor->SQR2 = (14)/*PC4*/ + (15 << 5)/*PC5*/;
