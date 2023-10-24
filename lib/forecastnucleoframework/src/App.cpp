@@ -9,7 +9,7 @@
 
 using namespace forecast;
 
-#define LOG_FREQ 2000
+#define LOG_FREQ 1000
 
 namespace ticker {
 
