@@ -20,8 +20,12 @@ class ForcePID_VC_LinMot : public Controller {
      * @param kp
      * @param ki
      * @param kd
+     * @param Jl
+     * @param Dl
+     * @param Kl
      */
-    ForcePID_VC_LinMot(float kp = 0, float ki = 0, float kd = 0);
+
+    ForcePID_VC_LinMot(float kp = 0, float ki = 0, float kd = 0, float Jl = 0, float Dl = 0, float KL = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -44,11 +48,14 @@ class ForcePID_VC_LinMot : public Controller {
     float Dm = 0;
     float Jl = 0;
     float Dl = 0;
+    float Kl = 0;
     float N = 0;
 
     float x = 0.0f;
     float dx = 0.0f;
     float ddx = 0.0f;
+
+    float K = 0.5;
 
     utility::AnalogFilter* lowPassx;
     utility::AnalogFilter* lowPassDx;
@@ -61,15 +68,15 @@ class ForcePID_VC_LinMot : public Controller {
     utility::AnalogFilter* lowPassD;
 };
 
-inline ControllerFactory::Builder make_Force_PID_builder() {
+inline ControllerFactory::Builder make_ForcePID_VC_LinMot_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 2)
+        if (params.size() < 5)
             return nullptr;
-        return new ForcePID_VC_LinMot(params[0], params[1], params[2]);
+        return new ForcePID_VC_LinMot(params[0], params[1], params[2], params[3], params[4], params[5]);
     };
 
-    return {fn, {"KP", "KI", "KD"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","Jl","Dl","Kl"}, {"reference"}};
 }
 
 }  // namespace forecast

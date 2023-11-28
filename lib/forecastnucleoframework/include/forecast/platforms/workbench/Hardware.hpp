@@ -60,6 +60,8 @@ public:
     logs["pS"] = &pressureSensorS;
     logs["pT"] = &pressureSensorT;
 
+
+
     //logs["thetaEnvMotor"] = &thetaEnvMotor;
     //logs["dthetaEnvMotor"] = &dthetaEnvMotor;
     //logs["ddthetaEnvMotor"] = &ddthetaEnvMotor;
@@ -356,12 +358,17 @@ protected:
   utility::AnalogFilter* lowPassTauSensor;
   utility::AnalogFilter* lowPassLoacCell2;
 
+  utility::AnalogFilter* lowPassDX1;
+  utility::AnalogFilter* lowPassDDX1;
+  utility::AnalogFilter* lowPassDF1;
+
   float t, dt, current_time, duration_t;
   float start_t;
 
   float tauM;
   float dtauM;
   float ddtauM;
+
   float tauSensorOffset;
 
   float tauE;
@@ -377,6 +384,12 @@ protected:
   float dtauSensor;
   float ddtauSensor;
 
+  float prev5_dtauSensor = 0;
+  float prev4_dtauSensor = 0;
+  float prev3_dtauSensor = 0;
+  float prev2_dtauSensor = 0;
+  float prev1_dtauSensor = 0;
+
   float thetaM;
   float dthetaM;
   float ddthetaM;
@@ -389,8 +402,15 @@ protected:
   float dthetaEnvMotor;
   float ddthetaEnvMotor;
 
-  float prev_tauM;
-  float prev_dtauM;
+  float prev_tauM = 0;
+
+  float prev_dtauM = 0;
+
+  float prev5_dtauM = 0;
+  float prev4_dtauM = 0;
+  float prev3_dtauM = 0;
+  float prev2_dtauM = 0;
+  float prev1_dtauM = 0;
 
   float prev_tauE;
   float prev_dtauE;
@@ -402,7 +422,22 @@ protected:
   float prev_dtauSensor;
 
   float prev_thetaM;
+
+  float prev6_thetaM = 0;
+  float prev5_thetaM = 0;
+  float prev4_thetaM = 0;
+  float prev3_thetaM = 0;
+  float prev2_thetaM = 0;
+  float prev1_thetaM = 0;
+
   float prev_dthetaM;
+
+  float prev6_dthetaM = 0;
+  float prev5_dthetaM = 0;
+  float prev4_dthetaM = 0;
+  float prev3_dthetaM = 0;
+  float prev2_dthetaM = 0;
+  float prev1_dthetaM = 0;
 
   float prev_thetaE;
   float prev_dthetaE;

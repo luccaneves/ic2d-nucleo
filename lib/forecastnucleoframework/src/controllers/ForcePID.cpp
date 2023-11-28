@@ -22,8 +22,11 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
     //tau = hw->get_tau_s(1);     // was 0: tauS
     //dtau = hw->get_d_tau_s(1);  // was 0: tauS
 
-    tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
-    dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
+    //tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
+    //dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
+
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
 
     err = ref[0] - tau;
     derr = (err - errPast) / hw->get_dt();

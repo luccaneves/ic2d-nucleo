@@ -383,24 +383,18 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
             _Conversor->SQR1 |= ADC_SQR1_RK(_Channel, conversionRank);
         }*/
 
+        //for (int i = 0; i < 9; i++){
+            //_Conversor->SMPR1 |= (7U << 3*i);
+            //_Conversor->SMPR2 |= (7U << 3*i);
+        //}
 
-        /*Valor de 0 a 7 - > Tempo de conversão do canal do ADC*/
-        uint8_t value = 7;
-
-        _Conversor->SMPR1 = 0;
-        _Conversor->SMPR2 = 0;
-
-        for (int i = 0; i < 10; i++){
-            //_Conversor->SMPR1 |= (value << 3*i);
-            //_Conversor->SMPR2 |= (value << 3*i);
-        }
-
-        _Conversor->SMPR2 |= (0 << 3); 
-        _Conversor->SMPR1 |= (value); 
+        _Conversor->SMPR1 |= (7U);//Setar sampling time do ADC do canal 10
+        _Conversor->SMPR2 |= (7U << 3*4);////Setar sampling time do ADC do canal 4
+        _Conversor->SMPR2 |= (7U << 3*1);////Setar sampling time do ADC do canal 1
 
         _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
-        _Conversor->SQR2 = (14)/*PC4*/ + (15 << 5)/*PC5*/;
-        _Conversor->SQR3 = (4 << 0)/*PA4*/ + (1 << 5)/*PA1*/ + (10 << 10)/*PC0*/ + (11 << 15)/*PC1*/ + (12 << 20)/*PC2*/ + (13 << 25)/*PC3*/;
+        _Conversor->SQR2 = (14) + (15 << 5);
+        _Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10) + (11 << 15) + (12 << 20) + (13 << 25);
 
     #endif
 

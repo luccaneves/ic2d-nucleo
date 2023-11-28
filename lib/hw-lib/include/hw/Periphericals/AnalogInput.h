@@ -131,10 +131,10 @@ typedef enum{
  * 
  */
 
-#define NUMBER_ADC_CHANNELS_USED 8
-#define NUMBER_READS_PER_CHANNELS 256
+#define NUMBER_ADC_CHANNELS_USED 3
+#define NUMBER_READS_PER_CHANNELS 32
 #define DMA_BUFFER_SIZE NUMBER_ADC_CHANNELS_USED*NUMBER_READS_PER_CHANNELS
-#define NUMBER_BIT_SHIFT 8 /*Deve ser tal que x = log2 NUMBER_READS_PER_CHANNELS*/
+#define NUMBER_BIT_SHIFT 5 /*Deve ser tal que x = log2 NUMBER_READS_PER_CHANNELS*/
 
 class AnalogInput
 {
@@ -161,7 +161,7 @@ public:
     static uint8_t _using_ADC2;
     static uint8_t _using_ADC3;
     static uint32_t counterNumberADC;
-    uint32_t conversionRank;
+    uint32_t conversionRank = 0;
 
 private:
     ADC_TypeDef *_Conversor;

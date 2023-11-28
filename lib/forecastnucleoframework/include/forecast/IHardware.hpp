@@ -14,6 +14,20 @@ protected:
   std::map<std::string, const float *> logs;
 
 public:
+  float prev6_tauM = 0;
+  float prev5_tauM = 0;
+  float prev4_tauM = 0;
+  float prev3_tauM = 0;
+  float prev2_tauM = 0;
+  float prev1_tauM = 0;
+
+  float prev6_tauSensor = 0;
+  float prev5_tauSensor = 0;
+  float prev4_tauSensor = 0;
+  float prev3_tauSensor = 0;
+  float prev2_tauSensor = 0;
+  float prev1_tauSensor = 0;
+  
   /**
    * @brief   Hardware constructor
    */

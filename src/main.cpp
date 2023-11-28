@@ -17,12 +17,14 @@
 #include <forecast/controllers/PositionPID.hpp>
 #include <forecast/controllers/VelocityPID.hpp>
 #include <forecast/controllers/ForcePID.hpp>
+#include <forecast/controllers/ForcePID_DOB.hpp>
 #include <forecast/controllers/NoController.hpp>
 #include <forecast/controllers/EnvRenderingControl.hpp>
 #include <forecast/controllers/AdmittanceControl.hpp>
 #include <forecast/controllers/ImpedanceControl.hpp>
 #include <forecast/controllers/Bypass.hpp>
 #include <forecast/controllers/ForcePID_VC.hpp>
+#include <forecast/controllers/ForcePID_VC_LinMot.hpp>
 #include <forecast/controllers/FeedbackLin.hpp>
 
 /** Refgen Headers */
@@ -70,6 +72,8 @@ int main()
     app.get_controller_factory().add("Bypass", make_Bypass_builder());
     app.get_controller_factory().add("ForcePIDVC", make_Force_PID_VC_builder());
     app.get_controller_factory().add("FeedbackLin", make_feedback_lin_builder());
+    app.get_controller_factory().add("ForceDOB_5000Hz", make_Force_PID_DOB_builder());
+    app.get_controller_factory().add("Linmot_VC", make_ForcePID_VC_LinMot_builder());
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 

@@ -2,10 +2,13 @@
 
 using namespace forecast;
 
-ForcePID_VC_LinMot::ForcePID_VC_LinMot(float kp, float ki, float kd)
+ForcePID_VC_LinMot::ForcePID_VC_LinMot(float kp, float ki, float kd, float jl, float dl, float kl)
     : kp(kp),
       ki(ki),
       kd(kd),
+      Jl(jl),
+      Dl(dl),
+      Kl(kl),
       errPast(0.f),
       err(0.f),
       derr(0.f),
@@ -17,29 +20,33 @@ ForcePID_VC_LinMot::ForcePID_VC_LinMot(float kp, float ki, float kd)
 
     K_motor = 17;
 
-    Jm = 0;
-    Dm = 0;
+    Jm = 0.49;
+    Dm = 0.1;
 
-    Jl = 0;
-    Dl = 0;
+    //Jl = 7.82;
+    //Dl = 0;
+    //Kl = 6000;
 
     N = 1;
 
-    lowPassx = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassDDx = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassDDx = utility::AnalogFilter::getLowPassFilterHz(10.0f);
 }
 
 float ForcePID_VC_LinMot::process(const IHardware *hw, std::vector<float> ref)
 {
-    x = lowPassx->process(hw->get_theta(0), hw->get_dt());
-    dx = lowPassDx->process(hw->get_d_theta(0), hw->get_dt());
-    ddx = lowPassDDx->process(hw->get_dd_theta(0), hw->get_dt());
+    //x = lowPassx->process(hw->get_theta(0), hw->get_dt());
+    x = hw->get_theta(0);
+    //dx = lowPassDx->process(hw->get_d_theta(0), hw->get_dt());
+    //ddx = lowPassDDx->process(hw->get_dd_theta(0), hw->get_dt());
+    dx = hw->get_d_theta(0);
+    ddx = hw->get_dd_theta(0);
 
-    float compensate_1 = ((ddx*Jm)/K_motor) + (dx*Dm)/K_motor;
+    float compensate_1 = ((hw->get_dd_theta(0)*Jm)/K_motor) + (dx*Dm)/K_motor;
 
 
-    float compensate_2 = ((ddx*Jl)/K_motor) + (dx*Dl)/K_motor;
+    float compensate_2 = ((hw->get_dd_theta(0)*Jl)/K_motor) + (dx*Dl)/K_motor + x*Kl/K_motor;
 
 
     reference = ref[0];
@@ -56,7 +63,8 @@ float ForcePID_VC_LinMot::process(const IHardware *hw, std::vector<float> ref)
 
 
 
-    out = ref[0] + kp * err + kd * derr + ki * ierr + compensate_1 + compensate_2;
+
+    out = ref[0] + kp * err + kd * derr + ki * ierr + 1*(compensate_1 + compensate_2);
 
     return out;
 }

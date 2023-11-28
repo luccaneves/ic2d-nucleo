@@ -555,6 +555,8 @@ void App::handle_cmd_standby(uint8_t *payload) {
   // sending the payload
   send(com::Type::ACK, payload, 1, true);
 }
+
+uint32_t counter_ = 0;
 int send_counter = 0;
 bool App::exec_control_loop(unsigned long freq, float duration) {
   if (not ticker::init(freq)) {
@@ -641,7 +643,6 @@ bool App::exec_control_loop(unsigned long freq, float duration) {
       // the controller and ref_gen are available
       auto ref = ref_gen->process(hw);
       float torque = ctrl->process(hw, std::move(ref));
-
       // setting the torque in the motor
       hw->set_tau_m(i, torque);
     }

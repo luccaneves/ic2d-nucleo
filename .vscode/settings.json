@@ -76,6 +76,5 @@
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
-    "cmake.configureOnOpen": false,
-    "cmake.sourceDirectory": "/home/lucca/legged_ws/docker/container/nucleo2-legged/home/lucca/ic2d-nucleo/lib/Eigen3"
+    "cmake.configureOnOpen": false
 }
