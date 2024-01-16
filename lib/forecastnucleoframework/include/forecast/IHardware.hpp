@@ -27,7 +27,10 @@ public:
   float prev3_tauSensor = 0;
   float prev2_tauSensor = 0;
   float prev1_tauSensor = 0;
-  
+
+  float prev10_tauSensor = 10;
+
+  float* vel_comp_value = &prev10_tauSensor;
   /**
    * @brief   Hardware constructor
    */
@@ -138,6 +141,7 @@ public:
    *
    * @return  motorTorqueFeedback
    */
+
   virtual inline float get_tau_m(size_t motor_idx) const {
     app.fatal_error("Hardware set_tau_M function not implemented");
   };

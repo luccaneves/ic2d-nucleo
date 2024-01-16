@@ -79,6 +79,8 @@ protected:
   utility::AnalogFilter* lowPassD;
   utility::AnalogFilter* lowPassx;
   utility::AnalogFilter* lowPassDx;
+  utility::AnalogFilter* lowPassPs;
+  utility::AnalogFilter* lowPassPt;
   utility::AnalogFilter* lowPassPa;
   utility::AnalogFilter* lowPassPb;
 };

@@ -29,11 +29,14 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
     dtau = hw->get_d_tau_s(1);
 
     err = ref[0] - tau;
+    //Lucca TO DO: Corrigir essa derivada. Fazer inf dif com mais pontos
     derr = (err - errPast) / hw->get_dt();
     ierr += err * hw->get_dt();
     errPast = err;
 
-    out = ref[0] + kp * err + kd * derr + ki * ierr;
+     //Lucca TO DO: Comentar ref[0] depois
+
+    out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
     return out;
 }

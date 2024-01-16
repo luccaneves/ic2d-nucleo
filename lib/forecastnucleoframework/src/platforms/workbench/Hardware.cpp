@@ -21,6 +21,7 @@
 
 using namespace Eigen;
 
+
 forecast::Status forecast::Hardware::init() {
   wait(2.0);
 
@@ -47,23 +48,23 @@ forecast::Status forecast::Hardware::init() {
   //if (not torqueSensor2Init())
     //return Status::TORQUE_SENSOR_2_INIT_ERR;
 
-  //if (not pressureSensorAInit())
-    //return Status::PRESSURE_SENSOR_A_INIT_ERR;
+    if (not pressureSensorAInit())
+      return Status::PRESSURE_SENSOR_A_INIT_ERR;
 
-  //if (not pressureSensorBInit())
-    //return Status::PRESSURE_SENSOR_B_INIT_ERR;
+    if (not pressureSensorBInit())
+      return Status::PRESSURE_SENSOR_B_INIT_ERR;
 
-  //if (not pressureSensorSInit())
-    //return Status::PRESSURE_SENSOR_S_INIT_ERR;
+    if (not pressureSensorSInit())
+      return Status::PRESSURE_SENSOR_S_INIT_ERR;
 
-  //if (not pressureSensorTInit())
-    //return Status::PRESSURE_SENSOR_T_INIT_ERR;
+    if (not pressureSensorTInit())
+      return Status::PRESSURE_SENSOR_T_INIT_ERR;
 
   //load_cell2_sensor = new AnalogInput(PC_1);
 
-  auto enabled = torque_sensor->enable();
+  //auto enabled = torque_sensor->enable();
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassTauSensor->clean();
 
   lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
@@ -77,6 +78,7 @@ forecast::Status forecast::Hardware::init() {
 
   lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassDF1->clean();
+
   return Status::NO_ERROR;
 }
 
@@ -254,7 +256,7 @@ void forecast::Hardware::update(float dt) {
   current_time = get_current_time();
 
   /* Motor encoder update */
-  thetaM = -encoder_motor->getAngleRad()*0.001; // mm -> m
+  thetaM = encoder_motor->getAngleRad()*0.001; // mm -> m
   // thetaM += 1;
   // dthetaM = (thetaM - prev_thetaM) / dt;
   //float dthetaM_NoFilt = -encoder_motor->getVelocityRad(dt)*0.001;
@@ -283,8 +285,7 @@ void forecast::Hardware::update(float dt) {
   //Diferencas finitas usando mais pontos para calculo das derivadas
   if(counter == FINITE_DIF_SAMPLING_COUNTER){
     float dthetaM_NoFilt = (2.45*thetaM - 6*prev1_thetaM + 7.5*prev2_thetaM - 6.66*prev3_thetaM + 3.75*prev4_thetaM - 1.2*prev5_thetaM + 0.16*prev6_thetaM)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
-    dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
-
+    
     //float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.66*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.16*prev6_dthetaM)/dt;
     
     double ddthetaM_NoFilt = (double)(2*((double)thetaM) - 5*((double)prev1_thetaM) + 4*((double)prev2_thetaM) - 1*((double)prev3_thetaM) + 0*((double)prev4_thetaM))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
@@ -300,9 +301,12 @@ void forecast::Hardware::update(float dt) {
 
     polyfit(time_vec, theta_vec, coeff, 2);
 
-    double ddthetaM_polyfit = 2*coeff[2];*/
+    double ddthetaM_polyfit = 2*coeff[2];
+
+    double dthetaM_polyfit = 2*coeff[2]*t + coeff[1];*/
     
 
+    dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
 
     
     //double ddthetaM_NoFilt = (double)(-1)*(4.51*((double)thetaM) - 17.4*((double)prev1_thetaM) + 29.25*((double)prev2_thetaM) - 28.2*((double)prev3_thetaM) + 16.5*((double)prev4_thetaM) - 5.4*((double)prev5_thetaM) + 0.76*((double)prev6_thetaM))/((double) (((double)dt)*((double)dt)));
@@ -450,27 +454,28 @@ void forecast::Hardware::update(float dt) {
   
 
   // Chambers pressure reading
-  //pressureSensorA = pressure_sensor_a->read_average_float() * PRESSURE_RANGE;
-  //pressureSensorB = pressure_sensor_b->read_average_float() * PRESSURE_RANGE;
-  //pressureSensorS = pressure_sensor_s->read_average_float() * PRESSURE_RANGE;
-  //pressureSensorT = pressure_sensor_t->read_average_float() * PRESSURE_RANGE;
+  pressureSensorA = pressure_sensor_a->read_average_float() * PRESSURE_RANGE;
+  pressureSensorB = pressure_sensor_b->read_average_float() * PRESSURE_RANGE;
+  pressureSensorS = pressure_sensor_s->read_average_float() * PRESSURE_RANGE;
+  pressureSensorT = pressure_sensor_t->read_average_float() * PRESSURE_RANGE;
 
 
-  // Read Load Cell 2
-  //float lc2_signed_voltage = 0;
-  //float lc2_signed_voltage = load_cell2_sensor->read_average_float() * 3.324f - 1.749;
-  //if (lc2_signed_voltage >= 0.00f) {
-    //amplitude_voltage = 3.324 -center_voltage;
-    //tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
-  //} else{
-    //amplitude_voltage = center_voltage - 0.00;
-    //tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
-  //}
-  //float tauS_filt = lowPassLoacCell2->process(-tauS, dt);
-  //tauS = tauS_filt - 88.0f; // Bias in Newton, hydraulic tests 2023-09-11
+  // Read Load Cell 2 
+  /*
+  float lc2_signed_voltage = 0;
+  float lc2_signed_voltage = load_cell2_sensor->read_average_float() * 3.324f - 1.749;
+  if (lc2_signed_voltage >= 0.00f) {
+    amplitude_voltage = 3.324 -center_voltage;
+    tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
+  } else{
+    amplitude_voltage = center_voltage - 0.00;
+   tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
+  }
+  float tauS_filt = lowPassLoacCell2->process(-tauS, dt);
+  tauS = tauS_filt; // Bias in Newton, hydraulic tests 2023-09-11
 
+}*/
 }
-
 void forecast::Hardware::home() 
 {
   // resetting the encoders to make the board think it's in the starting

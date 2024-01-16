@@ -20,8 +20,8 @@ ForcePID_VC_LinMot::ForcePID_VC_LinMot(float kp, float ki, float kd, float jl, f
 
     K_motor = 17;
 
-    Jm = 0.49;
-    Dm = 0.1;
+    Jm = 0.76;
+    Dm = 0.2;
 
     //Jl = 7.82;
     //Dl = 0;
@@ -43,15 +43,20 @@ float ForcePID_VC_LinMot::process(const IHardware *hw, std::vector<float> ref)
     dx = hw->get_d_theta(0);
     ddx = hw->get_dd_theta(0);
 
-    float compensate_1 = ((hw->get_dd_theta(0)*Jm)/K_motor) + (dx*Dm)/K_motor;
+    float compensate_1 = ((hw->get_dd_theta(0)*Jm)) + (dx*Dm);
 
 
-    float compensate_2 = ((hw->get_dd_theta(0)*Jl)/K_motor) + (dx*Dl)/K_motor + x*Kl/K_motor;
+    float compensate_2 = (dx*K_motor*K_e)/Resist;
+
+    float compensate_3 = 0;
+
+    //compensate_2 = 0;
 
 
     reference = ref[0];
     //tau = hw->get_tau_s(1);     // was 0: tauS
     //dtau = hw->get_d_tau_s(1);  // was 0: tauS
+
 
     tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
     dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
@@ -61,10 +66,27 @@ float ForcePID_VC_LinMot::process(const IHardware *hw, std::vector<float> ref)
     ierr += err * hw->get_dt();
     errPast = err;
 
+    *(hw->vel_comp_value) = compensate_2  + compensate_1;
 
+    /*if(dx >= -0.03 && dx <= 0.03 && ((reference - tau) >= 5)){
+        compensate_3 = 25;
+    }
 
+    else if(dx >= -0.03 && dx <= 0.03 && ((tau - reference) >= 5)){
+        compensate_3 = -25;
+    }*/
 
-    out = ref[0] + kp * err + kd * derr + ki * ierr + 1*(compensate_1 + compensate_2);
+    if(dx > 0.01 && dx < 0.2){
+        compensate_3 = 30 - (20/0.2)*dx;
+    }
+
+    else if(dx < -0.01 && dx > -0.2){
+        compensate_3 = -30 - (20/0.2)*dx;
+    }
+
+    compensate_3 = 0;
+
+    out = ref[0] + kp * err + kd * derr + ki * ierr + 1*(compensate_1 + compensate_2 + compensate_3);
 
     return out;
 }

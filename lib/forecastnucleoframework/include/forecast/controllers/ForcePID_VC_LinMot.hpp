@@ -43,7 +43,9 @@ class ForcePID_VC_LinMot : public Controller {
 
     float errPast = 0.0;
 
-    float K_motor = 0;
+    float K_motor = 17;
+    float K_e = 9;
+    float Resist = 3;
     float Jm = 0;
     float Dm = 0;
     float Jl = 0;

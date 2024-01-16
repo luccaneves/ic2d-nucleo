@@ -2,10 +2,11 @@
 
 using namespace forecast;
 
-ForcePIDVC::ForcePIDVC(float kp, float ki, float kd, float ps)
+ForcePIDVC::ForcePIDVC(float kp, float ki, float kd, float Kvc)
     : kp(kp),
       ki(ki),
       kd(kd),
+      Kvc(Kvc),
       errPast(0.f),
       err(0.f),
       derr(0.f),
@@ -30,6 +31,7 @@ ForcePIDVC::ForcePIDVC(float kp, float ki, float kd, float ps)
       Pa0(0.0f),
       Pb0(0.0f),
       Pt(0.0f),
+      Ps(0.0f),
       Kqu(0.0f),
       Kd(0.0f)
 {
@@ -38,10 +40,12 @@ ForcePIDVC::ForcePIDVC(float kp, float ki, float kd, float ps)
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(40.0f);
     lowPassDx = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    Ps = 1.00E+5 * ps; // [bar] -> [Pa]
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    //Ps = 1.00E+5 * ps; // [bar] -> [Pa]
     Be = 1.3E+9f; // Bulk modulus [Pa]
-    De = 0.019f;  // Piston diameter [m]
-    Dh = 0.0095f; //  Rod diameter [m]
+    De = 0.016f;  // Piston diameter [m]
+    Dh = 0.010f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
     In = 0.01f; //  Nominal valve input for Moog 24 [A]
@@ -63,6 +67,9 @@ float ForcePIDVC::process(const IHardware *hw, std::vector<float> ref)
 
     x = lowPassx->process(hw->get_theta(0), hw->get_dt());
     dx = lowPassDx->process(hw->get_d_theta(0), hw->get_dt());
+
+    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt());
+    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt());
 
     err = ref[0] - tau;
     derr = (err - errPast) / hw->get_dt();
@@ -92,7 +99,9 @@ float ForcePIDVC::process(const IHardware *hw, std::vector<float> ref)
     Kd = Ap*((Be/Va0) + pow(alfa,2)*(Be/Vb0));
     Kqu = (Be/Va0)*Kqua + alfa*(Be/Vb0)*Kqub;
 
-    out = ref[0] + kp * err + kd * derr + ki * ierr + Kd * dx / Kqu;
+    *(hw->vel_comp_value) = Kd * dx / Kqu;
+
+    out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr + Kvc*(Kd * dx / Kqu);
 
     return out;
 }

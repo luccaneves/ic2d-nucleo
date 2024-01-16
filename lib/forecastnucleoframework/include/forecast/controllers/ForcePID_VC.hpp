@@ -20,10 +20,10 @@ class ForcePIDVC : public Controller {
      * @param kp
      * @param ki
      * @param kd
-     * @param ps // Supply (Pump) Pressure
+     * @param Kvc
      * 
      */
-    ForcePIDVC(float kp = 0, float ki = 0, float kd = 0, float ps = 100.0E+5);
+    ForcePIDVC(float kp = 0, float ki = 0, float kd = 0,  float Kvc = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -31,6 +31,7 @@ class ForcePIDVC : public Controller {
     float kp = 0.0;
     float ki = 0.0;
     float kd = 0.0;
+    float Kvc = 0.0;
 
     float tau = 0.0f;
     float dtau = 0.0f;
@@ -81,6 +82,8 @@ class ForcePIDVC : public Controller {
     utility::AnalogFilter* lowPassD;
     utility::AnalogFilter* lowPassx;
     utility::AnalogFilter* lowPassDx;
+    utility::AnalogFilter* lowPassPs;
+    utility::AnalogFilter* lowPassPt;
 };
 
 inline ControllerFactory::Builder make_Force_PID_VC_builder() {
@@ -91,7 +94,7 @@ inline ControllerFactory::Builder make_Force_PID_VC_builder() {
         return new ForcePIDVC(params[0], params[1], params[2], params[3]);
     };
 
-    return {fn, {"KP", "KI", "KD", "Supply Pressure [Bar]"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","Kvc"}, {"reference"}};
 }
 
 }  // namespace forecast

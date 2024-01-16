@@ -24,6 +24,7 @@ FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc)
       Vb(0.0f),
       Kv(0.0f),
       Pt(0.0f),
+      Ps(0.0f),
       Pa(0.0f),
       Pb(0.0f),
       f(0.0f),
@@ -37,10 +38,12 @@ FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc)
     lowPassDx = utility::AnalogFilter::getLowPassFilterHz(40.0f);
     lowPassPa = utility::AnalogFilter::getLowPassFilterHz(40.0f);
     lowPassPb = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(40.0f);
     
     Be = 1.3E+9f; // Bulk modulus [Pa]
-    De = 0.019f;  // Piston diameter [m]
-    Dh = 0.0095f; //  Rod diameter [m]
+    De = 0.016f;  // Piston diameter [m]
+    Dh = 0.010f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
     In = 0.01f; //  Nominal valve input for Moog 24 [A]
@@ -66,8 +69,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt());
     Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt());
-    //Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt());
-    //Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt());
+    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt());
+    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt());
 
     ixv = hw->get_tau_m(0);
 
@@ -93,9 +96,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     else{
         g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );}
 
-    f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
+    //f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
+    f = Be*pow(Aa,2)*( pow(alfa,2)/Vb + 1/Va )*dx;
 
-    v = ref[0] + kp * err + kd * derr + ki * ierr;
+    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
     out = Kpc/(g)*(-Kvc*f + v);
 

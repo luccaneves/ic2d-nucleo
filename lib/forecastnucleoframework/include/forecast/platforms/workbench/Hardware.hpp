@@ -27,6 +27,8 @@ public:
     logs["t"] = &current_time;
     logs["dt"] = &dt;
 
+    logs["VC"] = vel_comp_value;
+
     logs["Control Signal"] = &tauM;
     //logs["dtauM"] = &dtauM;
     //logs["ddtauM"] = &ddtauM;

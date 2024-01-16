@@ -31,11 +31,11 @@ ImpedanceControl::ImpedanceControl(float kp,
 float ImpedanceControl::process(const IHardware *hw, std::vector<float> ref)
 {
 
-    tau = -hw->get_tau_s(1);
-    dtau = -hw->get_d_tau_s(1);
-    theta = -hw->get_theta(0);
-    dtheta = -hw->get_d_theta(0);
-    ddtheta = -hw->get_dd_theta(0);
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
+    theta = hw->get_theta(0);
+    dtheta = hw->get_d_theta(0);
+    ddtheta = hw->get_dd_theta(0);
     dtheta_filt = lowPassDTheta->process(theta, hw->get_dt());
     ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());
 
@@ -48,14 +48,15 @@ float ImpedanceControl::process(const IHardware *hw, std::vector<float> ref)
     }
 
     /* POSITION LOOP */
-    tau_ref = ref[0] - k_des * (theta - theta_eq) - b_des * dtheta_filt - j_des * ddtheta_filt;
+    tau_ref = /*k_des*ref[0] - */ -k_des * (theta - ref[0]) - b_des * dtheta_filt - j_des * ddtheta_filt;
+
 
     /* FORCE LOOP */
     err = tau_ref - tau;
     derr = (err - errPast) / hw->get_dt();
     errPast = err;
 
-    out = tau_ref + kp * err + kd * derr;
+    out = tau_ref /*+ kp * err + kd * derr*/;
 
     return out;
 }

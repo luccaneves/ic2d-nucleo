@@ -388,13 +388,20 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
             //_Conversor->SMPR2 |= (7U << 3*i);
         //}
 
+        _Conversor->SMPR1 |= (7U << 3*5);//Setar sampling time do ADC do canal 15
+        _Conversor->SMPR1 |= (7U << 3*4);//Setar sampling time do ADC do canal 14
+
+        _Conversor->SMPR1 |= (7U << 3*3);//Setar sampling time do ADC do canal 13
+        _Conversor->SMPR1 |= (7U << 3*2);//Setar sampling time do ADC do canal 12
+        _Conversor->SMPR1 |= (7U << 3*1);//Setar sampling time do ADC do canal 11
         _Conversor->SMPR1 |= (7U);//Setar sampling time do ADC do canal 10
+
         _Conversor->SMPR2 |= (7U << 3*4);////Setar sampling time do ADC do canal 4
         _Conversor->SMPR2 |= (7U << 3*1);////Setar sampling time do ADC do canal 1
 
         _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
-        _Conversor->SQR2 = (14) + (15 << 5);
-        _Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10) + (11 << 15) + (12 << 20) + (13 << 25);
+        _Conversor->SQR2 = /*(14) + */(15 << 0);
+        _Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10) + (14 << 25) + (12 << 15) + (13 << 20);
 
     #endif
 
