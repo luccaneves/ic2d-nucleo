@@ -103,5 +103,5 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
 
 
 
-    return out + filter1_exit - filter2_exit;;
+    return out + filter1_exit - filter2_exit;
 }

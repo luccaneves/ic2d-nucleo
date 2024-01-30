@@ -28,9 +28,17 @@ public:
   float prev2_tauSensor = 0;
   float prev1_tauSensor = 0;
 
-  float prev10_tauSensor = 10;
+  float a = 10;
+  float b = 10;
+  float c = 10;
+  float d = 10;
+  float e = 10;
 
-  float* vel_comp_value = &prev10_tauSensor;
+  float* vel_comp_value = &a;
+  float* fric1 = &b;
+  float* fric2 = &c;
+  float* control_signal_teste = &d;
+  float* sprint_start_force = &e;
   /**
    * @brief   Hardware constructor
    */

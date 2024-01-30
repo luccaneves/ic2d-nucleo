@@ -36,7 +36,7 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
 
      //Lucca TO DO: Comentar ref[0] depois
 
-    out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
+    out = ref[0] + kp * err + kd * derr + ki * ierr;
 
     return out;
 }

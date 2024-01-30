@@ -28,6 +28,10 @@ public:
     logs["dt"] = &dt;
 
     logs["VC"] = vel_comp_value;
+    logs["Fric1"] = fric1;
+    logs["Fric2"] = fric2;
+    logs["ContSigTest"] = control_signal_teste;
+    logs["sprint_start_force"] = sprint_start_force;
 
     logs["Control Signal"] = &tauM;
     //logs["dtauM"] = &dtauM;
@@ -360,6 +364,9 @@ protected:
   utility::AnalogFilter* lowPassTauSensor;
   utility::AnalogFilter* lowPassLoacCell2;
 
+  utility::AnalogFilter* lowPassDX1_E;
+  utility::AnalogFilter* lowPassDDX1_E;
+
   utility::AnalogFilter* lowPassDX1;
   utility::AnalogFilter* lowPassDDX1;
   utility::AnalogFilter* lowPassDF1;
@@ -432,6 +439,13 @@ protected:
   float prev2_thetaM = 0;
   float prev1_thetaM = 0;
 
+  float prev6_thetaE = 0;
+  float prev5_thetaE = 0;
+  float prev4_thetaE = 0;
+  float prev3_thetaE = 0;
+  float prev2_thetaE = 0;
+  float prev1_thetaE = 0;
+
   float prev_dthetaM;
 
   float prev6_dthetaM = 0;
@@ -440,6 +454,14 @@ protected:
   float prev3_dthetaM = 0;
   float prev2_dthetaM = 0;
   float prev1_dthetaM = 0;
+
+
+  float prev6_dthetaE = 0;
+  float prev5_dthetaE = 0;
+  float prev4_dthetaE = 0;
+  float prev3_dthetaE = 0;
+  float prev2_dthetaE = 0;
+  float prev1_dthetaE = 0;
 
   float prev_thetaE;
   float prev_dthetaE;
