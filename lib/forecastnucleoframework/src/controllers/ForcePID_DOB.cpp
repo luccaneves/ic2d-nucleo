@@ -16,73 +16,81 @@ ForcePID_DOB::ForcePID_DOB(float kp, float ki, float kd)
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
 }
 
-float prev1_filter1_out = 0;
-float prev2_filter1_out = 0;
-float prev3_filter1_out = 0;
-float prev4_filter1_out = 0;
-float prev5_filter1_out = 0;
+float prev1_inv_model_exit = 0;
+float prev2_inv_model_exit = 0;
+float prev3_inv_model_exit = 0;
+float prev4_inv_model_exit = 0;
+float prev5_inv_model_exit = 0;
 
 
-float prev1_filter2_out = 0;
-float prev2_filter2_out = 0;
-float prev3_filter2_out = 0;
-float prev4_filter2_out = 0;
-float prev5_filter2_out = 0;
+float prev1_filter_exit = 0;
+float prev2_filter_exit = 0;
+float prev3_filter_exit = 0;
+float prev4_filter_exit = 0;
+float prev5_filter_exit = 0;
 
 float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
 {
     //Lucca, pq vc n fez um define? Preguiça
     int freq_selector = 1; //0: 1000 , 1:2000, 2:3000
-
-    /*if(freq_selector == 0){
-        float filter_taum_coef[6] = {0,0,0,0,0,0};
-        float filter_taus_coef[6] = {0,0,0,0,0,0};
-        float filter_1_coef[6] = {0,0,0,0,0,0};
-        float filter_2_coef[6] = {0,0,0,0,0,0};
-    }
-    else if(freq_selector == 1){*/
-        float filter_taum_coef[6] = {0.00000982,0.00001965,0.00000982,0,0,0};
-        float filter_taus_coef[6] = {0.0000289,0.00000115,-0.0000566,-0.00000115,0.00002774,0};
-        float filter_1_coef[6] = {1.991,-0.0012,0,0,0,0};
-        float filter_2_coef[6] = {-0.008886,1.991,-0.008807,-0.9912,0,0};
-    /*}
-    else{
-        float filter_taum_coef[6] = {0,0,0,0,0,0};
-        float filter_taus_coef[6] = {0,0,0,0,0,0};
-        float filter_1_coef[6] = {0,0,0,0,0,0};
-        float filter_2_coef[6] = {0,0,0,0,0,0};
-    }*/
-
-    float filter1_exit = 0;
-    prev1_filter1_out = 0;
-    prev2_filter1_out = 0;
-    prev3_filter1_out = 0;
-    prev4_filter1_out = 0;
-    prev5_filter1_out = 0;
+    float x = hw->get_theta(0);
 
 
-    float filter2_exit = 0;
-    prev1_filter2_out = 0;
-    prev2_filter2_out = 0;
-    prev3_filter2_out = 0;
-    prev4_filter2_out = 0;
-    prev5_filter2_out = 0;
+    float inv_model_num[6] = {0.5714, -2.28, 3.4313, -2.27, 0.5665, 0};
+    float inv_model_den[6] = {1, -3.956, 5.869, -3.87, 0.9568, 0};
 
-    filter1_exit = hw->get_tau_m(0)*filter_taum_coef[0] + hw->prev1_tauM*filter_taum_coef[1] + filter_taum_coef[2]*hw->prev2_tauM + prev1_filter1_out*filter_1_coef[0] + filter_1_coef[1]*prev1_filter2_out;
+    float filter_num[6] = {0.0001233,0.0001217,0,0,0,0};
+    float filter_den[6] = {1, -1.961,0.9608,0,0,0};
 
-    prev5_filter1_out = prev4_filter1_out;
-    prev4_filter1_out = prev3_filter1_out;
-    prev3_filter1_out = prev2_filter1_out;
-    prev2_filter1_out = prev1_filter1_out;
-    prev1_filter1_out = filter1_exit;
+    float inv_model_exit = 0;
 
-    filter2_exit = hw->get_tau_s(1)*filter_taus_coef[0] + hw->prev1_tauSensor*filter_taus_coef[1] + hw->prev2_tauSensor*filter_taus_coef[2] + hw->prev3_tauSensor*filter_taus_coef[3] + hw->prev4_tauSensor*filter_taus_coef[4] + filter_2_coef[0]*prev1_filter2_out + filter_2_coef[1]*prev2_filter2_out + filter_2_coef[2]*prev3_filter2_out + filter_2_coef[3]*prev4_filter2_out;
+    float filter_exit = 0;
 
-    prev5_filter2_out = prev4_filter2_out;
-    prev4_filter2_out = prev3_filter2_out;
-    prev3_filter2_out = prev2_filter2_out;
-    prev2_filter2_out = prev1_filter2_out;
-    prev1_filter2_out = filter2_exit;
+    float inv_model_exit = 
+    inv_model_num[0]*hw->get_tau_s(1) + 
+    inv_model_num[1]*hw->prev1_tauSensor  + 
+    inv_model_num[2]*hw->prev2_tauSensor +
+    inv_model_num[3]*hw->prev3_tauSensor +
+    inv_model_num[4]*hw->prev4_tauSensor +
+    inv_model_num[5]*hw->prev5_tauSensor -
+    inv_model_den[1]*prev1_inv_model_exit - 
+    inv_model_den[2]*prev2_inv_model_exit -
+    inv_model_den[3]*prev3_inv_model_exit -
+    inv_model_den[4]*prev4_inv_model_exit -
+    inv_model_den[5]*prev5_inv_model_exit;
+
+    inv_model_exit = inv_model_exit/inv_model_den[0];
+
+    float filter_exit = 
+    filter_num[0]*hw->get_tau_m(0) + 
+    filter_num[1]*(hw->prev1_tauM) + 
+    filter_num[2]*(hw->prev2_tauM) + 
+    filter_num[3]*(hw->prev3_tauM) + 
+    filter_num[4]*(hw->prev4_tauM) + 
+    filter_num[5]*(hw->prev5_tauM) - 
+    filter_den[1]*prev1_filter_exit - 
+    filter_den[2]*prev2_filter_exit -
+    filter_den[3]*prev3_filter_exit -
+    filter_den[4]*prev4_filter_exit -
+    filter_den[5]*prev5_filter_exit;
+
+    filter_exit = filter_exit/ filter_den[0];
+
+
+
+    prev5_filter_exit = prev4_filter_exit;
+    prev4_filter_exit = prev3_filter_exit;
+    prev3_filter_exit = prev2_filter_exit;
+    prev2_filter_exit = prev1_filter_exit;
+    prev1_filter_exit = filter_exit;
+
+    prev5_inv_model_exit = prev4_inv_model_exit;
+    prev4_inv_model_exit = prev3_inv_model_exit;
+    prev3_inv_model_exit = prev2_inv_model_exit;
+    prev2_inv_model_exit = prev1_inv_model_exit;
+    prev1_inv_model_exit = inv_model_exit;
+
+
 
     reference = ref[0];
     //tau = hw->get_tau_s(1);     // was 0: tauS
@@ -99,9 +107,11 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     ierr += err * hw->get_dt();
     errPast = err;
 
+    *(hw->fric1) = dob_exit;
+
     out = ref[0] + kp * err + kd * derr + ki * ierr;
 
 
 
-    return out + filter1_exit - filter2_exit;
+    return out + inv_model_exit - filter_exit;
 }
