@@ -42,6 +42,35 @@ class ForcePID_DOB : public Controller {
     float out;
     float reference = 0.0;
 
+    double prev1_inv_model_exit = 0;
+    double prev2_inv_model_exit = 0;
+    double prev3_inv_model_exit = 0;
+    double prev4_inv_model_exit = 0;
+    double prev5_inv_model_exit = 0;
+
+
+    double prev1_filter_exit = 0;
+    double prev2_filter_exit = 0;
+    double prev3_filter_exit = 0;
+    double prev4_filter_exit = 0;
+    double prev5_filter_exit = 0;
+
+    double controller_prev1_tauSensor;
+    double controller_prev2_tauSensor;
+    double controller_prev3_tauSensor;
+    double controller_prev4_tauSensor;
+    double controller_prev5_tauSensor;
+    double controller_prev6_tauSensor;
+
+
+
+    double controller_prev1_tauM;
+    double controller_prev2_tauM;
+    double controller_prev3_tauM;
+    double controller_prev4_tauM;
+    double controller_prev5_tauM;
+    double controller_prev6_tauM;
+
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
 };

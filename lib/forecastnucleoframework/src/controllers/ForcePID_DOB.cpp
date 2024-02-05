@@ -16,79 +16,92 @@ ForcePID_DOB::ForcePID_DOB(float kp, float ki, float kd)
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
 }
 
-float prev1_inv_model_exit = 0;
-float prev2_inv_model_exit = 0;
-float prev3_inv_model_exit = 0;
-float prev4_inv_model_exit = 0;
-float prev5_inv_model_exit = 0;
 
-
-float prev1_filter_exit = 0;
-float prev2_filter_exit = 0;
-float prev3_filter_exit = 0;
-float prev4_filter_exit = 0;
-float prev5_filter_exit = 0;
 
 float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
 {
-    //Lucca, pq vc n fez um define? Preguiça
-    int freq_selector = 1; //0: 1000 , 1:2000, 2:3000
     float x = hw->get_theta(0);
 
 
-    float inv_model_num[6] = {0.5714, -2.28, 3.4313, -2.27, 0.5665, 0};
-    float inv_model_den[6] = {1, -3.956, 5.869, -3.87, 0.9568, 0};
+    double inv_model_num[6] = {0.571428571428570, -2.280162106468708, 3.412502702471617, -2.270230644430718, 0.566461538135732, 0};
+    double inv_model_den[6] = {1, -3.956136905405657, 5.869079151390250, -3.869736663285190, 0.956794478437089, 0};
 
-    float filter_num[6] = {0.0001233,0.0001217,0,0,0,0};
-    float filter_den[6] = {1, -1.961,0.9608,0,0,0};
+    //double filter_num[6] = {0,0.0001233,0.0001217,0,0,0};
+    //double filter_den[6] = {1, -1.961,0.9608,0,0,0};
 
-    float inv_model_exit = 0;
-
-    float filter_exit = 0;
-
-    float inv_model_exit = 
-    inv_model_num[0]*hw->get_tau_s(1) + 
-    inv_model_num[1]*hw->prev1_tauSensor  + 
-    inv_model_num[2]*hw->prev2_tauSensor +
-    inv_model_num[3]*hw->prev3_tauSensor +
-    inv_model_num[4]*hw->prev4_tauSensor +
-    inv_model_num[5]*hw->prev5_tauSensor -
-    inv_model_den[1]*prev1_inv_model_exit - 
-    inv_model_den[2]*prev2_inv_model_exit -
-    inv_model_den[3]*prev3_inv_model_exit -
-    inv_model_den[4]*prev4_inv_model_exit -
-    inv_model_den[5]*prev5_inv_model_exit;
-
-    inv_model_exit = inv_model_exit/inv_model_den[0];
-
-    float filter_exit = 
-    filter_num[0]*hw->get_tau_m(0) + 
-    filter_num[1]*(hw->prev1_tauM) + 
-    filter_num[2]*(hw->prev2_tauM) + 
-    filter_num[3]*(hw->prev3_tauM) + 
-    filter_num[4]*(hw->prev4_tauM) + 
-    filter_num[5]*(hw->prev5_tauM) - 
-    filter_den[1]*prev1_filter_exit - 
-    filter_den[2]*prev2_filter_exit -
-    filter_den[3]*prev3_filter_exit -
-    filter_den[4]*prev4_filter_exit -
-    filter_den[5]*prev5_filter_exit;
-
-    filter_exit = filter_exit/ filter_den[0];
+    //double filter_num[6] = {0.0226E-3,0.2007E-3,0.0218E-3,0,0,0};
+    //double filter_den[6] = {1, -1.9605,0.9608,0,0,0};
 
 
+    double filter_num[6] = {0,0.12233473E-3,0.1217135952E-3,0,0,0};
+    double filter_den[6] = {1, -1.9605444,0.96078944,0,0,0};
+    //double filter_den[6] = {0, 0,0,0,0,0};
 
-    prev5_filter_exit = prev4_filter_exit;
-    prev4_filter_exit = prev3_filter_exit;
-    prev3_filter_exit = prev2_filter_exit;
-    prev2_filter_exit = prev1_filter_exit;
-    prev1_filter_exit = filter_exit;
+    double inv_model_exit = 0;
 
-    prev5_inv_model_exit = prev4_inv_model_exit;
-    prev4_inv_model_exit = prev3_inv_model_exit;
-    prev3_inv_model_exit = prev2_inv_model_exit;
-    prev2_inv_model_exit = prev1_inv_model_exit;
-    prev1_inv_model_exit = inv_model_exit;
+    double filter_exit = 0;
+
+    if(hw->get_current_time() > 0){
+
+        inv_model_exit = 
+        inv_model_num[0]*hw->get_tau_s(1) + 
+        inv_model_num[1]*controller_prev1_tauSensor + 
+        inv_model_num[2]*controller_prev2_tauSensor +
+        inv_model_num[3]*controller_prev3_tauSensor +
+        inv_model_num[4]*controller_prev4_tauSensor +
+        inv_model_num[5]*controller_prev5_tauSensor 
+        -
+        inv_model_den[1]*prev1_inv_model_exit - 
+        inv_model_den[2]*prev2_inv_model_exit -
+        inv_model_den[3]*prev3_inv_model_exit -
+        inv_model_den[4]*prev4_inv_model_exit -
+        inv_model_den[5]*prev5_inv_model_exit;
+
+        inv_model_exit = inv_model_exit;
+
+        filter_exit = 
+        filter_num[0]*(hw->get_tau_m(0)) + 
+        filter_num[1]*controller_prev1_tauM + 
+        filter_num[2]*controller_prev2_tauM + 
+        filter_num[3]*controller_prev3_tauM + 
+        filter_num[4]*controller_prev4_tauM  
+        -
+        filter_den[1]*prev1_filter_exit - 
+        filter_den[2]*prev2_filter_exit -
+        filter_den[3]*prev3_filter_exit -
+        filter_den[4]*prev4_filter_exit -
+        filter_den[5]*prev5_filter_exit;
+
+        filter_exit = filter_exit;
+
+
+
+        prev5_filter_exit = prev4_filter_exit;
+        prev4_filter_exit = prev3_filter_exit;
+        prev3_filter_exit = prev2_filter_exit;
+        prev2_filter_exit = prev1_filter_exit;
+        prev1_filter_exit = filter_exit;
+
+        prev5_inv_model_exit = prev4_inv_model_exit;
+        prev4_inv_model_exit = prev3_inv_model_exit;
+        prev3_inv_model_exit = prev2_inv_model_exit;
+        prev2_inv_model_exit = prev1_inv_model_exit;
+        prev1_inv_model_exit = inv_model_exit;
+
+        controller_prev6_tauM = controller_prev5_tauM;
+        controller_prev5_tauM = controller_prev4_tauM;
+        controller_prev4_tauM = controller_prev3_tauM;
+        controller_prev3_tauM = controller_prev2_tauM;
+        controller_prev2_tauM = controller_prev1_tauM;
+        controller_prev1_tauM = hw->get_tau_m(0);
+
+        controller_prev6_tauSensor = controller_prev5_tauSensor;
+        controller_prev5_tauSensor = controller_prev4_tauSensor;
+        controller_prev4_tauSensor = controller_prev3_tauSensor;
+        controller_prev3_tauSensor = controller_prev2_tauSensor;
+        controller_prev2_tauSensor = controller_prev1_tauSensor;
+        controller_prev1_tauSensor = hw->get_tau_s(1);
+    }
 
 
 
@@ -107,11 +120,22 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     ierr += err * hw->get_dt();
     errPast = err;
 
-    *(hw->fric1) = dob_exit;
+    *(hw->fric1) = inv_model_exit;
+    *(hw->fric2) = filter_exit;
 
     out = ref[0] + kp * err + kd * derr + ki * ierr;
 
+    double dob_exit = inv_model_exit - filter_exit;
+
+    int a = 80;
+
+    if(dob_exit > a){
+        dob_exit = a;
+    }
+    if(dob_exit < -a){
+        dob_exit = -a;
+    }
 
 
-    return out + inv_model_exit - filter_exit;
+    return (out - dob_exit);
 }

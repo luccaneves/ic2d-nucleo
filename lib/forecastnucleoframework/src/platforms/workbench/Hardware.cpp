@@ -395,7 +395,7 @@ void forecast::Hardware::update(float dt) {
   prev1_tauM = tauM;
 
 
-  //Dierencas finitas usando mais pontos para calculo das derivadas
+  //Diferencas finitas usando mais pontos para calculo das derivadas
   /*dtauM = (2.28*tauM - 5*prev1_tauM + 5*prev2_tauM - 3.33*prev3_tauM + 1.25*prev4_tauM - 0.2*prev5_tauM)/dt;
   ddtauM = (2.28*dtauM - 5*prev1_dtauM + 5*prev2_dtauM - 3.33*prev3_dtauM + 1.25*prev4_dtauM - 0.2*prev5_dtauM)/dt;
 
