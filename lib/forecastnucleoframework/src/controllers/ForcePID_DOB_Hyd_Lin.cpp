@@ -36,6 +36,7 @@ ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd)
 float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 {
     float x = hw->get_theta(0);
+    float ixv = hw->get_tau_m(0);
 
     Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt());
     Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt());
@@ -69,18 +70,29 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
     Ap = Aa;                    
     alfa = Ab/Aa;
+
     Va = Aa*(L_cyl/2);
     Vb = Ab*(L_cyl/2);
+
+    //Va = Vpl + Aa*x;
+    //Vb = Vpl + (L_cyl - x)*Ab;
+
     Va0 = Vpl + Va;
     Vb0 = Vpl + Vb;
     Wv = 2*M_PI*Fv;
     Kv = qn/sqrt(pn);
     Kvp = sqrt(2)*Kv;
-    Pa0 = Ps/2;               
-    Pb0 = Ps/2; 
+    Pa0 = (Ps*(alfa))/(1 + alfa);               
+    Pb0 = (Ps*(alfa))/(1 + alfa);   
 
-    Kqua = (Kvp/In)*sqrt(Ps-Pa0);
-    Kqub = (Kvp/In)*sqrt(Pb0-Pt);
+    if(ixv > 0.0f){
+        Kqua = (Kvp/In)*sqrt(Ps-Pa0);
+        Kqub = (Kvp/In)*sqrt(Pb0-Pt);
+    }
+    else{
+        Kqua = (Kvp/In)*sqrt(Pa0-Pt);
+        Kqub = (Kvp/In)*sqrt(Ps-Pb0);
+    }
 
     Kxp = Ap*((Be/Va0) + pow(alfa,2)*(Be/Vb0));
     Kuv = (Be/Va0)*Kqua + alfa*(Be/Vb0)*Kqub;
@@ -199,6 +211,7 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     prev2_err = prev1_err;
     prev1_err = err;
 
+    out = out - dob_exit;
 
     return (out - dob_exit);
 }
