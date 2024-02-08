@@ -18,6 +18,8 @@
 #include <forecast/controllers/VelocityPID.hpp>
 #include <forecast/controllers/ForcePID.hpp>
 #include <forecast/controllers/ForcePID_DOB.hpp>
+#include <forecast/controllers/ForcePID_DOB_Hyd.hpp>
+#include <forecast/controllers/ForcePID_DOB_Hyd_Lin.hpp>
 #include <forecast/controllers/NoController.hpp>
 #include <forecast/controllers/EnvRenderingControl.hpp>
 #include <forecast/controllers/AdmittanceControl.hpp>
@@ -74,6 +76,8 @@ int main()
     app.get_controller_factory().add("FeedbackLin", make_feedback_lin_builder());
     app.get_controller_factory().add("DOB_2000Hz_LinMot", make_Force_PID_DOB_builder());
     app.get_controller_factory().add("Linmot_VC", make_ForcePID_VC_LinMot_builder());
+    app.get_controller_factory().add("DOB HYD (2000Hz)", make_Force_PID_DOB_hyd_builder());
+    app.get_controller_factory().add("DOB HYD LIN (2000Hz)", make_Force_PID_DOB_hyd_lin_builder());
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 
