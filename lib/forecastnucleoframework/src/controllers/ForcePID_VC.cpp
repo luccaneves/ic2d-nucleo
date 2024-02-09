@@ -78,6 +78,8 @@ float ForcePIDVC::process(const IHardware *hw, std::vector<float> ref)
 
     float De2 = pow(De, 2);
     float Dh2 = pow(Dh, 2);
+    float B = 1000;
+    float ddx = hw->get_dd_theta();
 
     Aa = (M_PI*(De2))/4;
     Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
@@ -96,12 +98,12 @@ float ForcePIDVC::process(const IHardware *hw, std::vector<float> ref)
     Kqua = (Kvp/In)*sqrt(Ps-Pa0);
     Kqub = (Kvp/In)*sqrt(Pb0-Pt);
 
-    Kd = Ap*((Be/Va0) + pow(alfa,2)*(Be/Vb0));
-    Kqu = (Be/Va0)*Kqua + alfa*(Be/Vb0)*Kqub;
+    Kd = -Ap*Ap*((Be/Va0) + pow(alfa,2)*(Be/Vb0));
+    Kqu = Ap*((Be/Va0)*Kqua + alfa*(Be/Vb0)*Kqub);
 
     *(hw->vel_comp_value) = Kd * dx / Kqu;
 
-    out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr + Kvc*(Kd * dx / Kqu);
+    out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr + Kvc*( -Kd * dx / Kqu + B*ddx/Kqu);
 
     return out;
 }
