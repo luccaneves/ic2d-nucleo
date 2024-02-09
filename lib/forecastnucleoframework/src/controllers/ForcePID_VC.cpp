@@ -79,7 +79,7 @@ float ForcePIDVC::process(const IHardware *hw, std::vector<float> ref)
     float De2 = pow(De, 2);
     float Dh2 = pow(Dh, 2);
     float B = 1000;
-    float ddx = hw->get_dd_theta();
+    float ddx = hw->get_dd_theta(0);
 
     Aa = (M_PI*(De2))/4;
     Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);

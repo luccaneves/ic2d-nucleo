@@ -113,6 +113,10 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
+    utility::AnalogFilter* lowPassPs;
+    utility::AnalogFilter* lowPassPt;
+    utility::AnalogFilter* lowPassPa;
+    utility::AnalogFilter* lowPassPb;
 };
 
 inline ControllerFactory::Builder make_Force_PID_DOB_hyd_lin_builder() {

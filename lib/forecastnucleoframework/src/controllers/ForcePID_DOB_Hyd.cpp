@@ -69,9 +69,6 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     float De2 = pow(De, 2);
     float Dh2 = pow(Dh, 2);
 
-    float De2 = pow(De, 2);
-    float Dh2 = pow(Dh, 2);
-
     float g;
     float ixv = hw->get_tau_m(0);
 
