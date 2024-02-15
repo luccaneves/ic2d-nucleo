@@ -199,6 +199,10 @@ public:
     app.fatal_error("Hardware getDDThetaM() function not implemented");
   }
 
+  virtual inline float get_ddd_theta(size_t sensor_idx) const {
+    app.fatal_error("Hardware getDDThetaM() function not implemented");
+  }
+
   virtual inline float get_output() const {
     app.fatal_error("Hardware getOutput() function not implemented");
   }

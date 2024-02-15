@@ -274,6 +274,21 @@ public:
     }
   }
 
+
+  virtual inline float get_ddd_theta(size_t sensor_idx) const {
+    switch (sensor_idx) {
+      case 0: // motor
+        return dddthetaM;
+      case 1: // environment
+        return ddthetaE;
+      case 2:
+        return thetaEnvMotor;
+      default:
+        app.send_error("invalid sensor index in get_theta");
+        return 0.f;
+    }
+  }
+
   /**
    * @brief   Return the pressure measured by the sensors
    *
@@ -369,6 +384,7 @@ protected:
 
   utility::AnalogFilter* lowPassDX1;
   utility::AnalogFilter* lowPassDDX1;
+  utility::AnalogFilter* lowPassDDDX1;
   utility::AnalogFilter* lowPassDF1;
 
   float t, dt, current_time, duration_t;
@@ -402,6 +418,7 @@ protected:
   float thetaM;
   float dthetaM;
   float ddthetaM;
+  float dddthetaM;
 
   float thetaE;
   float dthetaE;

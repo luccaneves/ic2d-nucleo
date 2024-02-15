@@ -71,9 +71,9 @@ class ForcePID_DOB_HYD : public Controller {
     double controller_prev5_tauM;
     double controller_prev6_tauM;
 
+    float prev1_ddx = 0;
     float prev1_dx = 0;
-    float prev1_x = 0;
-    float prev1_sensor = 0;
+    float prev1_dsensor = 0;
 
     float prev1_err = 0;
     float prev2_err = 0;
@@ -127,6 +127,7 @@ class ForcePID_DOB_HYD : public Controller {
     float Pb = 0.0f;
     float Kqu = 0.0f;
     float Kd = 0.0f;
+    float f = 0;
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;

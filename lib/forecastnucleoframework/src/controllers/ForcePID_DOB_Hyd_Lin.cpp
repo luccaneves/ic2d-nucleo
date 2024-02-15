@@ -74,15 +74,15 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     Va = Aa*(L_cyl/2);
     Vb = Ab*(L_cyl/2);
 
-    //Va = Vpl + Aa*x;
-    //Vb = Vpl + (L_cyl - x)*Ab;
+    Va = Vpl + Aa*x;
+    Vb = Vpl + (L_cyl - x)*Ab;
 
     Va0 = Vpl + Va;
     Vb0 = Vpl + Vb;
     Wv = 2*M_PI*Fv;
     Kv = qn/sqrt(pn);
     Kvp = sqrt(2)*Kv;
-    Pa0 = (Ps*(alfa))/(1 + alfa);               
+    Pa0 = (Ps*(alfa))/(alfa + 1);               
     Pb0 = (Ps*(alfa))/(1 + alfa);   
 
     if(ixv > 0.0f){
@@ -94,30 +94,47 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
         Kqub = (Kvp/In)*sqrt(Ps-Pb0);
     }
 
+    double Kca;
+    double Kcb;
+
+    if(ixv > 0.0f){
+        Kca = ((Kvp/In)*ixv)/(2*sqrt(Ps-Pa0));
+        Kcb = -((Kvp/In)*ixv)/(2*sqrt(Pb0-Pt));
+    }
+    
+    else{
+        Kca = -((Kvp/In)*ixv)/(2*sqrt(Pa0-Pt));
+        Kcb = ((Kvp/In)*ixv)/(2*sqrt(Ps-Pb0));
+    }
+
     Kxp = -Ap*Ap*((Be/Va0) + pow(alfa,2)*(Be/Vb0));
     Kuv = Ap*((Be/Va0)*Kqua + alfa*(Be/Vb0)*Kqub);
+    Kfh = (-Be/(1 + alfa*alfa*alfa))*(Kca/Va0 - alfa*alfa*alfa*Kcb/Vb0);
 
     double inv_model_num[6] = {
-    (54930876000 - 546*Kxp - 13732719*Kfh),
-    (38128173*Kfh + 474*Kxp - 262374444000),
-    (1084*Kxp - 21695990*Kfh + 501671096000),
-    (- 27113798*Kfh - 956*Kxp - 479999864000),
-    (35428661*Kfh - 538*Kxp + 229830028000),
-    -11014423*Kfh + 482*Kxp - 44057692000
+    (4260820000 - 8*Kxp - 1065205*Kfh),
+    (- 18420*Kfh - 16*Kxp - 8447960000),
+    (2111970*Kfh - 73600000),
+    (18380*Kfh + 16*Kxp + 8447960000),
+    -1046805*Kfh + 8*Kxp - 4187220000,
+    0
     };
 
-    double inv_model_den[6] = {3865208523453*Kuv,
-    19275128275635*Kuv,
-    38449422954930*Kuv,
-    -38349583446870*Kuv,
-    19125368521665*Kuv,
-    -3815288277447*Kuv};
+    double inv_model_den[6] = {
+    17254642805*Kuv,
+    -68298234380*Kuv,
+     101372960030*Kuv,
+    -66869765580*Kuv,
+     16540397205*Kuv,
+    0
+    };
 
-    double filter_num[6] = {0.124968678162927E-7, 0.374906034488781E-7, 0.374906034488781E-7,
-     0.124968678162927E-7, 0, 0};
 
-    double filter_den[6] = {1.000000000000000, -2.999497550932578, 2.998997751201133,
-     -0.999500100293613, 0, 0};
+
+
+
+    double filter_num[6] = {1,2,1,0,0,0};
+    double filter_den[6] = {16321 ,  -31998  ,15681,0,0,0};
     //double filter_den[6] = {0, 0,0,0,0,0};
 
     double inv_model_exit = 0;
@@ -190,14 +207,14 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 
 
 
-    *(hw->fric1) = inv_model_exit;
-    *(hw->fric2) = filter_exit;
+    *(hw->fric1) = filter_exit;
+    *(hw->fric2) = inv_model_exit;
 
     out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
     double dob_exit = inv_model_exit - filter_exit;
 
-    float limit_sat = 0.1;
+    float limit_sat = 0.2;
 
     if(dob_exit > limit_sat){
         dob_exit = limit_sat;
@@ -215,5 +232,5 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 
     out = out - dob_exit;
 
-    return (out - dob_exit);
+    return (out);
 }

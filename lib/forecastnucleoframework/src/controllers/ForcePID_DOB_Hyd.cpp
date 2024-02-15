@@ -12,8 +12,8 @@ ForcePID_DOB_HYD::ForcePID_DOB_HYD(float kp, float ki, float kd)
       ierr(0.f)
 {
     logs.push_back(&reference);
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
     lowPassPa = utility::AnalogFilter::getLowPassFilterHz(10.0f);
     lowPassPb = utility::AnalogFilter::getLowPassFilterHz(10.0f);
     lowPassPs = utility::AnalogFilter::getLowPassFilterHz(10.0f);
@@ -37,6 +37,8 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
 {
     float x = hw->get_theta(0);
     float dx = hw->get_d_theta(0);
+    float ddx = hw->get_dd_theta(0);
+    
 
     Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt());
     Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt());
@@ -52,6 +54,12 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     float d_disturb = 0;
     float disturb = 0;
     float z = 0;
+    float Ml = 6;
+    float Bl = 150;
+    float Kl = 2500;
+    float B = 700;
+    float lambda = 1000;
+    //float dtau = hw->get_d_tau_m
 
     tau = hw->get_tau_s(1);
     dtau = hw->get_d_tau_s(1);
@@ -88,6 +96,7 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
         g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
     }
 
+    f = Be*pow(Aa,2)*( pow(alfa,2)/Vb + 1/Va )*dx;
 
     out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
@@ -98,13 +107,15 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     prev2_err = prev1_err;
     prev1_err = err;
 
-    z = prev1_z*(hw->get_dt()) - (100/6)*(prev1_z + 100*prev1_dx) + (100/6)*(150*prev1_dx + 2500*prev1_x - prev1_sensor - 100*prev1_dx);
+    z = prev1_z - (lambda/Ml)*(hw->get_dt())*(prev1_z) + (hw->get_dt())*(lambda/Ml)*(Bl*prev1_ddx + Kl*prev1_dx + B*prev1_ddx - f - g*ixv - lambda*prev1_ddx);
 
-    disturb = z + 100*dx;
+    disturb = z + lambda*ddx;
 
-    d_disturb = (2.45*disturb - 6*prev1_disturb + 7.5*prev2_disturb - 6.66*prev3_disturb 
+    /*d_disturb = (2.45*disturb - 6*prev1_disturb + 7.5*prev2_disturb - 6.66*prev3_disturb 
     + 3.75*prev4_disturb - 1.2*prev5_disturb + 0.16*prev6_disturb)/
     (hw->get_dt());
+
+    double d_disturb_filt = lowPassD->process(d_disturb, hw->get_dt());*/
 
     prev6_disturb = prev5_disturb;
     prev5_disturb = prev4_disturb;
@@ -122,15 +133,17 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
 
     prev1_dx = dx;
 
-    prev1_x = x;
+    prev1_ddx = ddx;
 
-    prev1_sensor = tau;
+    prev1_dsensor = dtau;
 
     float comp = 0;
 
-    comp = d_disturb/g;
+    comp = disturb/g;
 
-    float limit_sat = 0.1;
+
+
+    float limit_sat = 0.4;
 
     if(comp > limit_sat){
         comp = limit_sat;
@@ -139,5 +152,8 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
         comp = -limit_sat;
     }
 
-    return (out + comp);
+    *(hw->fric1) = comp;
+    *(hw->fric2) = disturb;
+
+    return (out - comp);
 }
