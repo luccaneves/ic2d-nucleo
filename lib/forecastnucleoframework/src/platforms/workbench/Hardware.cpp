@@ -73,13 +73,13 @@ forecast::Status forecast::Hardware::init() {
   lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDX1->clean();
 
-  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassDX1_E->clean();
 
-  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(3.0f);
+  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassDDX1->clean();
   
-  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(3.0f);
+  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassDDDX1->clean();
 
   lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(3.0f);
@@ -220,7 +220,7 @@ bool forecast::Hardware::pressureSensorTInit() {
 }
 
 int counter = 0;
-#define FINITE_DIF_SAMPLING_COUNTER 3
+#define FINITE_DIF_SAMPLING_COUNTER 0
 
 void polyfit(	
   const std::vector<double> &t,
@@ -325,7 +325,7 @@ void forecast::Hardware::update(float dt) {
     
     dddthetaM = lowPassDDDX1->process(dddthetaM_polyfit, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
 
-    dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    dthetaM = lowPassDX1->process(dthetaM_polyfit, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
 
     dthetaE = lowPassDX1_E->process(dthetaE_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
 
@@ -461,7 +461,7 @@ void forecast::Hardware::update(float dt) {
   //tauSensor = tauSensor_filt - 181.0f; // Bias in Newton, hydraulic tests 2023-07-19
   //tauSensor = tauSensor_filt + 95.0f; // Bias in Newton, hydraulic tests 2023-09-11
   
-  tau_sensors_nofilt = -tau_sensors_nofilt; 
+  tau_sensors_nofilt = tau_sensors_nofilt; 
   
   tauSensor = lowPassTauSensor->process(tau_sensors_nofilt, dt);
 

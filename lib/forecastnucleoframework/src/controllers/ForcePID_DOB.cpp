@@ -23,9 +23,8 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     float x = hw->get_theta(0);
 
 
-    double inv_model_num[6] = {0.571428571428570,  -2.271981280021834,   3.388027010856860,  -2.245817756539461,   0.558343479643941, 0};
-    double inv_model_den[6] = {1.000000000000000,  -3.948018661315640,   5.844898772227057,  -3.845734406599141,   0.948854321055799, 0};
-
+    double inv_model_num[6] = {0.571428571428571, -2.271939565880813, 3.387903524625673, -2.245695862958137, 0.558303393667344, 0};
+    double inv_model_den[6] = {1, -3.947873739932009, 5.844614647423093, -3.845595167664247, 0.948854321055802, 0};
 
     //double filter_num[6] = {0,0.0001233,0.0001217,0,0,0};
     //double filter_den[6] = {1, -1.961,0.9608,0,0,0};
@@ -34,8 +33,8 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     //double filter_den[6] = {1, -1.9605,0.9608,0,0,0};
 
 
-    double filter_num[6] = {0,   0.123347304658323E-3,   0.121713595276567E-3,0,0,0};
-    double filter_den[6] = {1.000000000000000,  -1.960544378252388,   0.960789439152323,0,0,0};
+    double filter_num[6] = {0,0.12233473E-3,0.1217135952E-3,0,0,0};
+    double filter_den[6] = {1, -1.9605444,0.96078944,0,0,0};
     //double filter_den[6] = {0, 0,0,0,0,0};
 
     double inv_model_exit = 0;
@@ -133,7 +132,7 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
 
     double dob_exit = inv_model_exit - filter_exit;
 
-    int a = 80;
+    int a = 45;
 
     if(dob_exit > a){
         dob_exit = a;

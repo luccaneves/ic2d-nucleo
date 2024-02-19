@@ -32,14 +32,14 @@ FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc)
       v(0.0f)
       
 {
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassx = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(10.0f);
     
     Be = 1.3E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
@@ -67,10 +67,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     x = lowPassx->process(hw->get_theta(0), hw->get_dt());
     dx = lowPassDx->process(hw->get_d_theta(0), hw->get_dt());
 
-    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt());
+    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt())*100000;
+    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt())*100000;
+    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt())*100000;
+    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt())*100000;
 
     ixv = hw->get_tau_m(0);
 
@@ -101,7 +101,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
-    out = Kpc/(g)*(-Kvc*f + v);
+    out = Kpc/(g)*(-Kvc*f*1000 + v);
 
     return out;
 }

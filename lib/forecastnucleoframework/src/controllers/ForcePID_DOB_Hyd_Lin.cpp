@@ -29,37 +29,48 @@ ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd)
     qn = 0.000125f; // Nominal flow for Moog 24 [m^3/s]
     Fv = 250.0f; // Frequency for Moog 24 [Hz]
     Dv = 0.5f; // Mistério
+
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(10.0f);
 }
 
 
 
 float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 {
-    float x = hw->get_theta(0);
-    float ixv = hw->get_tau_m(0);
+    double inv_model_exit = 0;
 
-    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt());
+    double filter_exit = 0;
+
+    double inv_model_num[6] = {0.480000000000000E4 , -1.405982901161782E4  , 1.372015813527966E4 , -0.446032912366184E4,   0, 0};
+    double inv_model_den[6] = {1.000000000000000 , -2.999497575612927  , 2.998997800567079 , -0.999500124979168,   0, 0};
+
+    double filter_num[6] = {0 ,  0.166645814447765E-7 ,  0.666499860455253E-7   , 0.166604158477415E-7 ,0,0};
+    double filter_den[6] = { 1.000000000000000  ,-2.999497575612929   ,2.998997800567081  ,-0.999500124979169,0,0};
 
     reference = ref[0];
-    //tau = hw->get_tau_s(1);     // was 0: tauS
-    //dtau = hw->get_d_tau_s(1);  // was 0: tauS
+    
+    tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
+    dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
 
-    //tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
-    //dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
+    float x = lowPassx->process(hw->get_theta(0), hw->get_dt());
+    float dx = lowPassDx->process(hw->get_d_theta(0), hw->get_dt());
 
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
+    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt())*100000;
+    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt())*100000;
+    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt())*100000;
+    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt())*100000;
+
+    float ixv = hw->get_tau_m(0);
 
     err = ref[0] - tau;
     derr = (err - errPast) / hw->get_dt();
-
-    derr = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
-    + 3.75*prev4_err - 1.2*prev5_err + 0.16*prev6_err)/
-    (hw->get_dt());
-
     ierr += err * hw->get_dt();
     errPast = err;
 
@@ -70,86 +81,34 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
     Ap = Aa;                    
     alfa = Ab/Aa;
-
-    Va = Aa*(L_cyl/2);
-    Vb = Ab*(L_cyl/2);
-
+    Kv = qn/sqrt(pn);
+    
     Va = Vpl + Aa*x;
     Vb = Vpl + (L_cyl - x)*Ab;
 
-    Va0 = Vpl + Va;
-    Vb0 = Vpl + Vb;
-    Wv = 2*M_PI*Fv;
-    Kv = qn/sqrt(pn);
-    Kvp = sqrt(2)*Kv;
-    Pa0 = (Ps*(alfa))/(alfa + 1);               
-    Pb0 = (Ps*(alfa))/(1 + alfa);   
+    float g = 0;
 
-    if(ixv > 0.0f){
-        Kqua = (Kvp/In)*sqrt(Ps-Pa0);
-        Kqub = (Kvp/In)*sqrt(Pb0-Pt);
-    }
+    if(ixv >= 0.0f){
+        g = Be*Aa*Kv*( round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb );}
     else{
-        Kqua = (Kvp/In)*sqrt(Pa0-Pt);
-        Kqub = (Kvp/In)*sqrt(Ps-Pb0);
-    }
+        g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );}
 
-    double Kca;
-    double Kcb;
+    //f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
+    float f = Be*pow(Aa,2)*( pow(alfa,2)/Vb + 1/Va )*dx;
 
-    if(ixv > 0.0f){
-        Kca = ((Kvp/In)*ixv)/(2*sqrt(Ps-Pa0));
-        Kcb = -((Kvp/In)*ixv)/(2*sqrt(Pb0-Pt));
-    }
-    
-    else{
-        Kca = -((Kvp/In)*ixv)/(2*sqrt(Pa0-Pt));
-        Kcb = ((Kvp/In)*ixv)/(2*sqrt(Ps-Pb0));
-    }
+    float v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
-    Kxp = -Ap*Ap*((Be/Va0) + pow(alfa,2)*(Be/Vb0));
-    Kuv = Ap*((Be/Va0)*Kqua + alfa*(Be/Vb0)*Kqub);
-    Kfh = (-Be/(1 + alfa*alfa*alfa))*(Kca/Va0 - alfa*alfa*alfa*Kcb/Vb0);
-
-    double inv_model_num[6] = {
-    (4260820000 - 8*Kxp - 1065205*Kfh),
-    (- 18420*Kfh - 16*Kxp - 8447960000),
-    (2111970*Kfh - 73600000),
-    (18380*Kfh + 16*Kxp + 8447960000),
-    -1046805*Kfh + 8*Kxp - 4187220000,
-    0
-    };
-
-    double inv_model_den[6] = {
-    17254642805*Kuv,
-    -68298234380*Kuv,
-     101372960030*Kuv,
-    -66869765580*Kuv,
-     16540397205*Kuv,
-    0
-    };
-
-
-
-
-
-    double filter_num[6] = {1,2,1,0,0,0};
-    double filter_den[6] = {16321 ,  -31998  ,15681,0,0,0};
-    //double filter_den[6] = {0, 0,0,0,0,0};
-
-    double inv_model_exit = 0;
-
-    double filter_exit = 0;
+    out = Kpc/(g)*(-Kvc*f*1000 + v);
 
     if(hw->get_current_time() > 0){
 
         inv_model_exit = 
-        inv_model_num[0]*hw->get_tau_s(1) + 
-        inv_model_num[1]*controller_prev1_tauSensor + 
-        inv_model_num[2]*controller_prev2_tauSensor +
-        inv_model_num[3]*controller_prev3_tauSensor +
-        inv_model_num[4]*controller_prev4_tauSensor +
-        inv_model_num[5]*controller_prev5_tauSensor 
+        inv_model_num[0]*x + 
+        inv_model_num[1]*controller_prev1_x + 
+        inv_model_num[2]*controller_prev2_x +
+        inv_model_num[3]*controller_prev3_x +
+        inv_model_num[4]*controller_prev4_x +
+        inv_model_num[5]*controller_prev5_x 
         -
         inv_model_den[1]*prev1_inv_model_exit - 
         inv_model_den[2]*prev2_inv_model_exit -
@@ -157,10 +116,10 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
         inv_model_den[4]*prev4_inv_model_exit -
         inv_model_den[5]*prev5_inv_model_exit;
 
-        inv_model_exit = inv_model_exit/inv_model_den[0];
+        inv_model_exit = inv_model_exit;
 
         filter_exit = 
-        filter_num[0]*(hw->get_tau_m(0)) + 
+        filter_num[0]*(hw->get_tau_m(0))/1000 + 
         filter_num[1]*controller_prev1_tauM + 
         filter_num[2]*controller_prev2_tauM + 
         filter_num[3]*controller_prev3_tauM + 
@@ -172,7 +131,7 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
         filter_den[4]*prev4_filter_exit -
         filter_den[5]*prev5_filter_exit;
 
-        filter_exit = filter_exit/filter_den[0];
+        filter_exit = filter_exit;
 
 
 
@@ -193,44 +152,17 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
         controller_prev4_tauM = controller_prev3_tauM;
         controller_prev3_tauM = controller_prev2_tauM;
         controller_prev2_tauM = controller_prev1_tauM;
-        controller_prev1_tauM = hw->get_tau_m(0);
+        controller_prev1_tauM = hw->get_tau_m(0)/1000;
 
-        controller_prev6_tauSensor = controller_prev5_tauSensor;
-        controller_prev5_tauSensor = controller_prev4_tauSensor;
-        controller_prev4_tauSensor = controller_prev3_tauSensor;
-        controller_prev3_tauSensor = controller_prev2_tauSensor;
-        controller_prev2_tauSensor = controller_prev1_tauSensor;
-        controller_prev1_tauSensor = hw->get_tau_s(1);
+        controller_prev6_x = controller_prev5_x;
+        controller_prev5_x = controller_prev4_x;
+        controller_prev4_x = controller_prev3_x;
+        controller_prev3_x = controller_prev2_x;
+        controller_prev2_x = controller_prev1_x;
+        controller_prev1_x = x;
     }
-
-
-
-
-
-    *(hw->fric1) = filter_exit;
-    *(hw->fric2) = inv_model_exit;
-
-    out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
     double dob_exit = inv_model_exit - filter_exit;
 
-    float limit_sat = 0.2;
-
-    if(dob_exit > limit_sat){
-        dob_exit = limit_sat;
-    }
-    if(dob_exit < -limit_sat){
-        dob_exit = -limit_sat;
-    }
-
-    prev6_err = prev5_err;
-    prev5_err = prev4_err;
-    prev4_err = prev3_err;
-    prev3_err = prev2_err;
-    prev2_err = prev1_err;
-    prev1_err = err;
-
-    out = out - dob_exit;
-
-    return (out);
+    return out - dob_exit*1000;
 }

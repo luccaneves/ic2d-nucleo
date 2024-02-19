@@ -40,10 +40,10 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     float ddx = hw->get_dd_theta(0);
     
 
-    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt());
+    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt())*100000;
+    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt())*100000;
+    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt())*100000;
+    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt())*100000;
 
     double inv_model_exit = 0;
 
@@ -54,11 +54,11 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     float d_disturb = 0;
     float disturb = 0;
     float z = 0;
-    float Ml = 6;
+    float Ml = 7.5;
     float Bl = 150;
     float Kl = 2500;
-    float B = 700;
-    float lambda = 1000;
+    float B = 1000;
+    float lambda = 50;
     //float dtau = hw->get_d_tau_m
 
     tau = hw->get_tau_s(1);
@@ -107,8 +107,9 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     prev2_err = prev1_err;
     prev1_err = err;
 
-    z = prev1_z - (lambda/Ml)*(hw->get_dt())*(prev1_z) + (hw->get_dt())*(lambda/Ml)*(Bl*prev1_ddx + Kl*prev1_dx + B*prev1_ddx - f - g*ixv - lambda*prev1_ddx);
-
+    float dz = -(lambda/Ml)*(z) + (lambda/Ml)*(Bl*ddx + Kl*dx + B*ddx - f - ((g*ixv)/1000) - lambda*ddx);
+    float dz_filt = lowPassD->process(dz, hw->get_dt());
+    z = z + dz_filt*hw->get_dt();
     disturb = z + lambda*ddx;
 
     /*d_disturb = (2.45*disturb - 6*prev1_disturb + 7.5*prev2_disturb - 6.66*prev3_disturb 
@@ -141,9 +142,10 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
 
     comp = disturb/g;
 
+    /*enviar em mA*/
+    comp = comp*1000;
 
-
-    float limit_sat = 0.4;
+    float limit_sat = 0.1;
 
     if(comp > limit_sat){
         comp = limit_sat;
@@ -152,8 +154,8 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
         comp = -limit_sat;
     }
 
-    *(hw->fric1) = comp;
-    *(hw->fric2) = disturb;
+    *(hw->fric1) = dz_filt;
+    *(hw->fric2) = comp;
 
     return (out - comp);
 }

@@ -75,9 +75,6 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
     float Kxp = 0.0f;
     float Kfh = 0.0;
 
-    float Kvc = 0.0f;
-    float Kpc = 0.0f;
-
     double prev1_inv_model_exit = 0;
     double prev2_inv_model_exit = 0;
     double prev3_inv_model_exit = 0;
@@ -91,12 +88,12 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
     double prev4_filter_exit = 0;
     double prev5_filter_exit = 0;
 
-    double controller_prev1_x;
-    double controller_prev2_x;
-    double controller_prev3_x;
-    double controller_prev4_x;
-    double controller_prev5_x;
-    double controller_prev6_x;
+    double controller_prev1_tauSensor;
+    double controller_prev2_tauSensor;
+    double controller_prev3_tauSensor;
+    double controller_prev4_tauSensor;
+    double controller_prev5_tauSensor;
+    double controller_prev6_tauSensor;
 
 
 
@@ -116,8 +113,6 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
-    utility::AnalogFilter* lowPassx;
-    utility::AnalogFilter* lowPassDx;
     utility::AnalogFilter* lowPassPs;
     utility::AnalogFilter* lowPassPt;
     utility::AnalogFilter* lowPassPa;

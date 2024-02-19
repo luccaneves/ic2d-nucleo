@@ -280,7 +280,7 @@ public:
       case 0: // motor
         return dddthetaM;
       case 1: // environment
-        return ddthetaE;
+        return dddthetaE;
       case 2:
         return thetaEnvMotor;
       default:
@@ -423,6 +423,7 @@ protected:
   float thetaE;
   float dthetaE;
   float ddthetaE;
+  float dddthetaE;
 
   float thetaEnvMotor;
   float dthetaEnvMotor;
