@@ -51,7 +51,7 @@ void EsconMotor::setTorque(float tau_m)
 
 float EsconMotor::getCurrentFeedback() 
 {
-    return ((currFeedback.read_last_float() - (0.5f + offset_bias) ) / (amp_scale) ) ;
+    return ((currFeedback.read_last_float() - (0.5f + offset_bias)) / (amp_scale) ) ;
 }
 
 float EsconMotor::getTorqueFeedback() 

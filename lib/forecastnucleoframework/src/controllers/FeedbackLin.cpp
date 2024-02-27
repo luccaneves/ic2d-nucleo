@@ -41,15 +41,14 @@ FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc)
     lowPassPs = utility::AnalogFilter::getLowPassFilterHz(10.0f);
     lowPassPt = utility::AnalogFilter::getLowPassFilterHz(10.0f);
     
-    Be = 1.3E+9f; // Bulk modulus [Pa]
+    Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
-    Dh = 0.010f; //  Rod diameter [m]
+    Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
     In = 0.01f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.000125f; // Nominal flow for Moog 24 [m^3/s]
-    Fv = 250.0f; // Frequency for Moog 24 [Hz]
     
 
     logs.push_back(&reference);
@@ -67,10 +66,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     x = lowPassx->process(hw->get_theta(0), hw->get_dt());
     dx = lowPassDx->process(hw->get_d_theta(0), hw->get_dt());
 
-    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt())*100000;
-    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt())*100000;
-    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt())*100000;
-    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt())*100000;
+    Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
+    Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
+    Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
 
     ixv = hw->get_tau_m(0);
 
@@ -86,22 +85,40 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
     Ap = Aa;                    
     alfa = Ab/Aa;
-    Kv = qn/sqrt(pn);
+    Kv = qn/(In*sqrt(pn/2));
     
     Va = Vpl + Aa*x;
     Vb = Vpl + (L_cyl - x)*Ab;
 
-    if(ixv >= 0.0f){
-        g = Be*Aa*Kv*( round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb );}
+    if(ixv >= 0.00000f){
+        g = Be*Aa*Kv*( round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb );
+        }
+        
     else{
-        g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );}
+        g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+        }
 
     //f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
     f = Be*pow(Aa,2)*( pow(alfa,2)/Vb + 1/Va )*dx;
 
     v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
-    out = Kpc/(g)*(-Kvc*f*1000 + v);
+    //out = Kpc/(g)*(-Kvc*f*1000 + v);
+
+    out = (1000*v)/(g*Kpc) - (f*Kvc*1000)/(g*Kpc);
+
+    *(hw->fric1) = g;
+    *(hw->fric2) = out;
+
+    float limit = 0.6;
+
+    if(out > limit){
+        out = limit;
+    }
+    if(out < -limit){
+        out = -limit;
+    }
+
 
     return out;
 }

@@ -10,7 +10,7 @@ namespace forecast {
  * @brief ForcePID control class
  **/
 
-class ForcePID_DOB_HYD : public Controller {
+class Imp_Dob_LinMot_4000 : public Controller {
    public:
 
     /**
@@ -24,7 +24,7 @@ class ForcePID_DOB_HYD : public Controller {
   * @param Kpc
   * @param lambda
      */
-    ForcePID_DOB_HYD(float kp = 0, float ki = 0, float kd = 0, float Kvc = 0,
+    Imp_Dob_LinMot_4000(float kp = 0, float ki = 0, float kd = 0, float Kvc = 0,
                    float Kpc = 0, float lambda = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
@@ -147,16 +147,15 @@ class ForcePID_DOB_HYD : public Controller {
     utility::AnalogFilter* lowPassPb;
 };
 
-inline ControllerFactory::Builder make_Force_PID_DOB_hyd_builder() {
+inline ControllerFactory::Builder make_Imp_Dob_LinMot_4000_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 6)
+        if (params.size() < 3)
             return nullptr;
-        return new ForcePID_DOB_HYD(params[0], params[1], params[2], params[3],
-                                params[4],params[5]);
+        return new Imp_Dob_LinMot_4000(params[0], params[1], params[2]);
     };
 
-    return {fn, {"KP", "KI", "KD","Kvc","Kpc","lambda"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD"}, {"reference"}};
 }
 
 }  // namespace forecast

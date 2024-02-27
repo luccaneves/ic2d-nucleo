@@ -19,7 +19,7 @@ namespace motorControl {
     constexpr float KT = (HYD_CURRENT_MAX - HYD_CURRENT_MIN);
     
     constexpr float JM = 1.0000f;
-    constexpr float offset_bias = -0.0195; // LinMot: 0.000 | Moog E024: -0.0165
+    constexpr float offset_bias = -0.022; // LinMot: 0.000 | Moog E024: -0.0195
     constexpr float amp_scale = 1.00;
 #elif
     constexpr float MAX_CURR = 3.33f;

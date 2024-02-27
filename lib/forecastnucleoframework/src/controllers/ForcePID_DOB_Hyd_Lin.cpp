@@ -2,26 +2,22 @@
 
 using namespace forecast;
 
-ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd)
+ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd,float kvc, float kpc)
     : kp(kp),
       ki(ki),
       kd(kd),
+      kpc(kpc),
+      kvc(kvc),
       errPast(0.f),
       err(0.f),
       derr(0.f),
       ierr(0.f)
 {
     logs.push_back(&reference);
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(10.0f);
-    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(10.0f);
-    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(10.0f);
-    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(10.0f);
 
-    Be = 1.3E+9f; // Bulk modulus [Pa]
+    Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
-    Dh = 0.010f; //  Rod diameter [m]
+    Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
     In = 0.01f; //  Nominal valve input for Moog 24 [A]
@@ -48,24 +44,28 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 
     double filter_exit = 0;
 
-    double inv_model_num[6] = {0.480000000000000E4 , -1.405982901161782E4  , 1.372015813527966E4 , -0.446032912366184E4,   0, 0};
-    double inv_model_den[6] = {1.000000000000000 , -2.999497575612927  , 2.998997800567079 , -0.999500124979168,   0, 0};
+    double inv_model_num[6] = {1.100000000000001E4  ,-2.178908596199805E4  , 1.078945605924218E4 , 0, 0, 0};
 
-    double filter_num[6] = {0 ,  0.166645814447765E-7 ,  0.666499860455253E-7   , 0.166604158477415E-7 ,0,0};
-    double filter_den[6] = { 1.000000000000000  ,-2.999497575612929   ,2.998997800567081  ,-0.999500124979169,0,0};
+    double inv_model_den[6] = {1.000000000000000 , -1.980136794483123  , 0.980198673306755 , 0, 0, 0};
+
+    //double filter_num[6] = { 0  , 0.026530084739094E-10  , 0.106100443382667E-10 ,  0.026520137822417E-10,0,0};
+    //double filter_den[6] = {  1.000000000000000  ,-2.999250093742158  , 2.998500374937449 , -0.999250281179671,0,0};
+
+    double filter_num[6] = { 0  , 0.310425427160331E-4  , 0.308362809159582E-4 ,0,0 ,0};
+    double filter_den[6] = {  1.000000000000000 , -1.980136794483123  , 0.980198673306755,  0,0,0};
 
     reference = ref[0];
     
     tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
     dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
 
-    float x = lowPassx->process(hw->get_theta(0), hw->get_dt());
-    float dx = lowPassDx->process(hw->get_d_theta(0), hw->get_dt());
+    float x = hw->get_theta(0);
+    float dx = hw->get_d_theta(0);
 
-    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt())*100000;
-    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt())*100000;
-    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt())*100000;
-    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt())*100000;
+    Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
+    Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
+    Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
 
     float ixv = hw->get_tau_m(0);
 
@@ -81,88 +81,105 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
     Ap = Aa;                    
     alfa = Ab/Aa;
-    Kv = qn/sqrt(pn);
+    Kv = qn/(In*sqrt(pn/2));
     
     Va = Vpl + Aa*x;
     Vb = Vpl + (L_cyl - x)*Ab;
 
-    float g = 0;
+    double g = 0;
 
     if(ixv >= 0.0f){
-        g = Be*Aa*Kv*( round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb );}
+        g = Be*Aa*Kv*( round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb );
+        }
     else{
-        g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );}
+        g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+        }
 
     //f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
     float f = Be*pow(Aa,2)*( pow(alfa,2)/Vb + 1/Va )*dx;
 
-    float v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
-
-    out = Kpc/(g)*(-Kvc*f*1000 + v);
-
-    if(hw->get_current_time() > 0){
-
-        inv_model_exit = 
-        inv_model_num[0]*x + 
-        inv_model_num[1]*controller_prev1_x + 
-        inv_model_num[2]*controller_prev2_x +
-        inv_model_num[3]*controller_prev3_x +
-        inv_model_num[4]*controller_prev4_x +
-        inv_model_num[5]*controller_prev5_x 
-        -
-        inv_model_den[1]*prev1_inv_model_exit - 
-        inv_model_den[2]*prev2_inv_model_exit -
-        inv_model_den[3]*prev3_inv_model_exit -
-        inv_model_den[4]*prev4_inv_model_exit -
-        inv_model_den[5]*prev5_inv_model_exit;
-
-        inv_model_exit = inv_model_exit;
-
-        filter_exit = 
-        filter_num[0]*(hw->get_tau_m(0))/1000 + 
-        filter_num[1]*controller_prev1_tauM + 
-        filter_num[2]*controller_prev2_tauM + 
-        filter_num[3]*controller_prev3_tauM + 
-        filter_num[4]*controller_prev4_tauM  
-        -
-        filter_den[1]*prev1_filter_exit - 
-        filter_den[2]*prev2_filter_exit -
-        filter_den[3]*prev3_filter_exit -
-        filter_den[4]*prev4_filter_exit -
-        filter_den[5]*prev5_filter_exit;
-
-        filter_exit = filter_exit;
 
 
+    inv_model_exit = 
+    inv_model_num[0]*dx + 
+    inv_model_num[1]*controller_prev1_x + 
+    inv_model_num[2]*controller_prev2_x +
+    inv_model_num[3]*controller_prev3_x +
+    inv_model_num[4]*controller_prev4_x +
+    inv_model_num[5]*controller_prev5_x 
+    -
+    inv_model_den[1]*prev1_inv_model_exit - 
+    inv_model_den[2]*prev2_inv_model_exit -
+    inv_model_den[3]*prev3_inv_model_exit -
+    inv_model_den[4]*prev4_inv_model_exit -
+    inv_model_den[5]*prev5_inv_model_exit;
 
-        prev5_filter_exit = prev4_filter_exit;
-        prev4_filter_exit = prev3_filter_exit;
-        prev3_filter_exit = prev2_filter_exit;
-        prev2_filter_exit = prev1_filter_exit;
-        prev1_filter_exit = filter_exit;
+    inv_model_exit = inv_model_exit;
 
-        prev5_inv_model_exit = prev4_inv_model_exit;
-        prev4_inv_model_exit = prev3_inv_model_exit;
-        prev3_inv_model_exit = prev2_inv_model_exit;
-        prev2_inv_model_exit = prev1_inv_model_exit;
-        prev1_inv_model_exit = inv_model_exit;
+    filter_exit = 
+    filter_num[0]*controller_prev1_tauM + 
+    filter_num[1]*controller_prev2_tauM + 
+    filter_num[2]*controller_prev3_tauM + 
+    filter_num[3]*controller_prev4_tauM + 
+    filter_num[4]*controller_prev5_tauM  
+    -
+    filter_den[1]*prev1_filter_exit - 
+    filter_den[2]*prev2_filter_exit -
+    filter_den[3]*prev3_filter_exit -
+    filter_den[4]*prev4_filter_exit -
+    filter_den[5]*prev5_filter_exit;
 
-        controller_prev6_tauM = controller_prev5_tauM;
-        controller_prev5_tauM = controller_prev4_tauM;
-        controller_prev4_tauM = controller_prev3_tauM;
-        controller_prev3_tauM = controller_prev2_tauM;
-        controller_prev2_tauM = controller_prev1_tauM;
-        controller_prev1_tauM = hw->get_tau_m(0)/1000;
-
-        controller_prev6_x = controller_prev5_x;
-        controller_prev5_x = controller_prev4_x;
-        controller_prev4_x = controller_prev3_x;
-        controller_prev3_x = controller_prev2_x;
-        controller_prev2_x = controller_prev1_x;
-        controller_prev1_x = x;
-    }
+    filter_exit = filter_exit;
 
     double dob_exit = inv_model_exit - filter_exit;
 
-    return out - dob_exit*1000;
+    //dob_exit = 0; //TODO: Remover
+
+    double v = kp * err + kd * derr + ki * ierr - dob_exit;
+
+
+    prev5_filter_exit = prev4_filter_exit;
+    prev4_filter_exit = prev3_filter_exit;
+    prev3_filter_exit = prev2_filter_exit;
+    prev2_filter_exit = prev1_filter_exit;
+    prev1_filter_exit = filter_exit;
+
+    prev5_inv_model_exit = prev4_inv_model_exit;
+    prev4_inv_model_exit = prev3_inv_model_exit;
+    prev3_inv_model_exit = prev2_inv_model_exit;
+    prev2_inv_model_exit = prev1_inv_model_exit;
+    prev1_inv_model_exit = inv_model_exit;
+
+    controller_prev6_tauM = controller_prev5_tauM;
+    controller_prev5_tauM = controller_prev4_tauM;
+    controller_prev4_tauM = controller_prev3_tauM;
+    controller_prev3_tauM = controller_prev2_tauM;
+    controller_prev2_tauM = controller_prev1_tauM;
+    controller_prev1_tauM = v;
+
+    controller_prev6_x = controller_prev5_x;
+    controller_prev5_x = controller_prev4_x;
+    controller_prev4_x = controller_prev3_x;
+    controller_prev3_x = controller_prev2_x;
+    controller_prev2_x = controller_prev1_x;
+    controller_prev1_x = dx;
+    
+    *(hw->fric1) = filter_exit;
+    *(hw->fric2) = inv_model_exit;
+
+    float limit = 0.5;
+
+    out = (1000*v)/(g*kpc) - (1000*f*kvc)/(g*kpc);
+
+    //out = out - dob_exit;
+
+    if(out > limit){
+        out = limit;
+    }
+    if(out < -limit){
+        out = -limit;
+    }
+
+    //return 0.1;
+    return out;
 }
