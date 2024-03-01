@@ -48,7 +48,7 @@ float ImpedanceControl::process(const IHardware *hw, std::vector<float> ref)
     }
 
     /* POSITION LOOP */
-    tau_ref = /*k_des*ref[0] - */ -k_des * (theta - ref[0]) - b_des * dtheta_filt - j_des * ddtheta_filt;
+    tau_ref = -k_des * (theta - ref[0]) - b_des * dtheta_filt - j_des * ddtheta_filt;
 
 
     /* FORCE LOOP */

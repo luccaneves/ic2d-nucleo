@@ -1,5 +1,5 @@
-#ifndef FORCE_PID_DOB_HYD_H
-#define FORCE_PID_DOB_HYD_H
+#ifndef Imp_Dob_LinMot_4000_h
+#define Imp_Dob_LinMot_4000_h
 
 #include <utility/filters/AnalogFilter.hpp>
 #include "../Controller.hpp"
@@ -20,12 +20,13 @@ class Imp_Dob_LinMot_4000 : public Controller {
      * @param kp
      * @param ki
      * @param kd
-     *  * @param Kvc
-  * @param Kpc
-  * @param lambda
+     *  * @param Ides
+  * @param Ddes
+  * @param Kdes
+  * @param DobGain
      */
-    Imp_Dob_LinMot_4000(float kp = 0, float ki = 0, float kd = 0, float Kvc = 0,
-                   float Kpc = 0, float lambda = 0);
+    Imp_Dob_LinMot_4000(float kp = 0, float ki = 0, float kd = 0, float Ides = 0,
+                   float Ddes = 0, float Kdes = 0, float DobGain = 0, float Jl = 0, float Bl = 0, float Kl = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -33,12 +34,28 @@ class Imp_Dob_LinMot_4000 : public Controller {
     float kp = 0.0;
     float ki = 0.0;
     float kd = 0.0;
-    float kpc = 0;
-    float kvc = 0;
-    float Lambda = 0;
+
+    float Ides = 0.0;
+    float Ddes = 0.0;
+    float Kdes = 0.0;
+
+    float Jl = 0.0;
+    float Bl = 0.0;
+    float Kl = 0.0;
+
+    float DobGain = 0;
+
 
     float tau = 0.0f;
     float dtau = 0.0f;
+    float theta = 0.0f;
+    float dtheta = 0.0f;
+    float ddtheta = 0.0f;
+    float dtheta_filt = 0.0f;
+    float ddtheta_filt = 0.0f;
+    bool once = true;
+    float tau_ref = 0.0f;
+    float theta_eq = 0.0f;
 
     float err = 0.0;
     float derr = 0.0;
@@ -68,7 +85,6 @@ class Imp_Dob_LinMot_4000 : public Controller {
     double controller_prev4_tauSensor;
     double controller_prev5_tauSensor;
     double controller_prev6_tauSensor;
-    double controller_prev7_tauSensor;
 
 
 
@@ -79,10 +95,6 @@ class Imp_Dob_LinMot_4000 : public Controller {
     double controller_prev5_tauM;
     double controller_prev6_tauM;
 
-    float prev1_ddx = 0;
-    float prev1_dx = 0;
-    float prev1_dsensor = 0;
-
     float prev1_err = 0;
     float prev2_err = 0;
     float prev3_err = 0;
@@ -90,57 +102,11 @@ class Imp_Dob_LinMot_4000 : public Controller {
     float prev5_err = 0;
     float prev6_err = 0;
 
-    float prev1_z = 0;
-    float prev2_z = 0;
-    float prev3_z = 0;
-    float prev4_z = 0;
-    float prev5_z = 0;
-    float prev6_z = 0;
-
-    float prev1_disturb = 0;
-    float prev2_disturb = 0;
-    float prev3_disturb = 0;
-    float prev4_disturb = 0;
-    float prev5_disturb = 0;
-    float prev6_disturb = 0;
-
-    float Be = 0.0f;
-    float De = 0.0f;
-    float Dh = 0.0f;
-    float L_cyl = 0.0f;
-    float Aa = 0.0f;
-    float Ap = 0.0f;
-    float Ab = 0.0f;
-    float alfa = 0.0f;
-    float Va = 0.0f;
-    float Vb = 0.0f;
-    float Va0 = 0.0f;
-    float Vb0 = 0.0f;
-    float Vpl = 0.0f;
-    float In = 0.0f;
-    float pn = 0.0f;
-    float qn = 0.0f;
-    float Fv = 0.0f;
-    float Wv = 0.0f;
-    float Dv = 0.0f;
-    float Kv = 0.0f;
-    float Kvp = 0.0f;
-    float Kqua = 0.0f;
-    float Kqub = 0.0f;
-    float Pa0 = 0.0f;
-    float Pb0 = 0.0f;
-    float Ps = 0.0f;
-    float Pt = 0.0f;
-    float Pa = 0.0f;
-    float Pb = 0.0f;
-    float Kqu = 0.0f;
-    float Kd = 0.0f;
-    float f = 0;
-
-    float prev_out = 0;
+    
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
+    utility::AnalogFilter* lowPassDD;
     utility::AnalogFilter* lowPassPs;
     utility::AnalogFilter* lowPassPt;
     utility::AnalogFilter* lowPassPa;
@@ -150,12 +116,13 @@ class Imp_Dob_LinMot_4000 : public Controller {
 inline ControllerFactory::Builder make_Imp_Dob_LinMot_4000_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 3)
+        if (params.size() < 10)
             return nullptr;
-        return new Imp_Dob_LinMot_4000(params[0], params[1], params[2]);
+        return new Imp_Dob_LinMot_4000(params[0], params[1], params[2]
+        , params[3], params[4], params[5],params[6],params[7],params[8],params[9]);
     };
 
-    return {fn, {"KP", "KI", "KD"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","Ides","Bdes","Kdes","DOB_GAIN","Jl","Bl","Kl"}, {"reference"}};
 }
 
 }  // namespace forecast

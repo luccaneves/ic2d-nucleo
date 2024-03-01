@@ -2,29 +2,64 @@
 
 using namespace forecast;
 
-Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd)
+Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd,float Ides, float Ddes, float Kdes, float DobGain, float Jl, float Bl, float Kl)
     : kp(kp),
       ki(ki),
       kd(kd),
+      Kdes(Kdes),
+      Ddes(Ddes),
+      Ides(Ides),
+      Jl(Jl),
+      Bl(Bl),
+      Kl(Kl),
+      DobGain(DobGain),
       errPast(0.f),
       err(0.f),
       derr(0.f),
       ierr(0.f)
 {
     logs.push_back(&reference);
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassDD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
 }
 
 
 
 float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
 {
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
+    theta = hw->get_theta(0);
+    dtheta = hw->get_d_theta(0);
+    ddtheta = hw->get_dd_theta(0);
+    dtheta_filt = lowPassD->process(dtheta, hw->get_dt());
+    ddtheta_filt = lowPassDD->process(ddtheta, hw->get_dt());
+
+    /* Get the equilibrium state */
+    if (once)
+    {
+        theta_eq = theta;
+        once = false;
+        errPast = 0;
+    }
+
+    /* POSITION LOOP */
+    tau_ref = /*k_des*ref[0] - */ - Kdes*(theta - ref[0]) -  Ddes*dtheta_filt - Ides*ddtheta_filt;
+
     float x = hw->get_theta(0);
 
+    double inv_model_num[6] = {(307928880*Bl + 2463431040000*Jl + 538860857),  
+    (541382571 - 7378496640000*Jl - 306454320*Bl)  , 
+    (7366968960000*Jl - 307895280*Bl - 533817429)
+     , 306487920*Bl - 2451903360000*Jl - 536339143
+     , 0, 0};
 
-    double inv_model_num[6] = {0.571428571428571, -2.271939565880813, 3.387903524625673, -2.245695862958137, 0.558303393667344, 0};
-    double inv_model_den[6] = {1, -3.947873739932009, 5.844614647423093, -3.845595167664247, 0.948854321055802, 0};
+    double inv_model_den[6] = {(542984400*Bl + 4343875200000*Jl) , 
+    (- 532198800*Bl - 12945340800000*Jl)
+      ,(12859324800000*Jl - 542950800*Bl) , 
+     532232400*Bl - 4257859200000*Jl
+      , 0, 0};
 
     //double filter_num[6] = {0,0.0001233,0.0001217,0,0,0};
     //double filter_den[6] = {1, -1.961,0.9608,0,0,0};
@@ -33,8 +68,8 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     //double filter_den[6] = {1, -1.9605,0.9608,0,0,0};
 
 
-    double filter_num[6] = {0,0.12233473E-3,0.1217135952E-3,0,0,0};
-    double filter_den[6] = {1, -1.9605444,0.96078944,0,0,0};
+    double filter_num[6] = {0 ,  0.310425427160331E-4  , 0.3083628091595823E-4 ,0,0,0};
+    double filter_den[6] = {1.000000000000000 , -1.980136794483123  , 0.980198673306755,0,0,0};
     //double filter_den[6] = {0, 0,0,0,0,0};
 
     double inv_model_exit = 0;
@@ -57,7 +92,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
         inv_model_den[4]*prev4_inv_model_exit -
         inv_model_den[5]*prev5_inv_model_exit;
 
-        inv_model_exit = inv_model_exit;
+        inv_model_exit = inv_model_exit/inv_model_den[0];
 
         filter_exit = 
         filter_num[0]*(hw->get_tau_m(0)) + 
@@ -72,7 +107,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
         filter_den[4]*prev4_filter_exit -
         filter_den[5]*prev5_filter_exit;
 
-        filter_exit = filter_exit;
+        filter_exit = filter_exit/filter_den[0];
 
 
 
@@ -105,7 +140,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
 
 
 
-    reference = ref[0];
+    reference = tau_ref;
     //tau = hw->get_tau_s(1);     // was 0: tauS
     //dtau = hw->get_d_tau_s(1);  // was 0: tauS
 
@@ -115,12 +150,12 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     tau = hw->get_tau_s(1);
     dtau = hw->get_d_tau_s(1);
 
-    err = ref[0] - tau;
-    derr = (err - errPast) / hw->get_dt();
+    err = reference - tau;
 
     derr = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
     + 3.75*prev4_err - 1.2*prev5_err + 0.16*prev6_err)/
     (hw->get_dt());
+
 
     ierr += err * hw->get_dt();
     errPast = err;
@@ -128,7 +163,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     *(hw->fric1) = inv_model_exit;
     *(hw->fric2) = filter_exit;
 
-    out = ref[0] + kp * err + kd * derr + ki * ierr;
+    float out = kp * err + kd * derr + ki * ierr;
 
     double dob_exit = inv_model_exit - filter_exit;
 
@@ -149,5 +184,5 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     prev1_err = err;
 
 
-    return (out - dob_exit);
+    return (out - DobGain*dob_exit);
 }
