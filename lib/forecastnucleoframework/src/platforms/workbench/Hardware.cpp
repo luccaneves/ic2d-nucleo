@@ -64,7 +64,7 @@ forecast::Status forecast::Hardware::init() {
 
   //auto enabled = torque_sensor->enable();
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(30.0f);
   lowPassTauSensor->clean();
 
   lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(40.0f);

@@ -3,6 +3,7 @@
 
 #include "mbed.h"
 #include "PeripheralPins.h"
+#include "hw/Periphericals/circular_buffer.h"
 
 /** @brief Class of the analog input
  * 
@@ -110,6 +111,8 @@ typedef enum{
     #endif
 } ADCDma;
 
+
+
 /**
  * @brief Structure of the Analog_Input class
  * 
@@ -131,10 +134,20 @@ typedef enum{
  * 
  */
 
+typedef struct bufferi_st
+{
+    uint16_t *data;       // buffer data pointer
+    size_t max_size; // maximum circular buffer size
+    size_t size;     // circular buffer size
+    size_t cur;      // cursor position
+} bufferi_t;
+
+#define TESTE 1
 #define NUMBER_ADC_CHANNELS_USED 7
-#define NUMBER_READS_PER_CHANNELS 32
-#define DMA_BUFFER_SIZE NUMBER_ADC_CHANNELS_USED*NUMBER_READS_PER_CHANNELS
-#define NUMBER_BIT_SHIFT 5 /*Deve ser tal que x = log2 NUMBER_READS_PER_CHANNELS*/
+#define NUMBER_READS_PER_CHANNELS 4096
+#define DMA_BUFFER_SIZE NUMBER_ADC_CHANNELS_USED*TESTE
+#define NUMBER_BIT_SHIFT 12 /*Deve ser tal que x = log2 NUMBER_READS_PER_CHANNELS*/
+
 
 class AnalogInput
 {
@@ -157,11 +170,19 @@ public:
     float read_last_float();
     uint16_t read_last_word();
 
+    static uint16_t last_element[NUMBER_ADC_CHANNELS_USED];
+    static int avg_acc[NUMBER_ADC_CHANNELS_USED];
+    static int avg_qnt[NUMBER_ADC_CHANNELS_USED];
+    
+
+    static bufferi_t values_buffer_sensor[NUMBER_ADC_CHANNELS_USED];
+
     static uint8_t _using_ADC1;
     static uint8_t _using_ADC2;
     static uint8_t _using_ADC3;
     static uint32_t counterNumberADC;
     uint32_t conversionRank = 0;
+    static uint16_t *_pointer;
 
 private:
     ADC_TypeDef *_Conversor;
@@ -178,7 +199,32 @@ private:
     bool _injection_convertion;
     uint32_t _Size_buffer;
     uint32_t _Divider;
-    static uint16_t *_pointer;
+    
 };
+
+void interrupt_dma();
+void bufferi_clear(bufferi_t *b);
+
+void bufferi_init(bufferi_t *b, size_t max_size);
+
+void bufferi_free(bufferi_t *b);
+
+uint16_t *bufferi_at(bufferi_t *b, size_t pos);
+
+uint16_t bufferi_get(bufferi_t *b, size_t pos);
+
+void bufferi_push_back(bufferi_t *b, uint16_t value);
+
+void bufferi_pop_front(bufferi_t *b, uint16_t *value);
+
+void bufferi_print(bufferi_t *b);
+
+void bufferi_push_and_pop(bufferi_t *b, uint16_t push_value, uint16_t *pop_value);
+
+void bufferi_avgi(bufferi_t *b, uint16_t *avg);
+
+void bufferi_avgd(bufferi_t *b, double *avg);
+
+void bufferi_avgf(bufferi_t *b, float *avg);
 
 #endif // ANALOG_INPUT_H
