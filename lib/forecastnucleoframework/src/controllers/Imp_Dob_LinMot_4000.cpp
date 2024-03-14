@@ -2,16 +2,16 @@
 
 using namespace forecast;
 
-Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd,float Ides, float Ddes, float Kdes, float DobGain, float Jl, float Bl, float Kl)
+Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd,float Ides, float Ddes, float Kdes, float DobGain, float vc_gain, float jm, float bm)
     : kp(kp),
       ki(ki),
       kd(kd),
       Kdes(Kdes),
       Ddes(Ddes),
       Ides(Ides),
-      Jl(Jl),
-      Bl(Bl),
-      Kl(Kl),
+      VC_gain(vc_gain),
+      Jm(jm),
+      Bm(bm),
       DobGain(DobGain),
       errPast(0.f),
       err(0.f),
@@ -19,9 +19,10 @@ Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd,float Ides
       ierr(0.f)
 {
     logs.push_back(&reference);
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(10.0f);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
-    lowPassDD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
+    lowPassDD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
+    lowPassDForce = utility::AnalogFilter::getLowPassFilterHz(15.0f);
 }
 
 
@@ -36,6 +37,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     dtheta_filt = lowPassD->process(dtheta, hw->get_dt());
     ddtheta_filt = lowPassDD->process(ddtheta, hw->get_dt());
 
+
     /* Get the equilibrium state */
     if (once)
     {
@@ -45,31 +47,31 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     }
 
     /* POSITION LOOP */
-    tau_ref = /*k_des*ref[0] - */ - Kdes*(theta - ref[0]) -  Ddes*dtheta_filt - Ides*ddtheta_filt;
+    tau_ref = /*k_des*ref[0] - */ - Kdes*((theta - theta_eq) - ref[0]) -  Ddes*dtheta - Ides*ddtheta;
+
+    *(hw->fric1) = (theta - theta_eq);
 
     float x = hw->get_theta(0);
 
-    double inv_model_num[6] = {(307928880*Bl + 2463431040000*Jl + 538860857),  
-    (541382571 - 7378496640000*Jl - 306454320*Bl)  , 
-    (7366968960000*Jl - 307895280*Bl - 533817429)
-     , 306487920*Bl - 2451903360000*Jl - 536339143
-     , 0, 0};
+    float compensate_1 = ((ddtheta*Jm)) + (dtheta*Bm);
 
-    double inv_model_den[6] = {(542984400*Bl + 4343875200000*Jl) , 
-    (- 532198800*Bl - 12945340800000*Jl)
-      ,(12859324800000*Jl - 542950800*Bl) , 
-     532232400*Bl - 4257859200000*Jl
-      , 0, 0};
+    float compensate_2 = 0;
 
-    //double filter_num[6] = {0,0.0001233,0.0001217,0,0,0};
-    //double filter_den[6] = {1, -1.961,0.9608,0,0,0};
+    float compensate_3 = 0;
 
-    //double filter_num[6] = {0.0226E-3,0.2007E-3,0.0218E-3,0,0,0};
-    //double filter_den[6] = {1, -1.9605,0.9608,0,0,0};
+    *(hw->vel_comp_value) = VC_gain*( compensate_2  + compensate_1);
 
 
-    double filter_num[6] = {0 ,  0.310425427160331E-4  , 0.3083628091595823E-4 ,0,0,0};
-    double filter_den[6] = {1.000000000000000 , -1.980136794483123  , 0.980198673306755,0,0,0};
+    //double inv_model_num[6] = {0.571428571428571,  -1.707480636386558  , 1.700840103589048 , -0.564787194477277,0 , 0};
+    //double inv_model_den[6] = {1.000000000000000 , -2.973906285106519  , 2.947998206924892  ,-0.974091536281782, 0, 0};
+
+    double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
+
+    double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
+
+
+    double filter_num[6] = {0  , 0.310425427160331E-4  , 0.308362809159582E-4 ,0,0,0};
+    double filter_den[6] = {1.000000000000000  ,-1.980136794483123 ,  0.980198673306755,0,0,0};
     //double filter_den[6] = {0, 0,0,0,0,0};
 
     double inv_model_exit = 0;
@@ -77,9 +79,11 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     double filter_exit = 0;
 
     if(hw->get_current_time() > 0){
+        float value = hw->get_tau_s(1);
+        value = dtheta;
 
         inv_model_exit = 
-        inv_model_num[0]*hw->get_tau_s(1) + 
+        inv_model_num[0]*value + 
         inv_model_num[1]*controller_prev1_tauSensor + 
         inv_model_num[2]*controller_prev2_tauSensor +
         inv_model_num[3]*controller_prev3_tauSensor +
@@ -95,7 +99,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
         inv_model_exit = inv_model_exit/inv_model_den[0];
 
         filter_exit = 
-        filter_num[0]*(hw->get_tau_m(0)) + 
+        filter_num[0]*(*(hw->fric2)) + 
         filter_num[1]*controller_prev1_tauM + 
         filter_num[2]*controller_prev2_tauM + 
         filter_num[3]*controller_prev3_tauM + 
@@ -128,14 +132,14 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
         controller_prev4_tauM = controller_prev3_tauM;
         controller_prev3_tauM = controller_prev2_tauM;
         controller_prev2_tauM = controller_prev1_tauM;
-        controller_prev1_tauM = hw->get_tau_m(0);
+        controller_prev1_tauM = *(hw->fric2);
 
         controller_prev6_tauSensor = controller_prev5_tauSensor;
         controller_prev5_tauSensor = controller_prev4_tauSensor;
         controller_prev4_tauSensor = controller_prev3_tauSensor;
         controller_prev3_tauSensor = controller_prev2_tauSensor;
         controller_prev2_tauSensor = controller_prev1_tauSensor;
-        controller_prev1_tauSensor = hw->get_tau_s(1);
+        controller_prev1_tauSensor = value;
     }
 
 
@@ -157,15 +161,18 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     (hw->get_dt());
 
 
+    //derr = lowPassDForce->process(derr,hw->get_dt());
+
+
     ierr += err * hw->get_dt();
     errPast = err;
 
-    *(hw->fric1) = inv_model_exit;
-    *(hw->fric2) = filter_exit;
+    
+    //*(hw->fric2) = filter_exit;
 
-    float out = kp * err + kd * derr + ki * ierr;
+    float out = kp * err + kd * derr + ki * ierr + reference;
 
-    double dob_exit = inv_model_exit - filter_exit;
+    double dob_exit = (tau + inv_model_exit) - filter_exit;
 
     int a = 45;
 
@@ -184,5 +191,11 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     prev1_err = err;
 
 
-    return (out - DobGain*dob_exit);
+    float control_output_no_filter = out - DobGain*dob_exit + VC_gain*(compensate_1);
+
+    float out_control = lowPass->process(control_output_no_filter, hw->get_dt());
+
+    *(hw->fric2) = out_control;
+
+    return (out_control);
 }

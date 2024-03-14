@@ -58,5 +58,7 @@ float ImpedanceControl::process(const IHardware *hw, std::vector<float> ref)
 
     out = tau_ref /*+ kp * err + kd * derr*/;
 
+     *(hw->fric2) = out;
+
     return out;
 }
