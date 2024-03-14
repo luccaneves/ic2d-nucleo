@@ -64,19 +64,19 @@ forecast::Status forecast::Hardware::init() {
 
   //auto enabled = torque_sensor->enable();
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(30.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassTauSensor->clean();
 
   lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassLoacCell2->clean();
 
-  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(30.0f);
+  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDX1->clean();
 
   lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassDX1_E->clean();
 
-  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(30.0f);
+  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDDX1->clean();
   
   lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
@@ -476,7 +476,7 @@ void forecast::Hardware::update(float dt) {
   tau_sensors_nofilt = tau_sensors_nofilt; 
   
   tauSensor = lowPassTauSensor->process(tau_sensors_nofilt, dt);
-  tauSensor = tau_sensors_nofilt;
+  //tauSensor = tau_sensors_nofilt;
 
   //tauSensor = tau_sensors_nofilt; //TODO: Voltar
   //float dtauSensor_NoFilt = (tauSensor - prev_tauSensor) / dt;

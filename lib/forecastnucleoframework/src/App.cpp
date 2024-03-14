@@ -68,8 +68,6 @@ static bool init(float freq) {
   NVIC_SetVector(TICKER_HW_TIMER_IRQn, (uint32_t)interrupt_handler);
   NVIC_EnableIRQ(TICKER_HW_TIMER_IRQn);
 
-  
-
   flag = false;
 
   return true;

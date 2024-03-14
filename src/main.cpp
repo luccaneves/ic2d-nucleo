@@ -28,6 +28,7 @@
 #include <forecast/controllers/ForcePID_VC.hpp>
 #include <forecast/controllers/ForcePID_VC_LinMot.hpp>
 #include <forecast/controllers/FeedbackLin.hpp>
+#include <forecast/controllers/Imp_Dob_LinMot_4000.hpp>
 
 /** Refgen Headers */
 #include <forecast/reference_generators/ConstantRefGen.hpp>
@@ -74,10 +75,11 @@ int main()
     app.get_controller_factory().add("Bypass", make_Bypass_builder());
     app.get_controller_factory().add("ForcePIDVC", make_Force_PID_VC_builder());
     app.get_controller_factory().add("FeedbackLin", make_feedback_lin_builder());
-    app.get_controller_factory().add("DOB_2000Hz_LinMot", make_Force_PID_DOB_builder());
+    app.get_controller_factory().add("DOB_4000Hz_LinMot", make_Force_PID_DOB_builder());
     app.get_controller_factory().add("Linmot_VC", make_ForcePID_VC_LinMot_builder());
-    app.get_controller_factory().add("DOB HYD (2000Hz)", make_Force_PID_DOB_hyd_builder());
-    app.get_controller_factory().add("DOB HYD LIN (2000Hz)", make_Force_PID_DOB_hyd_lin_builder());
+    app.get_controller_factory().add("DOB HYD (4000Hz)", make_Force_PID_DOB_hyd_builder());
+    app.get_controller_factory().add("DOB HYD LIN (4000Hz)", make_Force_PID_DOB_hyd_lin_builder());
+    app.get_controller_factory().add("Imp_linmot_dob_4000", make_Imp_Dob_LinMot_4000_builder());
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 
