@@ -1,10 +1,325 @@
 #include "hw/Periphericals/AnalogInput.h"
 
+
 uint8_t AnalogInput::_using_ADC1 = 0;
 uint8_t AnalogInput::_using_ADC2 = 0;
 uint8_t AnalogInput::_using_ADC3 = 0;
 uint32_t AnalogInput::counterNumberADC = 1;
 uint16_t* AnalogInput::_pointer = nullptr;
+uint16_t AnalogInput::last_element[NUMBER_ADC_CHANNELS_USED] = {0};
+int AnalogInput::avg_acc[NUMBER_ADC_CHANNELS_USED] = {0};
+int AnalogInput::avg_qnt[NUMBER_ADC_CHANNELS_USED] = {0};
+
+bufferi_t AnalogInput::values_buffer_sensor[NUMBER_ADC_CHANNELS_USED];
+
+// Only use this if you know what you are doing!!!
+#define NO_ASSERT
+
+// If you want a memory deallocation look for bufferi_free(bufferi_t *b).
+// This is just a quick clear, without writing zeros, the data is still available.
+inline void bufferi_clear(bufferi_t *b)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+#endif
+
+    // initializing size as 0
+    b->size = 0;
+
+    // initializing cursor as 0
+    b->cur = 0;
+}
+
+inline void bufferi_init(bufferi_t *b, size_t max_size)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+#endif
+
+    // allocate the requested size
+    b->data = (uint16_t *)malloc(max_size * sizeof(uint16_t));
+
+    // check if data allocation was successful
+    if (b->data != NULL)
+    {
+        // setting up a valid max_size after checking allocation
+        b->max_size = max_size;
+    }
+    else
+    {
+        // setting up a valid max_size after failing allocation
+        b->max_size = 0;
+    }
+
+    // initializing size and cur as 0
+    bufferi_clear(b);
+}
+
+inline void bufferi_free(bufferi_t *b)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+
+    // check if data is allocated before trying to deallocate
+    assert(b->data != NULL);
+#endif
+
+    // free data
+    free(b->data);
+
+    // just making sure the previous pointer is invalid
+    b->data = NULL;
+
+    // making sure the max_size verifications will be coherent
+    b->max_size = 0;
+
+    // making sure the size and cur verifications will be coherent
+    bufferi_clear(b);
+}
+
+uint16_t *bufferi_at(bufferi_t *b, size_t pos)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+
+    // check if buffer has data
+    assert(b->data != NULL);
+#endif
+
+    size_t circular_pos = (pos + b->cur) % b->max_size;
+
+    // check if position is valid in buffer data
+    // assert(circular_pos > -1 && circular_pos < b->max_size);
+
+    // return pointer to circular position in buffer data
+    return &(b->data[circular_pos]);
+}
+
+uint16_t bufferi_get(bufferi_t *b, size_t pos)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+
+    // check if buffer has data
+    assert(b->data != NULL);
+
+    // check if position is valid
+    assert((pos >= 0) && (pos < b->size));
+#endif
+
+    // return value from circular position in buffer data
+    return *bufferi_at(b, pos);
+}
+
+inline void bufferi_push_back(bufferi_t *b, uint16_t value)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+
+    // check if circular buffer is not full
+    assert(b->size < b->max_size);
+#endif
+
+    // get possible position for new value
+    uint16_t *data = bufferi_at(b, b->size);
+
+    // set data with value
+    *data = value;
+
+    // increment the circular buffer size
+    b->size++;
+}
+
+inline void bufferi_pop_front(bufferi_t *b, uint16_t *value)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+
+    // check if circular buffer is not empty
+    assert(b->size > 0);
+#endif
+
+    // get possible position for first value
+    uint16_t *data = bufferi_at(b, 0);
+
+    // sets value from first element in the circular buffer
+    if (value != NULL)
+    {
+        *value = *data;
+    }
+
+    // decrement the circular buffer size
+    b->size--;
+
+    // move buffer cursor
+    b->cur = (b->cur + 1) % b->max_size;
+}
+
+inline void bufferi_print(bufferi_t *b)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+#endif
+
+    printf("bufferi:");
+    for (size_t p = 0; p < b->size; ++p)
+    {
+        printf(" %d", bufferi_get(b, p));
+    }
+    printf("\n");
+}
+
+inline void bufferi_push_and_pop(bufferi_t *b, uint16_t push_value, uint16_t *pop_value)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+#endif
+
+    // pop front before overflowing
+    bufferi_pop_front(b, pop_value);
+
+    // push back after removing first element
+    bufferi_push_back(b, push_value);
+}
+
+inline void bufferi_avgi(bufferi_t *b, uint16_t *avg)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+
+    // check if avg return is not null
+    assert(avg != NULL);
+#endif
+
+    int acc = 0;
+    for (size_t p = 0; p < b->size; ++p)
+    {
+        acc += bufferi_get(b, p);
+    }
+    *avg = acc / b->size;
+}
+
+inline void bufferi_avgd(bufferi_t *b, double *avg)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+
+    // check if avg return is not null
+    assert(avg != NULL);
+#endif
+
+    double acc = 0.0;
+    for (size_t p = 0; p < b->size; ++p)
+    {
+        acc += (double)bufferi_get(b, p);
+    }
+    *avg = acc / ((double)b->size);
+}
+
+inline void bufferi_avgf(bufferi_t *b, float *avg)
+{
+#ifndef NO_ASSERT
+    // check if buffer is not null
+    assert(b != NULL);
+
+    // check if avg return is not null
+    assert(avg != NULL);
+#endif
+
+    float acc = 0.0f;
+    for (size_t p = 0; p < b->size; ++p)
+    {
+        acc += (float)bufferi_get(b, p);
+    }
+    *avg = acc / ((float)b->size);
+}
+
+
+void interrupt_dma(){
+    //clear flag
+    int h = 0;
+    int j = 0;
+
+
+
+    for(h = 0; h < DMA_BUFFER_SIZE; h++){
+        int i = 0;
+
+        if(h < 4){
+            i = 1;
+        }
+        else{
+            i = 0;
+        }
+        for(j = 0; j < TESTE; j++)
+        {
+            
+            int value_index = NUMBER_ADC_CHANNELS_USED*j + h;
+            if (AnalogInput::values_buffer_sensor[i].size < AnalogInput::values_buffer_sensor[i].max_size)
+            {
+                bufferi_push_back(AnalogInput::values_buffer_sensor + i, AnalogInput::_pointer[value_index]); // O(1)
+            }
+            else
+            {
+                bufferi_push_and_pop(AnalogInput::values_buffer_sensor + i, AnalogInput::_pointer[value_index], AnalogInput::last_element + i); // O(1)
+                AnalogInput::avg_acc[i] -= AnalogInput::last_element[i];                                  // O(1)
+                    // printf("subtract %d == %d\n", last_element, avg_acc);
+            }
+            AnalogInput::avg_acc[i] += AnalogInput::_pointer[value_index];
+
+            //AnalogInput::avg_acc[i] = AnalogInput::_pointer[i];
+            
+            AnalogInput::avg_qnt[i] = AnalogInput::values_buffer_sensor[i].size;
+        }
+    }
+
+    /*for(i = 0; i < NUMBER_ADC_CHANNELS_USED; i++){
+        for(j = 0; j < TESTE; j++)
+        {
+            int value_index = NUMBER_ADC_CHANNELS_USED*j + i;
+            if (AnalogInput::values_buffer_sensor[i].size < AnalogInput::values_buffer_sensor[i].max_size)
+            {
+                bufferi_push_back(AnalogInput::values_buffer_sensor + i, AnalogInput::_pointer[value_index]); // O(1)
+            }
+            else
+            {
+                bufferi_push_and_pop(AnalogInput::values_buffer_sensor + i, AnalogInput::_pointer[value_index], AnalogInput::last_element + i); // O(1)
+                
+
+
+
+                //AnalogInput::avg_acc[i] -= AnalogInput::last_element[i];  
+                
+                
+                                                // O(1)
+                    // printf("subtract %d == %d\n", last_element, avg_acc);
+            }
+            //AnalogInput::avg_acc[i] += AnalogInput::_pointer[value_index];
+            AnalogInput::avg_acc[i] = AnalogInput::_pointer[value_index]*FILTER_GAIN + AnalogInput::avg_acc[i]*(1 - FILTER_GAIN);
+
+            //AnalogInput::avg_acc[i] = AnalogInput::_pointer[i];
+            
+            AnalogInput::avg_qnt[i] = AnalogInput::values_buffer_sensor[i].size;
+        }
+    }*/
+
+    DMA2->LIFCR |= (1 << 5);//CLEAR INTERRUPT FLAG FOR CHANNEL 0 OF DMA2
+}
+
+/*void DMA2_Stream0_IRQHandler(){
+
+}*/
 
 AnalogInput::AnalogInput(PinName pin) {
     bool first_instance;
@@ -245,6 +560,9 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
     //enable the clock of the ADC
 
 
+    //bufferi_init(&values_buffer, NUMBER_ADC_CHANNELS_USED);
+
+
     conversionRank = counterNumberADC;
 
     #ifdef TARGET_STM32L4
@@ -388,20 +706,27 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
             //_Conversor->SMPR2 |= (7U << 3*i);
         //}
 
-        _Conversor->SMPR1 |= (7U << 3*5);//Setar sampling time do ADC do canal 15
-        _Conversor->SMPR1 |= (7U << 3*4);//Setar sampling time do ADC do canal 14
+        uint8_t valor = 6U;
 
-        _Conversor->SMPR1 |= (7U << 3*3);//Setar sampling time do ADC do canal 13
-        _Conversor->SMPR1 |= (7U << 3*2);//Setar sampling time do ADC do canal 12
-        _Conversor->SMPR1 |= (7U << 3*1);//Setar sampling time do ADC do canal 11
-        _Conversor->SMPR1 |= (7U);//Setar sampling time do ADC do canal 10
+        _Conversor->SMPR1 |= (valor << 3*5);//Setar sampling time do ADC do canal 15
+        _Conversor->SMPR1 |= (valor << 3*4);//Setar sampling time do ADC do canal 14
 
-        _Conversor->SMPR2 |= (7U << 3*4);////Setar sampling time do ADC do canal 4
-        _Conversor->SMPR2 |= (7U << 3*1);////Setar sampling time do ADC do canal 1
+        _Conversor->SMPR1 |= (valor << 3*3);//Setar sampling time do ADC do canal 13
+        _Conversor->SMPR1 |= (valor << 3*2);//Setar sampling time do ADC do canal 12
+        _Conversor->SMPR1 |= (valor << 3*1);//Setar sampling time do ADC do canal 11
+        _Conversor->SMPR1 |= (valor);//Setar sampling time do ADC do canal 10
 
-        _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
+        _Conversor->SMPR2 |= (valor << 3*4);////Setar sampling time do ADC do canal 4
+        _Conversor->SMPR2 |= (valor << 3*1);////Setar sampling time do ADC do canal 1
+
+        _Conversor->SQR1 |= ((DMA_BUFFER_SIZE - 1) << 20);
         _Conversor->SQR2 = /*(14) + */(15 << 0);
-        _Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10) + (14 << 25) + (12 << 15) + (13 << 20);
+        _Conversor->SQR3 = (4 << 0) + (10 << 5) + (10 << 10) + (14 << 25) + (12 << 15) + (13 << 20);
+        
+
+        _Conversor->SQR3 = (10 << 0) + (10 << 5) + (10 << 10) + (10 << 15);
+        //_Conversor->SQR2 = 0;
+        //_Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10);
 
     #endif
 
@@ -505,7 +830,17 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
                 _Stream_DMA->NDTR = _Size_buffer;
                 _Stream_DMA->PAR = (uint32_t)&_Conversor->DR;
                 _Stream_DMA->M0AR = (uint32_t)_pointer;
+                _Stream_DMA->CR |= (1 << 4); //Habilitar interrupt transfer complete
                 _Stream_DMA->CR |= 1;
+
+                HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 2, 0);
+                NVIC_SetVector(DMA2_Stream0_IRQn, (uint32_t)interrupt_dma);
+                NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+
+                int g = 0;
+                for(g = 0; g < NUMBER_ADC_CHANNELS_USED;g++){
+                    bufferi_init(values_buffer_sensor + g, NUMBER_READS_PER_CHANNELS);
+                }
             #endif
             Continuous = ADC_Continuous;
         }
@@ -522,6 +857,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
         if (first_instance)
         {
             _Conversor->CR1 = Resolution | (1 << 8);
+            //_Conversor->CR1 |= (1 << 5) + (1 << 26); //Habilitar interrupt do ADC. Talvez desnecessário...
             _Conversor->CR2 = Alignment | Continuous | Dma;
         }
         else _Conversor->CR2 |= (Continuous | Dma);
@@ -568,7 +904,7 @@ AnalogInput::~AnalogInput() {
         #if defined(ADC1)
             if ((ADCName &)_Conversor == ADC_1) {
                 _using_ADC1--;
-            }
+            }1
         #endif
         #if defined(ADC2)
             if ((ADCName &)_Conversor == ADC_2) {
@@ -836,9 +1172,16 @@ uint32_t AnalogInput::read_average_word()
     }
     else if (_usage_dma)
     {
-        for (i = 0; i < NUMBER_READS_PER_CHANNELS; i++) sum += _pointer[NUMBER_ADC_CHANNELS_USED*(i) + (conversionRank - 1)];
 
-        average = sum>>NUMBER_BIT_SHIFT;
+        average = (avg_acc[conversionRank - 1] >> NUMBER_BIT_SHIFT);
+        
+        //average = avg_acc[conversionRank - 1];
+
+        /*for (i = 0; i < NUMBER_READS_PER_CHANNELS; i++) 
+            sum += _pointer[NUMBER_ADC_CHANNELS_USED*(i) + (conversionRank - 1)];
+
+        average = sum >> NUMBER_BIT_SHIFT;*/
+
     }
     else if (_continuous_mode)
     {

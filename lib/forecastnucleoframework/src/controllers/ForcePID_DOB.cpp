@@ -2,18 +2,31 @@
 
 using namespace forecast;
 
-ForcePID_DOB::ForcePID_DOB(float kp, float ki, float kd)
+ForcePID_DOB::ForcePID_DOB(float kp, float ki, float kd,float GainDOB, float GainVC,float Jm, float Dm, float Ke)
     : kp(kp),
       ki(ki),
       kd(kd),
+      Jm(Jm),
+      Dm(Dm),
+      K_e(Ke),
+      GainDOB(GainDOB),
+      GainVC(GainVC),
       errPast(0.f),
       err(0.f),
       derr(0.f),
       ierr(0.f)
 {
+    float freq_corte = 15;//Hz
     logs.push_back(&reference);
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(40.0f);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassDForce = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassControl = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+
+    K_motor = 17;
+
+    //Jm = 8.76;
+    //Dm = 150.1;
 }
 
 
@@ -21,16 +34,19 @@ ForcePID_DOB::ForcePID_DOB(float kp, float ki, float kd)
 float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
 {
     float x = hw->get_theta(0);
+    float dx = hw->get_d_theta(0);
 
+    float compensate_1 = ((hw->get_dd_theta(0)*Jm)) + (dx*Dm);
 
-    double inv_model_num[6] = {0.571428571428571,  -1.707480636386558  , 1.700840103589048 , -0.564787194477277,0 , 0};
-    double inv_model_den[6] = {1.000000000000000 , -2.973906285106519  , 2.947998206924892  ,-0.974091536281782, 0, 0};
+    float compensate_2 = 0;
 
-    //double filter_num[6] = {0,0.0001233,0.0001217,0,0,0};
-    //double filter_den[6] = {1, -1.961,0.9608,0,0,0};
+    float compensate_3 = 0;
 
-    //double filter_num[6] = {0.0226E-3,0.2007E-3,0.0218E-3,0,0,0};
-    //double filter_den[6] = {1, -1.9605,0.9608,0,0,0};
+    *(hw->vel_comp_value) = GainVC*( compensate_2  + compensate_1);
+
+    double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
+
+    double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
 
 
     double filter_num[6] = {0  , 0.310425427160331E-4  , 0.308362809159582E-4 ,0,0,0};
@@ -43,8 +59,11 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
 
     if(hw->get_current_time() > 0){
 
+        float value = hw->get_tau_s(1);
+        value = dx;
+
         inv_model_exit = 
-        inv_model_num[0]*hw->get_tau_s(1) + 
+        inv_model_num[0]*value + 
         inv_model_num[1]*controller_prev1_tauSensor + 
         inv_model_num[2]*controller_prev2_tauSensor +
         inv_model_num[3]*controller_prev3_tauSensor +
@@ -57,10 +76,10 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
         inv_model_den[4]*prev4_inv_model_exit -
         inv_model_den[5]*prev5_inv_model_exit;
 
-        inv_model_exit = inv_model_exit;
+        inv_model_exit = inv_model_exit/inv_model_den[0];
 
         filter_exit = 
-        filter_num[0]*(hw->get_tau_m(0)) + 
+        filter_num[0]*(*(hw->fric2)) + 
         filter_num[1]*controller_prev1_tauM + 
         filter_num[2]*controller_prev2_tauM + 
         filter_num[3]*controller_prev3_tauM + 
@@ -72,7 +91,7 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
         filter_den[4]*prev4_filter_exit -
         filter_den[5]*prev5_filter_exit;
 
-        filter_exit = filter_exit;
+        filter_exit = filter_exit/filter_den[0];
 
 
 
@@ -93,14 +112,14 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
         controller_prev4_tauM = controller_prev3_tauM;
         controller_prev3_tauM = controller_prev2_tauM;
         controller_prev2_tauM = controller_prev1_tauM;
-        controller_prev1_tauM = hw->get_tau_m(0);
+        controller_prev1_tauM = *(hw->fric2);
 
         controller_prev6_tauSensor = controller_prev5_tauSensor;
         controller_prev5_tauSensor = controller_prev4_tauSensor;
         controller_prev4_tauSensor = controller_prev3_tauSensor;
         controller_prev3_tauSensor = controller_prev2_tauSensor;
         controller_prev2_tauSensor = controller_prev1_tauSensor;
-        controller_prev1_tauSensor = hw->get_tau_s(1);
+        controller_prev1_tauSensor = value;
     }
 
 
@@ -116,21 +135,28 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     dtau = hw->get_d_tau_s(1);
 
     err = ref[0] - tau;
-    derr = (err - errPast) / hw->get_dt();
+    //derr = (err - errPast) / hw->get_dt();
 
-    derr = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
+    float derr_no_filt = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
     + 3.75*prev4_err - 1.2*prev5_err + 0.16*prev6_err)/
     (hw->get_dt());
+
+
+    derr = lowPassDForce->process(derr_no_filt, hw->get_dt());
+
+    derr = derr_no_filt;
 
     ierr += err * hw->get_dt();
     errPast = err;
 
-    *(hw->fric1) = inv_model_exit;
+    *(hw->fric1) = kd*derr;
     *(hw->fric2) = filter_exit;
+    //*(hw->tauM) = filter_exit;
 
     out = ref[0] + kp * err + kd * derr + ki * ierr;
 
-    double dob_exit = inv_model_exit - filter_exit;
+    double dob_exit = (tau + inv_model_exit) - filter_exit;
+    //double dob_exit = (inv_model_exit) - filter_exit;
 
     int a = 45;
 
@@ -148,6 +174,11 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     prev2_err = prev1_err;
     prev1_err = err;
 
+    float control_output_no_filter = (out - GainDOB*dob_exit + GainVC*(compensate_2  + compensate_1));
 
-    return (out - dob_exit);
+    float out_control = lowPassControl->process(control_output_no_filter, hw->get_dt());
+
+    *(hw->fric2) = control_output_no_filter;
+
+    return (control_output_no_filter);
 }

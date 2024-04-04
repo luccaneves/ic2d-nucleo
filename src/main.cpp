@@ -77,9 +77,9 @@ int main()
     app.get_controller_factory().add("FeedbackLin", make_feedback_lin_builder());
     app.get_controller_factory().add("DOB_4000Hz_LinMot", make_Force_PID_DOB_builder());
     app.get_controller_factory().add("Linmot_VC", make_ForcePID_VC_LinMot_builder());
-    app.get_controller_factory().add("DOB HYD (4000Hz)", make_Force_PID_DOB_hyd_builder());
-    app.get_controller_factory().add("DOB HYD LIN (4000Hz)", make_Force_PID_DOB_hyd_lin_builder());
-    app.get_controller_factory().add("Imp_linmot_dob_4000", make_Imp_Dob_LinMot_4000_builder());
+    app.get_controller_factory().add("DOB HYD (2000Hz)", make_Force_PID_DOB_hyd_builder());
+    app.get_controller_factory().add("DOB HYD LIN (2000Hz)", make_Force_PID_DOB_hyd_lin_builder());
+    app.get_controller_factory().add("IMP DOB_4000Hz_LinMot", make_Imp_Dob_LinMot_4000_builder());
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 
