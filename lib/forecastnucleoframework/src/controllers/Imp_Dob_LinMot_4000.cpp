@@ -19,9 +19,8 @@ Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd,float Ides
       ierr(0.f)
 {
     logs.push_back(&reference);
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(10.0f);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
-    lowPassDD = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
 }
 
 
@@ -33,8 +32,8 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     theta = hw->get_theta(0);
     dtheta = hw->get_d_theta(0);
     ddtheta = hw->get_dd_theta(0);
-    dtheta_filt = lowPassD->process(dtheta, hw->get_dt());
-    ddtheta_filt = lowPassDD->process(ddtheta, hw->get_dt());
+    dtheta_filt = lowPassDTheta->process(theta, hw->get_dt());
+    ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());
 
     /* Get the equilibrium state */
     if (once)

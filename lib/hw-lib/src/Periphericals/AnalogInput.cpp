@@ -836,8 +836,7 @@ uint32_t AnalogInput::read_average_word()
     }
     else if (_usage_dma)
     {
-        for (i = 0; i < NUMBER_READS_PER_CHANNELS; i++) 
-            sum += _pointer[NUMBER_ADC_CHANNELS_USED*(i) + (conversionRank - 1)];
+        for (i = 0; i < NUMBER_READS_PER_CHANNELS; i++) sum += _pointer[NUMBER_ADC_CHANNELS_USED*(i) + (conversionRank - 1)];
 
         average = sum>>NUMBER_BIT_SHIFT;
     }

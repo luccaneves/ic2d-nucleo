@@ -2,13 +2,10 @@
 
 using namespace forecast;
 
-ForcePID_DOB_HYD::ForcePID_DOB_HYD(float kp, float ki, float kd,float Kvc, float Kpc, float lambda)
+ForcePID_DOB_HYD::ForcePID_DOB_HYD(float kp, float ki, float kd)
     : kp(kp),
       ki(ki),
       kd(kd),
-      kvc(Kvc),
-      kpc(Kpc),
-      Lambda(lambda),
       errPast(0.f),
       err(0.f),
       derr(0.f),
