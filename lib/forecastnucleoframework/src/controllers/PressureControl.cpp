@@ -1,0 +1,42 @@
+#include <forecast/controllers/PressureControl.hpp>
+
+using namespace forecast;
+
+PressureControl::PressureControl(float kp, float ki, float kd)
+    : kp(kp),
+      ki(ki),
+      kd(kd),
+      errPast(0.f),
+      err(0.f),
+      derr(0.f),
+      ierr(0.f)
+{
+    logs.push_back(&reference);
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+}
+
+float PressureControl::process(const IHardware *hw, std::vector<float> ref)
+{
+    reference = ref[0];
+    //tau = hw->get_tau_s(1);     // was 0: tauS
+    //dtau = hw->get_d_tau_s(1);  // was 0: tauS
+
+    //tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
+    //dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
+
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
+
+    err = ref[0] - tau;
+    //Lucca TO DO: Corrigir essa derivada. Fazer inf dif com mais pontos
+    derr = (err - errPast) / hw->get_dt();
+    ierr += err * hw->get_dt();
+    errPast = err;
+
+     //Lucca TO DO: Comentar ref[0] depois
+
+    out = ref[0] + kp * err + kd * derr + ki * ierr;
+
+    return out;
+}

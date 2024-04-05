@@ -102,7 +102,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
     err = ref[0] - tau;
-    derr = (err - errPast) / hw->get_dt();
+
+    //derr = (err - errPast) / hw->get_dt();
 
     derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
     + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
@@ -185,6 +186,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->sprint_start_force) = expected_force;
 
     out = out + leak_fix*20;
+
 
     if(out > limit){
         out = limit;
