@@ -64,19 +64,19 @@ forecast::Status forecast::Hardware::init() {
 
   //auto enabled = torque_sensor->enable();
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassTauSensor->clean();
 
   lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassLoacCell2->clean();
 
-  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(3.0f);
   lowPassDX1->clean();
 
   lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassDX1_E->clean();
 
-  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(2.0f);
+  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(3.0f);
   lowPassDDX1->clean();
   
   lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
@@ -85,7 +85,7 @@ forecast::Status forecast::Hardware::init() {
   lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassDDX1_E->clean();
 
-  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDF1->clean();
 
   return Status::NO_ERROR;
@@ -292,30 +292,33 @@ void forecast::Hardware::update(float dt) {
 
   //Diferencas finitas usando mais pontos para calculo das derivadas
   if(counter == FINITE_DIF_SAMPLING_COUNTER){
-    float dthetaM_NoFilt = (2.45*thetaM - 6*prev1_thetaM + 7.5*prev2_thetaM - 6.66*prev3_thetaM + 3.75*prev4_thetaM - 1.2*prev5_thetaM + 0.16*prev6_thetaM)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    float dthetaM_NoFilt = (2.45*thetaM - 6*prev1_thetaM + 7.5*prev2_thetaM - 6.666666*prev3_thetaM + 3.75*prev4_thetaM - 1.2*prev5_thetaM + 0.1666666*prev6_thetaM)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
-    float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.66*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.16*prev6_dthetaM)/dt;
+    dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    
+    
+    float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.666666*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.1666666*prev6_dthetaM)/dt;
     
     //double ddthetaM_NoFilt = (double)(4.511111*((double)thetaM) - 17.4*((double)prev1_thetaM) + 29.25*((double)prev2_thetaM) -28.22222*((double)prev3_thetaM) + 16.5*((double)prev4_thetaM)  -5.4*((double)prev5_thetaM) + 0.761111*((double)prev6_thetaM))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
     
 
-    float dthetaE_NoFilt = (2.45*thetaE - 6*prev1_thetaE + 7.5*prev2_thetaE - 6.66*prev3_thetaE + 3.75*prev4_thetaE - 1.2*prev5_thetaE + 0.16*prev6_thetaE)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    //float dthetaE_NoFilt = (2.45*thetaE - 6*prev1_thetaE + 7.5*prev2_thetaE - 6.66*prev3_thetaE + 3.75*prev4_thetaE - 1.2*prev5_thetaE + 0.16*prev6_thetaE)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
     //float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.66*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.16*prev6_dthetaM)/dt;
     
-    double ddthetaE_NoFilt = (double)(2*((double)thetaE) - 5*((double)prev1_thetaE) + 4*((double)prev2_thetaE) - 1*((double)prev3_thetaE) + 0*((double)prev4_thetaE))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
+    //double ddthetaE_NoFilt = (double)(2*((double)thetaE) - 5*((double)prev1_thetaE) + 4*((double)prev2_thetaE) - 1*((double)prev3_thetaE) + 0*((double)prev4_thetaE))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
     
 
 
     //Parte do polyfit
     
-    std::vector<double> time_vec = {t - 6*(FINITE_DIF_SAMPLING_COUNTER + 1)*dt,
+    /*std::vector<double> time_vec = {t - 6*(FINITE_DIF_SAMPLING_COUNTER + 1)*dt,
     t - 5*(FINITE_DIF_SAMPLING_COUNTER + 1)*dt,
     t - 4*(FINITE_DIF_SAMPLING_COUNTER + 1)*dt,
     t - 3*(FINITE_DIF_SAMPLING_COUNTER + 1)*dt,
      t - 2*(FINITE_DIF_SAMPLING_COUNTER + 1)*dt, 
      t - (FINITE_DIF_SAMPLING_COUNTER + 1)*dt, 
-     t};
+     t};*/
 	  // velocity value
 	  /*std::vector<double> theta_vec = {prev6_thetaM, prev5_thetaM, prev4_thetaM, prev3_thetaM, prev2_thetaM, prev1_thetaM, thetaM};
 
@@ -331,9 +334,9 @@ void forecast::Hardware::update(float dt) {
     
     //dddthetaM = lowPassDDDX1->process(dddthetaM_polyfit, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
 
-    dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    //dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
 
-    dthetaE = lowPassDX1_E->process(dthetaE_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    //dthetaE = lowPassDX1_E->process(dthetaE_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
 
     
     //double ddthetaM_NoFilt = (double)(-1)*(4.51*((double)thetaM) - 17.4*((double)prev1_thetaM) + 29.25*((double)prev2_thetaM) - 28.2*((double)prev3_thetaM) + 16.5*((double)prev4_thetaM) - 5.4*((double)prev5_thetaM) + 0.76*((double)prev6_thetaM))/((double) (((double)dt)*((double)dt)));
@@ -344,7 +347,7 @@ void forecast::Hardware::update(float dt) {
     //double ddthetaM_NoFilt = (double)(-1)*(4*((double)thetaM) - 17*((double)prev1_thetaM) + 29*((double)prev2_thetaM) - 28*((double)prev3_thetaM) + 16*((double)prev4_thetaM) - 5*((double)prev5_thetaM) + 1*((double)prev6_thetaM))/((double) (((double)dt)*((double)dt)));
     
     //float ddthetaM_NoFilt = (dthetaM - prev_dthetaM) / dt;
-    ddthetaE = lowPassDDX1_E->process((float)ddthetaE_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    //ddthetaE = lowPassDDX1_E->process((float)ddthetaE_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
 
     ddthetaM = lowPassDDX1->process((float)ddthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     //ddthetaM = ddthetaM_NoFilt;
@@ -393,7 +396,10 @@ void forecast::Hardware::update(float dt) {
   
 
   /* Control motor update  (from Escon feedback) */
-  tauM = control_motor->getTorqueFeedback();
+
+  //TODO: Voltar
+  float tauM_nofilt = control_motor->getTorqueFeedback();
+  tauM = lowPassDDX1_E->process(tauM_nofilt,dt);
 
   //TODO: ATENÇÃO, VOLTAR
   //tauM = control_motor->getCurrentFeedback();
@@ -474,6 +480,7 @@ void forecast::Hardware::update(float dt) {
   tau_sensors_nofilt = tau_sensors_nofilt; 
   
   tauSensor = lowPassTauSensor->process(tau_sensors_nofilt, dt);
+  //tauSensor = tau_sensors_nofilt;
 
   //tauSensor = tau_sensors_nofilt; //TODO: Voltar
   //float dtauSensor_NoFilt = (tauSensor - prev_tauSensor) / dt;

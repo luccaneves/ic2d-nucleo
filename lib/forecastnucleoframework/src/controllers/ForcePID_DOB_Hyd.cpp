@@ -2,14 +2,25 @@
 
 using namespace forecast;
 
-ForcePID_DOB_HYD::ForcePID_DOB_HYD(float kp, float ki, float kd)
+ForcePID_DOB_HYD::ForcePID_DOB_HYD(float kp, float ki, float kd,float Kvc, float Kpc, float lambda, float B_int
+, float ML,float BL, float KL, float gain_dob, float limit_dob, float limit)
     : kp(kp),
       ki(ki),
       kd(kd),
+      kvc(Kvc),
+      kpc(Kpc),
+      Lambda(lambda),
       errPast(0.f),
       err(0.f),
       derr(0.f),
-      ierr(0.f)
+      ierr(0.f),
+      B_int(B_int),
+      Ml(ML),
+      Bl(BL),
+      Kl(KL),
+      gain_dob(gain_dob),
+      limit_dob(limit_dob),
+      limit(limit)
 {
     logs.push_back(&reference);
     lowPass = utility::AnalogFilter::getLowPassFilterHz(10.0f);
@@ -40,10 +51,10 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     float ddx = hw->get_dd_theta(0);
     
 
-    Pa = lowPassPa->process(hw->get_pressure(0), hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1), hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2), hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3), hw->get_dt());
+    Pa = lowPassPa->process(hw->get_pressure(0)*100000,hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(1)*100000,hw->get_dt());
+    Ps = lowPassPs->process(hw->get_pressure(2)*100000,hw->get_dt());
+    Pt = lowPassPt->process(hw->get_pressure(3)*100000,hw->get_dt());
 
     double inv_model_exit = 0;
 
@@ -51,25 +62,21 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
 
     reference = ref[0];
     
-    float d_disturb = 0;
     float disturb = 0;
     float z = 0;
-    float Ml = 6;
-    float Bl = 150;
-    float Kl = 2500;
-    float B = 700;
-    float lambda = 1000;
     //float dtau = hw->get_d_tau_m
 
     tau = hw->get_tau_s(1);
     dtau = hw->get_d_tau_s(1);
 
     err = ref[0] - tau;
-    derr = (err - errPast) / hw->get_dt();
+    //derr = (err - errPast) / hw->get_dt();
 
     derr = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
     + 3.75*prev4_err - 1.2*prev5_err + 0.16*prev6_err)/
     (hw->get_dt());
+
+    deriv_force = hw->get_d_tau_s(1);
 
     ierr += err * hw->get_dt();
     errPast = err;
@@ -84,19 +91,19 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
     Ap = Aa;                    
     alfa = Ab/Aa;
-    Kv = qn/sqrt(pn);
+    Kv = qn/(In*sqrt(pn/2));
     
     Va = Vpl + Aa*x;
     Vb = Vpl + (L_cyl - x)*Ab;
 
-    if(ixv >= 0.0f){
+    if((ixv) >= 0.0f){
         g = Be*Aa*Kv*( round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb );
-    }
+        }
     else{
         g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
-    }
+        }
 
-    f = Be*pow(Aa,2)*( pow(alfa,2)/Vb + 1/Va )*dx;
+    f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
     out = /*ref[0] +*/ kp * err + kd * derr + ki * ierr;
 
@@ -107,9 +114,9 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
     prev2_err = prev1_err;
     prev1_err = err;
 
-    z = prev1_z - (lambda/Ml)*(hw->get_dt())*(prev1_z) + (hw->get_dt())*(lambda/Ml)*(Bl*prev1_ddx + Kl*prev1_dx + B*prev1_ddx - f - g*ixv - lambda*prev1_ddx);
+    float d_disturb = (Lambda/(g*kpc))*(deriv_force - f*kvc - g/1000*hw->get_tau_m(0)*kpc + B_int*ddx - g*disturb*kpc);
 
-    disturb = z + lambda*ddx;
+    disturb = disturb + d_disturb*(hw->get_dt());
 
     /*d_disturb = (2.45*disturb - 6*prev1_disturb + 7.5*prev2_disturb - 6.66*prev3_disturb 
     + 3.75*prev4_disturb - 1.2*prev5_disturb + 0.16*prev6_disturb)/
@@ -139,21 +146,30 @@ float ForcePID_DOB_HYD::process(const IHardware *hw, std::vector<float> ref)
 
     float comp = 0;
 
-    comp = disturb/g;
+    comp = disturb;
 
-
-
-    float limit_sat = 0.4;
-
-    if(comp > limit_sat){
-        comp = limit_sat;
+    if(comp > limit_dob){
+        comp = limit_dob;
     }
-    if(comp < -limit_sat){
-        comp = -limit_sat;
+    else if(comp < -limit_dob){
+        comp = -limit_dob;
     }
 
-    *(hw->fric1) = comp;
-    *(hw->fric2) = disturb;
+    *(hw->fric1) = d_disturb;
+    *(hw->fric2) = comp;
 
-    return (out - comp);
+    out = out - gain_dob*comp;
+
+    float limit_sat = limit;
+
+    if(out > limit_sat){
+        out = limit_sat;
+    }
+    if(out < -limit_sat){
+        out = -limit_sat;
+    }
+
+    out = lowPass->process(out,hw->get_dt());
+
+    return (out);
 }

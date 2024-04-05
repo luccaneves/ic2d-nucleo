@@ -21,10 +21,15 @@ public:
   * @param ki
   * @param Kvc
   * @param Kpc
+  * @param B_int
+  * @param leak_fix
+  * @param limit
 
   **/
   FeedbackLin(float kp = 0, float kd = 0, float ki = 0, float Kvc = 0,
-                   float Kpc = 0);
+                   float Kpc = 0, float B_int = 0, float leak_fix = 0,float limit = 0, 
+                   float lambda = 0, float gain_dob = 0, float limit_dob = 0, 
+                   float gain_vc = 0, float vc_limit = 0, float start_x = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -32,6 +37,8 @@ protected:
   float kp = 0.0;
   float kd = 0.0;
   float ki = 0.0f;
+  float offset_x = 0;
+  float once = 1;
 
   float Kvc = 0.0f;
   float Kpc = 0.0f;
@@ -74,6 +81,29 @@ protected:
   float g = 0.0f;
   float v = 0.0f;
   float ixv = 0.0f;
+  float B_int = 0;
+  float leak_fix = 0;
+  float limit = 0;
+  float start_x = 0;
+
+  float prev_erro_1 = 0.0;
+  float prev_erro_2 = 0.0;
+  float prev_erro_3 = 0.0;
+  float prev_erro_4 = 0.0;
+  float prev_erro_5 = 0.0;
+  float prev_erro_6 = 0.0;
+  float prev_erro_7 = 0.0;
+
+  float gain_vc = 0;
+  float vc_limit = 0;
+
+  float lambda = 0;
+  float gain_dob = 0;
+  float limit_dob = 0;
+  float disturb = 0;
+
+  float expected_force = 0.0;
+  float last_out = 0.0;
 
   utility::AnalogFilter* lowPass;
   utility::AnalogFilter* lowPassD;
@@ -88,16 +118,18 @@ protected:
 inline ControllerFactory::Builder make_feedback_lin_builder() {
 
   auto fn = [](std::vector<float> params) -> Controller * {
-    if (params.size() < 5)
+    if (params.size() < 14)
       return nullptr; // not enough parameters
 
     return new FeedbackLin(params[0], params[1], params[2], params[3],
-                                params[4]);
+                                params[4],params[5],params[6],params[7],params[8],params[9],params[10],
+                                params[11],params[12],params[13]);
   };
 
   return {
       fn,
-      {"Kp", "Kd", "Ki", "Kvc", "Kpc"},
+      {"Kp", "Kd", "Ki", "gainF", "gainG","B", "Fix_Leak","limit","lambda","gain dob","limit dob","gain_vc","limit_vc",
+      "start_x"},
       {"reference"}};
 }
 

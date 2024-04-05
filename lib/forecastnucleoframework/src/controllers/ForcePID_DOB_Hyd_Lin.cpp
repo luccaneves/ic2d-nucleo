@@ -2,7 +2,8 @@
 
 using namespace forecast;
 
-ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd,float kvc, float kpc)
+ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd,float kvc, float kpc, float B_int, 
+float gain_dob, float limit_dob, float limit)
     : kp(kp),
       ki(ki),
       kd(kd),
@@ -11,7 +12,11 @@ ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd,float kv
       errPast(0.f),
       err(0.f),
       derr(0.f),
-      ierr(0.f)
+      ierr(0.f),
+      B_int(B_int),
+      gain_dob(gain_dob),
+      limit_dob(limit_dob),
+      limit(limit)
 {
     logs.push_back(&reference);
 
@@ -44,35 +49,44 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 
     double filter_exit = 0;
 
-    double inv_model_num[6] = {1.100000000000001E4  ,-2.178908596199805E4  , 1.078945605924218E4 , 0, 0, 0};
+    double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
 
-    double inv_model_den[6] = {1.000000000000000 , -1.980136794483123  , 0.980198673306755 , 0, 0, 0};
+    double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
 
-    //double filter_num[6] = { 0  , 0.026530084739094E-10  , 0.106100443382667E-10 ,  0.026520137822417E-10,0,0};
-    //double filter_den[6] = {  1.000000000000000  ,-2.999250093742158  , 2.998500374937449 , -0.999250281179671,0,0};
 
-    double filter_num[6] = { 0  , 0.310425427160331E-4  , 0.308362809159582E-4 ,0,0 ,0};
-    double filter_den[6] = {  1.000000000000000 , -1.980136794483123  , 0.980198673306755,  0,0,0};
+    double filter_num[6] = {0  , 0.310425427160331E-4  , 0.308362809159582E-4 ,0,0,0};
+    double filter_den[6] = {1.000000000000000  ,-1.980136794483123 ,  0.980198673306755,0,0,0};
 
     reference = ref[0];
     
-    tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
-    dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
+    tau = (hw->get_tau_s(1));
+    dtau = (hw->get_d_tau_s(1));
 
     float x = hw->get_theta(0);
     float dx = hw->get_d_theta(0);
 
-    Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
+    Pa = lowPassPa->process(hw->get_pressure(0)*100000,hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(1)*100000,hw->get_dt());
+    Ps = lowPassPs->process(hw->get_pressure(2)*100000,hw->get_dt());
+    Pt = lowPassPt->process(hw->get_pressure(3)*100000,hw->get_dt());
 
     float ixv = hw->get_tau_m(0);
 
     err = ref[0] - tau;
-    derr = (err - errPast) / hw->get_dt();
+    //derr = (err - errPast) / hw->get_dt();
     ierr += err * hw->get_dt();
-    errPast = err;
+    //errPast = err;
+
+    derr = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
+    + 3.75*prev4_err - 1.2*prev5_err + 0.16*prev6_err)/
+    (hw->get_dt());
+
+    prev6_err = prev5_err;
+    prev5_err = prev4_err;
+    prev4_err = prev3_err;
+    prev3_err = prev2_err;
+    prev2_err = prev1_err;
+    prev1_err = err;
 
     float De2 = pow(De, 2);
     float Dh2 = pow(Dh, 2);
@@ -98,7 +112,9 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     //f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
     float f = Be*pow(Aa,2)*( pow(alfa,2)/Vb + 1/Va )*dx;
 
+    float deriv_force = kpc*f + (kvc*g/1000)*hw->get_tau_m(0) - B_int*hw->get_dd_theta(0);
 
+    force_expected += deriv_force*hw->get_dt();
 
     inv_model_exit = 
     inv_model_num[0]*dx + 
@@ -131,12 +147,7 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 
     filter_exit = filter_exit;
 
-    double dob_exit = inv_model_exit - filter_exit;
-
-    //dob_exit = 0; //TODO: Remover
-
-    double v = kp * err + kd * derr + ki * ierr - dob_exit;
-
+    double v = force_expected;
 
     prev5_filter_exit = prev4_filter_exit;
     prev4_filter_exit = prev3_filter_exit;
@@ -167,19 +178,43 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->fric1) = filter_exit;
     *(hw->fric2) = inv_model_exit;
 
-    float limit = 0.5;
+    double dob_exit = (tau + inv_model_exit) - filter_exit;
+    //double dob_exit = (inv_model_exit) - filter_exit;
 
-    out = (1000*v)/(g*kpc) - (1000*f*kvc)/(g*kpc);
+    deriv_disturb = (2.45*dob_exit - 6*prev1_disturb + 7.5*prev2_disturb - 6.66*prev3_disturb 
+    + 3.75*prev4_disturb - 1.2*prev5_disturb + 0.16*prev6_disturb)/
+    (hw->get_dt());
 
-    //out = out - dob_exit;
+    prev6_disturb = prev5_disturb;
+    prev5_disturb = prev4_disturb;
+    prev4_disturb = prev3_disturb;
+    prev3_disturb = prev2_disturb;
+    prev2_disturb = prev1_disturb;
+    prev1_disturb = dob_exit;
 
-    if(out > limit){
-        out = limit;
+    double comp = deriv_disturb*1000/(g*kvc);
+
+    float a = limit_dob;
+
+    if(comp > a){
+        comp = a;
     }
-    if(out < -limit){
-        out = -limit;
+    if(comp < -a){
+        comp = -a;
     }
 
-    //return 0.1;
+    out = kp * err + kd * derr + ki * ierr - gain_dob*comp;
+
+    float limit_sat = limit;
+
+    if(out > limit_sat){
+        out = limit_sat;
+    }
+    else if(out < -limit_sat){
+        out = -limit_sat;
+    }
+
+    out = lowPass->process(out,hw->get_dt());
+
     return out;
 }

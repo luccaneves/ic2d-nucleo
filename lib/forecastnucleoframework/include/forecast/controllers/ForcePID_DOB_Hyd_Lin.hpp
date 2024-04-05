@@ -20,10 +20,15 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
      * @param kp
      * @param ki
      * @param kd
-     *  @param Kvc
-     * @param Kpc
+     *  @param kvc
+     * @param kpc
+     * @param B_int
+     * @param gain_dob 
+     * @param limit_dob
+     * @param limit
      */
-    ForcePID_DOB_Hyd_Lin(float kp = 0, float ki = 0, float kd = 0, float kvc = 0, float kpc = 0);
+    ForcePID_DOB_Hyd_Lin(float kp = 0, float ki = 0, float kd = 0, float kvc = 0, float kpc = 0, 
+    float B_int = 0, float gain_dob = 0, float limit_dob = 0, float limit = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -78,6 +83,7 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
     float Kuv = 0.0f;
     float Kxp = 0.0f;
     float Kfh = 0.0;
+    float B_int = 0;
 
     float Kvc = 0.0f;
     float Kpc = 0.0f;
@@ -102,6 +108,30 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
     double controller_prev5_x;
     double controller_prev6_x;
 
+    float prev1_err = 0;
+    float prev2_err = 0;
+    float prev3_err = 0;
+    float prev4_err = 0;
+    float prev5_err = 0;
+    float prev6_err = 0;
+
+    double force_expected = 0;
+
+    double deriv_disturb = 0;
+
+
+    double prev1_disturb;
+    double prev2_disturb;
+    double prev3_disturb;
+    double prev4_disturb;
+    double prev5_disturb;
+    double prev6_disturb;
+
+    float gain_dob = 0;
+
+    float limit_dob = 0;
+
+    float limit = 0;
 
 
     double controller_prev1_tauM;
@@ -110,13 +140,6 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
     double controller_prev4_tauM;
     double controller_prev5_tauM;
     double controller_prev6_tauM;
-
-    float prev1_err = 0;
-    float prev2_err = 0;
-    float prev3_err = 0;
-    float prev4_err = 0;
-    float prev5_err = 0;
-    float prev6_err = 0;
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
@@ -131,12 +154,12 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
 inline ControllerFactory::Builder make_Force_PID_DOB_hyd_lin_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 5)
+        if (params.size() < 9)
             return nullptr;
-        return new ForcePID_DOB_Hyd_Lin(params[0], params[1], params[2],params[3],params[4]);
+        return new ForcePID_DOB_Hyd_Lin(params[0], params[1], params[2],params[3],params[4],params[5],params[6],params[7],params[8]);
     };
 
-    return {fn, {"KP", "KI", "KD","Kvc","Kpc"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","Kvc","Kpc","B_int","Gain DOB","limit dob","limit"}, {"reference"}};
 }
 
 }  // namespace forecast

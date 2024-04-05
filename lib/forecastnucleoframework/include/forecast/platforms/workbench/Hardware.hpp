@@ -30,8 +30,8 @@ public:
     logs["VC"] = vel_comp_value;
     logs["Fric1"] = fric1;
     logs["Fric2"] = fric2;
-    logs["ContSigTest"] = control_signal_teste;
-    logs["sprint_start_force"] = sprint_start_force;
+    logs["f"] = control_signal_teste;
+    logs["g"] = sprint_start_force;
 
     logs["Control Signal"] = &tauM;
     //logs["dtauM"] = &dtauM;

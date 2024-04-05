@@ -1,5 +1,5 @@
-#ifndef FORCE_PID_DOB_HYD_H
-#define FORCE_PID_DOB_HYD_H
+#ifndef Imp_Dob_LinMot_4000_h
+#define Imp_Dob_LinMot_4000_h
 
 #include <utility/filters/AnalogFilter.hpp>
 #include "../Controller.hpp"
@@ -106,6 +106,7 @@ class Imp_Dob_LinMot_4000 : public Controller {
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
+    utility::AnalogFilter* lowPassDD;
     utility::AnalogFilter* lowPassPs;
     utility::AnalogFilter* lowPassPt;
     utility::AnalogFilter* lowPassPa;
