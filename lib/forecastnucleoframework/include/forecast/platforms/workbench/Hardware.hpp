@@ -28,8 +28,8 @@ public:
     logs["dt"] = &dt;
 
     logs["VC"] = vel_comp_value;
-    logs["X error"] = fric1;
-    logs["Force Out"] = fric2;
+    logs["Rise TIme"] = fric1;
+    logs["Overshoot"] = fric2;
     logs["ContSigTest"] = control_signal_teste;
     logs["sprint_start_force"] = sprint_start_force;
 

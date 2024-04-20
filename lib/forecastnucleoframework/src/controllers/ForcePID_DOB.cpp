@@ -149,8 +149,6 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     ierr += err * hw->get_dt();
     errPast = err;
 
-    *(hw->fric1) = kd*derr;
-    *(hw->fric2) = filter_exit;
     //*(hw->tauM) = filter_exit;
 
     out = ref[0] + kp * err + kd * derr + ki * ierr;
@@ -166,6 +164,27 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     if(dob_exit < -a){
         dob_exit = -a;
     }
+
+
+    if(tau > max_tau && hw->get_current_time() > 2){
+        max_tau = tau;
+    }
+
+    if(once_start == 1 && tau > 0.1*ref[0] && hw->get_current_time() > 2){
+        once_start = 0;
+        time_start = hw->get_current_time();
+    }
+    else if(once_end == 1 && tau > 0.9*ref[0] && once_start == 0 && hw->get_current_time() > 2){
+        once_end = 0;
+        time_end= hw->get_current_time();
+    }
+    else if(once_end == 0 && once_start == 0 && hw->get_current_time() > 2){
+        rise_time = time_end - time_start;
+    }
+
+
+    *(hw->fric1) = rise_time;
+    /**(hw->fric2) = max_tau;*/
 
     prev6_err = prev5_err;
     prev5_err = prev4_err;
