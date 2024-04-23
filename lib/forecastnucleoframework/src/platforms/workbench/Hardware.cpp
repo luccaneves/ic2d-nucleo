@@ -296,20 +296,16 @@ void forecast::Hardware::update(float dt) {
     
     dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
-    
     float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.666666*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.1666666*prev6_dthetaM)/dt;
     
     //double ddthetaM_NoFilt = (double)(4.511111*((double)thetaM) - 17.4*((double)prev1_thetaM) + 29.25*((double)prev2_thetaM) -28.22222*((double)prev3_thetaM) + 16.5*((double)prev4_thetaM)  -5.4*((double)prev5_thetaM) + 0.761111*((double)prev6_thetaM))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
     
-
     //float dthetaE_NoFilt = (2.45*thetaE - 6*prev1_thetaE + 7.5*prev2_thetaE - 6.66*prev3_thetaE + 3.75*prev4_thetaE - 1.2*prev5_thetaE + 0.16*prev6_thetaE)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
     //float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.66*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.16*prev6_dthetaM)/dt;
     
     //double ddthetaE_NoFilt = (double)(2*((double)thetaE) - 5*((double)prev1_thetaE) + 4*((double)prev2_thetaE) - 1*((double)prev3_thetaE) + 0*((double)prev4_thetaE))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
     
-
-
     //Parte do polyfit
     
     /*std::vector<double> time_vec = {t - 6*(FINITE_DIF_SAMPLING_COUNTER + 1)*dt,
@@ -491,6 +487,7 @@ void forecast::Hardware::update(float dt) {
   //dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
   float dtauSensor_NoFilt  = (2.45*tauSensor - 6*prev1_tauSensor + 7.5*prev2_tauSensor - 6.66*prev3_tauSensor + 3.75*prev4_tauSensor - 1.2*prev5_tauSensor + 0.16*prev6_tauSensor)/dt;
   dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
+  //dtauSensor = dtauSensor_NoFilt;
 
   //ddtauSensor = (2.28*dtauSensor - 5*prev1_dtauSensor + 5*prev2_dtauSensor - 3.33*prev3_dtauSensor + 1.25*prev4_dtauSensor - 0.2*prev5_dtauSensor)/dt;
 

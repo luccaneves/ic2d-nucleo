@@ -3,7 +3,7 @@
 using namespace forecast;
 
 FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
-float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x)
+float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -39,9 +39,10 @@ float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float 
       limit_dob(limit_dob),
       gain_vc(gain_vc),
       vc_limit(vc_limit),
-      start_x(start_x)
+      start_x(start_x),
+      fl(fl)
 {
-    float freq = 5.0;
+    float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(15);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -86,19 +87,19 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
 
     float deriv_force = hw->get_d_tau_s(1);
-    //Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
-    //Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
-    //Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
-    //Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
+    Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
+    Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
+    Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
 
 
-    Pa = lowPassPa->process(hw->get_pressure(0)*100000,hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1)*100000,hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2)*100000,hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3)*100000,hw->get_dt());
+    //Pa = hw->get_pressure(0)*100000;
+    //Pb = hw->get_pressure(1)*100000;
+    //Ps = hw->get_pressure(2)*100000;
+    //Pt = hw->get_pressure(3)*100000;
 
 
-    ixv = hw->get_tau_m(0) - 0.0190*20;
+    ixv = hw->get_tau_m(0) - 0.0250*0;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
     err = ref[0] - tau;
@@ -166,11 +167,12 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         disturb = -limit_dob;
     }
 
-    //TODO: Voltar B_int para o FL
-    out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000;
-
-    //TODO: Tirar isso depois plmrds
-    //out = v - disturb*1000;
+    if(fl == 1){
+        out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
+    }
+    else{
+        out = v - disturb*1000 + leak_fix;
+    }
 
     float d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0); 
 
@@ -186,8 +188,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //expected_force = expected_force + deriv_force*hw->get_dt();
 
     *(hw->fric1) = disturb*1000;
-    *(hw->fric2) = -f*Kvc;
-    *(hw->control_signal_teste) = Pa*Aa - Pb*Ab;
+    *(hw->fric2) = (f*Kvc*1000)/(g*Kpc);
+    *(hw->control_signal_teste) = (f*Kvc*1000)/(g*Kpc);
     *(hw->sprint_start_force) = expected_force;
 
     out = out;
