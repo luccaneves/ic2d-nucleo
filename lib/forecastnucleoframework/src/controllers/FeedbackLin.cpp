@@ -44,7 +44,7 @@ float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float 
 {
     float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(15);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -100,6 +100,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
 
     ixv = hw->get_tau_m(0) - 0.0250*0;
+    ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
     err = ref[0] - tau;
@@ -108,6 +109,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
     + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
     (hw->get_dt());
+
+    derr = lowPass->process(derr,hw->get_dt());
 
     prev_erro_7 = prev_erro_6;
     prev_erro_6 = prev_erro_5;
@@ -191,6 +194,9 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->fric2) = (f*Kvc*1000)/(g*Kpc);
     *(hw->control_signal_teste) = (f*Kvc*1000)/(g*Kpc);
     *(hw->sprint_start_force) = expected_force;
+    *(hw->var1) = derr;
+    *(hw->var2) = deriv_force;
+    *(hw->var3) = lowPassD->process(ixv,hw->get_dt());
 
     out = out;
 
@@ -201,9 +207,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         out = -limit;
     }
 
+    *(hw->var4) = out;
     //out = lowPass->process(out,hw->get_dt());
 
     last_out = out;
 
-    return out;
+    return out*0.96;
 }
