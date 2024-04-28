@@ -29,7 +29,7 @@ public:
   FeedbackLin(float kp = 0, float kd = 0, float ki = 0, float Kvc = 0,
                    float Kpc = 0, float B_int = 0, float leak_fix = 0,float limit = 0, 
                    float lambda = 0, float gain_dob = 0, float limit_dob = 0, 
-                   float gain_vc = 0, float vc_limit = 0, float start_x = 0,float fl = 0);
+                   float gain_vc = 0, float vc_limit = 0, float start_x = 0,float fl = 0, float gain_out = 0, float gainH = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -48,6 +48,9 @@ protected:
   float dtau = 0.0f;
   float x = 0.0f;
   float dx = 0.0f;
+
+  float gain_out = 0;
+  float gain_h = 0;
 
   float err = 0.0;
   float derr = 0.0;
@@ -86,6 +89,7 @@ protected:
   float leak_fix = 0;
   float limit = 0;
   float start_x = 0;
+  float h = 0;
 
   float prev_erro_1 = 0.0;
   float prev_erro_2 = 0.0;
@@ -120,18 +124,18 @@ protected:
 inline ControllerFactory::Builder make_feedback_lin_builder() {
 
   auto fn = [](std::vector<float> params) -> Controller * {
-    if (params.size() < 15)
+    if (params.size() < 17)
       return nullptr; // not enough parameters
 
     return new FeedbackLin(params[0], params[1], params[2], params[3],
                                 params[4],params[5],params[6],params[7],params[8],params[9],params[10],
-                                params[11],params[12],params[13],params[14]);
+                                params[11],params[12],params[13],params[14],params[15],params[16]);
   };
 
   return {
       fn,
       {"Kp", "Kd", "Ki", "gainF", "gainG","B", "Fix_Leak","limit","lambda","gain dob","limit dob","gain_vc","limit_vc",
-      "start_x","use_fl"},
+      "start_x","use_fl","gain_out","gainH"},
       {"reference"}};
 }
 

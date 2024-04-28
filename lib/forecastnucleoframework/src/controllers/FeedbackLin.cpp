@@ -3,7 +3,8 @@
 using namespace forecast;
 
 FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
-float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl)
+float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl
+,float gainout, float gainH)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -40,7 +41,9 @@ float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float 
       gain_vc(gain_vc),
       vc_limit(vc_limit),
       start_x(start_x),
-      fl(fl)
+      fl(fl),
+      gain_out(gainout),
+      gain_h(gainH)
 {
     float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -148,8 +151,13 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
+    h = gain_h*Ap*Be*(Pb - Pa)*(1/Va + alfa/Vb);
 
-    float d_disturb = (lambda/(g*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
+
+    //float d_disturb = (lambda/(g*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
+
+    float d_disturb = (lambda/(h))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - h*disturb);
+
 
     disturb = disturb + d_disturb*(hw->get_dt());
 
@@ -171,10 +179,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
 
     if(fl == 1){
-        out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
+        out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - (disturb*1000*h)/g + leak_fix;
     }
     else{
-        out = v - disturb*1000 + leak_fix;
+        out = v - (disturb*1000*h)/g + leak_fix;
     }
 
     float d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0); 
@@ -212,5 +220,5 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     last_out = out;
 
-    return out*0.96;
+    return out*gain_out;
 }
