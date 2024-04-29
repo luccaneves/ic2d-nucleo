@@ -156,7 +156,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     //float d_disturb = (lambda/(g*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
 
-    float d_disturb = (lambda/(h))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - h*disturb);
+    float d_disturb = (lambda/(h))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (h)*disturb);
 
 
     disturb = disturb + d_disturb*(hw->get_dt());
@@ -169,23 +169,23 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     //out = Kpc/(g)*(-Kvc*f*1000 + v);
 
-    disturb = gain_dob*disturb;
+    float disturb_current = gain_dob*(disturb*1000*h)/(g*Kpc);
 
-    if(disturb > limit_dob){
-        disturb = limit_dob;
+    if(disturb_current > limit_dob){
+        disturb_current = limit_dob;
     }
-    else if(disturb < -limit_dob){
-        disturb = -limit_dob;
+    else if(disturb_current < -limit_dob){
+        disturb_current = -limit_dob;
     }
 
     if(fl == 1){
-        out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - (disturb*1000*h)/g + leak_fix;
+        out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb_current + leak_fix;
     }
     else{
-        out = v - (disturb*1000*h)/g + leak_fix;
+        out = v - disturb_current + leak_fix;
     }
 
-    float d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0); 
+    float d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000)) - B_int*hw->get_dd_theta(0); 
 
     //expected_force = tau;
 
@@ -198,10 +198,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
     //expected_force = expected_force + deriv_force*hw->get_dt();
 
-    *(hw->fric1) = disturb*1000;
-    *(hw->fric2) = (f*Kvc*1000)/(g*Kpc);
-    *(hw->control_signal_teste) = (f*Kvc*1000)/(g*Kpc);
-    *(hw->sprint_start_force) = expected_force;
+    *(hw->fric1) = disturb_current;
+    *(hw->fric2) = disturb;
+    *(hw->control_signal_teste) = h;
+    *(hw->sprint_start_force) = (disturb*1000*h)/(g*Kpc);
     *(hw->var1) = derr;
     *(hw->var2) = deriv_force;
     *(hw->var3) = lowPassD->process(ixv,hw->get_dt());
