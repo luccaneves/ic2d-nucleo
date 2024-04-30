@@ -132,8 +132,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     alfa = Ab/Aa;
     Kv = qn/(In*sqrt(pn/2));
     
-    Va = Vpl + Aa*(start_x + (x - offset_x));
-    Vb = Vpl + (L_cyl - (start_x + (x - offset_x)))*Ab;
+    Va = Vpl + Aa*(x);
+    Vb = Vpl + (L_cyl - x)*Ab;
 
     if(ixv >= 0.00000f){
         g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -191,12 +191,14 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //expected_force = expected_force + deriv_force*hw->get_dt();
 
     *(hw->fric1) = disturb*1000;
-    *(hw->fric2) = (f*Kvc*1000)/(g*Kpc);
-    *(hw->control_signal_teste) = (f*Kvc*1000)/(g*Kpc);
+    *(hw->fric2) = (f*Kvc);
+    *(hw->control_signal_teste) = (g*Kpc);
     *(hw->sprint_start_force) = expected_force;
     *(hw->var1) = derr;
-    *(hw->var2) = deriv_force;
-    *(hw->var3) = lowPassD->process(ixv,hw->get_dt());
+    *(hw->var2) = Pa;
+    *(hw->var3) = Pb;
+    *(hw->var4) = Ps;
+    *(hw->var5) = Pt;
 
     out = out;
 
@@ -207,10 +209,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         out = -limit;
     }
 
-    *(hw->var4) = out;
+    //*(hw->var4) = out;
     //out = lowPass->process(out,hw->get_dt());
 
     last_out = out;
 
-    return out*0.96;
+    return out*0.955;
 }
