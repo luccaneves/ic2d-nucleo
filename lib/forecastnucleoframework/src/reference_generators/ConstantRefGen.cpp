@@ -13,7 +13,7 @@ float duration = hw->get_duration_time();
     return {-1};
 }
 else*/ 
-if (time > 5.0f && time < duration - 5.0f){
+if (time > 10.0f && time < duration - 5.0f){
         return values;
     } 
 else {

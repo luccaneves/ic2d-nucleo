@@ -92,7 +92,13 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
     Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
 
+    if(Pa == 0){
+        Pa = 1;
+    }
 
+    if(Pb == 0){
+        Pb = 1;
+    }
     //Pa = hw->get_pressure(0)*100000;
     //Pb = hw->get_pressure(1)*100000;
     //Ps = hw->get_pressure(2)*100000;
@@ -163,11 +169,11 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     disturb = gain_dob*disturb;
 
-    if(disturb > limit_dob){
-        disturb = limit_dob;
+    if(disturb > limit_dob/1000){
+        disturb = limit_dob/1000;
     }
-    else if(disturb < -limit_dob){
-        disturb = -limit_dob;
+    else if(disturb < -limit_dob/1000){
+        disturb = -limit_dob/1000;
     }
 
     if(fl == 1){
