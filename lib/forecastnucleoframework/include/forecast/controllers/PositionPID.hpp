@@ -42,6 +42,14 @@ namespace forecast
         float out;
         float reference = 0.0;
 
+        float last_erro_1 = 0;
+        float last_erro_2 = 0;
+        float last_erro_3 = 0;
+        float last_erro_4 = 0;
+        float last_erro_5 = 0;
+        float last_erro_6 = 0;
+
+
         utility::AnalogFilter *lowPass;
     };
 
