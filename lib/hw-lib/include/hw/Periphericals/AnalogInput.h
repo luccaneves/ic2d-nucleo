@@ -143,7 +143,7 @@ typedef struct bufferi_st
 } bufferi_t;
 
 #define TESTE 1
-#define NUMBER_ADC_CHANNELS_USED 2
+#define NUMBER_ADC_CHANNELS_USED 3
 #define NUMBER_BIT_SHIFT 12 /*Deve ser tal que x = log2 NUMBER_READS_PER_CHANNELS*/
 #define NUMBER_READS_PER_CHANNELS (1 << NUMBER_BIT_SHIFT)
 #define DMA_BUFFER_SIZE /*NUMBER_ADC_CHANNELS_USED*TESTE*/4

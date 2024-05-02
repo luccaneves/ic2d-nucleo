@@ -38,9 +38,9 @@ forecast::Status forecast::Hardware::init() {
     return Status::CONTROL_MOTOR_INIT_ERR;
   control_motor->setTorque(0.f);
 
-  /*if (not motorEnvironmentInit())
+  if (not motorEnvironmentInit())
     return Status::ENV_MOTOR_INIT_ERR;
-  env_motor->setTorque(0.f);*/
+  env_motor->setTorque(0.f);
 
   if (not torqueSensorInit())
     return Status::TORQUE_SENSOR_INIT_ERR;
@@ -398,7 +398,7 @@ void forecast::Hardware::update(float dt) {
   /* Control motor update  (from Escon feedback) */
 
   //TODO: Voltar
-  tauM = control_motor->getTorqueFeedback();
+  //tauM = control_motor->getTorqueFeedback();
 
   //TODO: ATENÇÃO, VOLTAR
   //tauM = control_motor->getCurrentFeedback();
@@ -545,7 +545,7 @@ void forecast::Hardware::home()
 
   // resetting actuators output:
   control_motor->setTorque(0);
-  //env_motor->setTorque(0);
+  env_motor->setTorque(0);
 
   lowPassTauSensor->clean();
   //tauSensor = 0;

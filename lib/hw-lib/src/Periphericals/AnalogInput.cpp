@@ -257,7 +257,7 @@ void interrupt_dma(){
         int i = 0;
 
         if(h < 4){
-            i = 1;
+            i = 2;
         }
         else{
             i = 0;
