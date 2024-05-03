@@ -12,9 +12,9 @@ PositionPID::PositionPID(float kp, float ki, float kd)
 float PositionPID::process(const IHardware *hw, std::vector<float> ref) {
   theta = hw->get_theta(1);
   //dtheta = hw->get_d_theta(0);
-  reference = ref[0];
+  reference = ref[1];
 
-  err = ref[0] - theta;
+  err = ref[1] - theta;
   // err = 0.5;
   //derr = (err - errPast) / hw->get_dt();
 
@@ -34,5 +34,8 @@ float PositionPID::process(const IHardware *hw, std::vector<float> ref) {
   errPast = err;
 
   out = kp * err + ki * ierr + kd * derr;
+
+  //*(hw->fric2) = out;
+
   return out;
 }
