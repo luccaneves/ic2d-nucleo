@@ -39,11 +39,17 @@ class teste : public Controller {
 
     float errPast = 0.0;
 
+    float Pa = 0.0;
+    float Pb = 0.0;
+    float Pl = 0.0;
+
     float out;
     float reference = 0.0;
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
+    utility::AnalogFilter* lowPassPa;
+    utility::AnalogFilter* lowPassPb;
 };
 
 inline ControllerFactory::Builder make_teste_builder() {
