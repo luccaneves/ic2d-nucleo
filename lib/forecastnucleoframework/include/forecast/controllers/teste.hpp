@@ -21,7 +21,7 @@ class teste : public Controller {
      * @param ki
      * @param kd
      */
-    teste(float kp = 0, float ki = 0, float kd = 0);
+    teste(float kp = 0, float ki = 0, float kd = 0, float fix_leak = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -43,6 +43,8 @@ class teste : public Controller {
     float Pb = 0.0;
     float Pl = 0.0;
 
+    float fix_leak = 0;
+
     float out;
     float reference = 0.0;
 
@@ -55,12 +57,12 @@ class teste : public Controller {
 inline ControllerFactory::Builder make_teste_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 2)
+        if (params.size() < 3)
             return nullptr;
-        return new teste(params[0], params[1], params[2]);
+        return new teste(params[0], params[1], params[2], params[3]);
     };
 
-    return {fn, {"KP", "KI", "KD"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","fix_leak"}, {"reference"}};
 }
 
 }  // namespace forecast

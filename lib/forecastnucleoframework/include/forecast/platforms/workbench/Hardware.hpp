@@ -28,10 +28,10 @@ public:
     logs["dt"] = &dt;
 
     logs["VC"] = vel_comp_value;
-    logs["Fric1"] = fric1;
-    logs["Fric2"] = fric2;
-    logs["f"] = control_signal_teste;
-    logs["g"] = sprint_start_force;
+    logs["Pa_filtrado"] = fric1;
+    logs["Pb_filtrado"] = fric2;
+    logs["saida_controlador"] = control_signal_teste;
+    logs["diff_press"] = sprint_start_force;
 
     logs["Control Signal"] = &tauM;
     //logs["dtauM"] = &dtauM;
