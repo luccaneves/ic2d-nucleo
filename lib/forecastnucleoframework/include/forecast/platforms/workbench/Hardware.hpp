@@ -28,7 +28,7 @@ public:
     logs["dt"] = &dt;
 
     logs["VC"] = vel_comp_value;
-    logs["Rise TIme"] = fric1;
+    logs["Rise Time"] = fric1;
     logs["Overshoot"] = fric2;
     logs["ContSigTest"] = control_signal_teste;
     logs["sprint_start_force"] = sprint_start_force;

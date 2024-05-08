@@ -197,7 +197,7 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
 
     float out_control = lowPassControl->process(control_output_no_filter, hw->get_dt());
 
-    //*(hw->fric2) = control_output_no_filter;
+    *(hw->fric2) = control_output_no_filter;
 
     return (control_output_no_filter);
 }
