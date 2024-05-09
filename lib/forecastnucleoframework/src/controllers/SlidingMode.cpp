@@ -31,7 +31,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       max_f(max_f),
       max_g(max_g),
       min_f(min_f),
-      min_g(min_g)
+      min_g(min_g),
       psi(psi),
       etta(eta),
       gain_dob(gain_dob),

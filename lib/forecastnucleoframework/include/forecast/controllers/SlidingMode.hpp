@@ -113,8 +113,6 @@ protected:
   float prev_ref_6 = 0.0;
   float prev_ref_7 = 0.0;
 
-  float deriv_force_desejada = 0;
-
   float gain_vc = 0;
   float vc_limit = 0;
 
