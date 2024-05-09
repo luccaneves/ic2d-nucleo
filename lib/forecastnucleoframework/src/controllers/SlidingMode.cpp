@@ -1,14 +1,9 @@
-#include <forecast/controllers/FeedbackLin.hpp>
+#include <forecast/controllers/SlidingMode.hpp>
 
 using namespace forecast;
 
-FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
-float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl)
-    : kp(kp),
-      kd(kd),
-      ki(ki),
-      Kvc(Kvc),
-      Kpc(Kpc),
+SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda)
+    : 
       tau(0.0f),
       dtau(0.0f),
       errPast(0.f),
@@ -31,16 +26,17 @@ float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float 
       f(0.0f),
       g(0.0f),
       v(0.0f),
-      B_int(B_int),
-      leak_fix(leak_fix),
       limit(limit),
-      lambda(lambda),
+      gain_out(gain_out),
+      max_f(max_f),
+      max_g(max_g),
+      min_f(min_f),
+      min_g(min_g)
+      psi(psi),
+      etta(eta),
       gain_dob(gain_dob),
       limit_dob(limit_dob),
-      gain_vc(gain_vc),
-      vc_limit(vc_limit),
-      start_x(start_x),
-      fl(fl)
+      lambda(lambda)
 {
     float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -67,7 +63,7 @@ float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float 
     
 }
 
-float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
+float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 {
 
     //Kvc = Kvc*0.089;
@@ -105,7 +101,6 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         Pb = 1;
     }
 
-
     ixv = hw->get_tau_m(0) - 0.0250*0;
     ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
@@ -126,6 +121,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     prev_erro_3 = prev_erro_2;
     prev_erro_2 = prev_erro_1;
     prev_erro_1 = err;
+
+
 
     ierr += err * hw->get_dt();
     errPast = err;
@@ -153,20 +150,46 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
 
 
-    f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+    f = -Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
+    beta = sqrt(max_g/min_g);
+    gain_g_med = sqrt(max_g*min_g);
+    gain_f_med = (max_f - min_f)/2;
 
-    float d_disturb = (lambda/(g*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
+    deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
+    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
+    (hw->get_dt());
+
+    deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
+
+    prev_ref_6 = prev_ref_5;
+    prev_ref_5 = prev_ref_4;
+    prev_ref_4 = prev_ref_3;
+    prev_ref_3 = prev_ref_2;
+    prev_ref_1 = ref[0];
+
+    float u = (deriv_force_desejada - gain_f_med*f);
+
+    float k = (beta*((max_f - gain_f_med)*abs(f) + etta) + (beta - 1)*abs(u));
+
+    float sat_ = 0;
+    float s = tau - ref[0];
+
+    if(abs(s/psi) <= 1){
+        sat_ = s/psi;
+        }
+    else{
+        if(s > 0){
+           sat_ = 1; 
+        }
+        else if(s < 0){
+            sat_ = -1; 
+        }
+    }
+
+    float d_disturb = (lambda/(g*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - (g)*disturb*Kpc);
 
     disturb = disturb + d_disturb*(hw->get_dt());
-
-    //disturb = lowPassD->process(disturb,hw->get_dt());
-
-    //f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
-   
-    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
-
-    //out = Kpc/(g)*(-Kvc*f*1000 + v);
 
     disturb = gain_dob*disturb;
 
@@ -176,38 +199,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     else if(disturb < -limit_dob/1000){
         disturb = -limit_dob/1000;
     }
+    
 
-    if(fl == 1){
-        out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
-    }
-    else{
-        out = v - disturb*1000 + leak_fix;
-    }
-
-    float d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0); 
-
-    //expected_force = tau;
-
-    if(hw->get_current_time() > 4){
-       if(once_force == 1){
-        once_force = 0;
-        expected_force = tau;
-       }
-       expected_force = expected_force + d_force*hw->get_dt(); 
-    }
-    //expected_force = expected_force + deriv_force*hw->get_dt();
-
-    *(hw->fric1) = disturb*1000;
-    *(hw->fric2) = (f*Kvc);
-    *(hw->control_signal_teste) = (g*Kpc);
-    *(hw->sprint_start_force) = expected_force;
-    *(hw->var1) = derr;
-    *(hw->var2) = Pa;
-    *(hw->var3) = Pb;
-    *(hw->var4) = Ps;
-    *(hw->var5) = Pt;
-
-    out = out;
+    //current = 1/(0.86*g)*(u - k*sign(s));
+    out = (1/(gain_g_med*g))*(u - k*sat_)*1000 - gain_dob*disturb*1000;
 
     if(out > limit){
         out = limit;
@@ -221,5 +216,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     last_out = out;
 
-    return out*0.955;
+    *(hw->var1) = out;
+
+    return out*gain_out;
 }
