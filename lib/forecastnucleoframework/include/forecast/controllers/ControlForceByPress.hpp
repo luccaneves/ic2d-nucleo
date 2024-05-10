@@ -21,14 +21,19 @@ class ControlForceByPress : public Controller {
      * @param ki
      * @param kd
      */
-    ControlForceByPress(float kp = 0, float ki = 0, float kd = 0);
+    ControlForceByPress(float kp_force = 0, float ki_force = 0, float kd_force = 0,
+    float kp_press = 0, float ki_press = 0, float kd_press = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
    protected:
-    float kp = 0.0;
-    float ki = 0.0;
-    float kd = 0.0;
+    float kp_force = 0.0;
+    float ki_force = 0.0;
+    float kd_force = 0.0;
+
+    float kp_press = 0.0;
+    float ki_press = 0.0;
+    float kd_press= 0.0;
 
     float tau = 0.0f;
     float dtau = 0.0f;
@@ -62,12 +67,13 @@ class ControlForceByPress : public Controller {
 inline ControllerFactory::Builder make_ControlForceByPress_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 2)
+        if (params.size() < 5)
             return nullptr;
-        return new ControlForceByPress(params[0], params[1], params[2]);
+        return new ControlForceByPress(params[0], params[1], params[2]
+        , params[3], params[4], params[5]);
     };
 
-    return {fn, {"KP", "KI", "KD"}, {"reference"}};
+    return {fn, {"KP_force", "KI_force", "KD_force","KP_press", "KI_press", "KD_press"}, {"reference"}};
 }
 
 }  // namespace forecast

@@ -6,7 +6,7 @@ using namespace forecast;
 
 #define __sign(x) (std::signbit(x) ? -1.0 : 1.0)
 
-teste::teste(float kp, float ki, float kd, float fix_leak
+ControlePress::ControlePress(float kp, float ki, float kd, float fix_leak
         )
     : kp(kp), 
     ki(ki),
@@ -21,7 +21,7 @@ teste::teste(float kp, float ki, float kd, float fix_leak
     logs.push_back(&reference);
 }
 
-float teste::process(const IHardware *hw, std::vector<float> ref)
+float ControlePress::process(const IHardware *hw, std::vector<float> ref)
 {
     //theta = hw->get_theta(1); // hw->getThetaE();
     //tau = hw->get_tau_s(1);

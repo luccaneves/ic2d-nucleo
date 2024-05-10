@@ -10,7 +10,7 @@ namespace forecast {
  * @brief ForcePID control class
  **/
 
-class teste : public Controller {
+class ControlePress : public Controller {
    public:
 
     /**

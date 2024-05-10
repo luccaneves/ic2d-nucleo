@@ -4,11 +4,14 @@ using namespace forecast;
 
 #define __sign(x) (std::signbit(x) ? -1.0 : 1.0)
 
-ControlForceByPress::ControlForceByPress(float kp, float ki, float kd
-        )
-    : kp(kp), 
-    ki(ki),
-    kd(kd)
+ControlForceByPress::ControlForceByPress(float kp_force, float ki_force, float kd_force,
+float kp_press, float ki_press, float kd_press)
+    : kp_press(kp_press), 
+    ki_press(ki_press),
+    kd_press(kd_press),
+    kp_force(kp_force), 
+    ki_force(ki_force),
+    kd_force(kd_force)
 {
 
     lowPass = utility::AnalogFilter::getDifferentiatorHz(20.0f);
@@ -16,34 +19,5 @@ ControlForceByPress::ControlForceByPress(float kp, float ki, float kd
 
 float ControlForceByPress::process(const IHardware *hw, std::vector<float> ref)
 {
-    //theta = hw->get_theta(1); // hw->getThetaE();
-    tau = hw->get_tau_s(1);
-    reference = ref[0];
-
-    err_tau = ref[0] - tau; 
-    derr_tau = (err_tau - errPast_tau) / hw->get_dt();
-    ierr_tau += err_tau * hw->get_dt();
-
-    errPast_tau = err_tau
-
-    out_tau = kp * err_tau + ki * ierr_tau + kd * derr_tau;
-
-    Pa = lowPassPa->process(hw->get_pressure(0)*100000,hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1)*100000,hw->get_dt());
-    //reference_pl = ref[0];
-
-    Pl = Pa - Pb*0.75;
-//for (i=0;++)
-    err = out_tau/0.0002853 - Pl; 
-    derr = (err - errPast) / hw->get_dt();
-    ierr += err * hw->get_dt();
-
-    errPast = err;
-
-    //out=10*theta;
-
-
-    out = kp * err + ki * ierr + kd * derr;
-
-    return out;
+    
 }
