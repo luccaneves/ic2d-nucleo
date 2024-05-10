@@ -1,5 +1,5 @@
-#ifndef teste_PID_H
-#define teste_PID_H
+#ifndef Cont_press
+#define Cont_press
 
 #include <utility/filters/AnalogFilter.hpp>
 #include "../Controller.hpp"
@@ -21,7 +21,7 @@ class teste : public Controller {
      * @param ki
      * @param kd
      */
-    teste(float kp = 0, float ki = 0, float kd = 0, float fix_leak = 0);
+    ControlePress(float kp = 0, float ki = 0, float kd = 0, float fix_leak = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -54,12 +54,12 @@ class teste : public Controller {
     utility::AnalogFilter* lowPassPb;
 };
 
-inline ControllerFactory::Builder make_teste_builder() {
+inline ControllerFactory::Builder make_ControlePress_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
         if (params.size() < 3)
             return nullptr;
-        return new teste(params[0], params[1], params[2], params[3]);
+        return new ControlePress(params[0], params[1], params[2], params[3]);
     };
 
     return {fn, {"KP", "KI", "KD","fix_leak"}, {"reference"}};
