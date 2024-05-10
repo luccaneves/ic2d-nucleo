@@ -72,7 +72,9 @@
         "semaphore": "cpp",
         "stop_token": "cpp",
         "valarray": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "controlforcebypress": "c",
+        "controlforcebypress.hpp": "c"
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,

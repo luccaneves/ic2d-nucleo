@@ -30,6 +30,7 @@
 #include <forecast/controllers/FeedbackLin.hpp>
 #include <forecast/controllers/Imp_Dob_LinMot_4000.hpp>
 #include <forecast/controllers/ControlePress.hpp>
+#include <forecast/controllers/ControlForceByPress.hpp>
 
 /** Refgen Headers */
 #include <forecast/reference_generators/ConstantRefGen.hpp>
@@ -82,6 +83,7 @@ int main()
     app.get_controller_factory().add("DOB HYD LIN (5000Hz)", make_Force_PID_DOB_hyd_lin_builder());
     app.get_controller_factory().add("Imp_linmot_dob_5000", make_Imp_Dob_LinMot_4000_builder());
     app.get_controller_factory().add("Cont_Diff_Pres", make_ControlePress_builder());
+    app.get_controller_factory().add("ForcaPorPress", make_ControlForceByPress_builder());
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 
