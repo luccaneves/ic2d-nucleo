@@ -28,7 +28,7 @@ public:
   **/
   SlidingMode(float max_f = 0, float min_f = 0, float max_g = 0, float min_g = 0, float etta = 0, float psi = 0, 
   float limit = 0, float gain_out = 0, float gain_dob = 0, float limit_dob = 0, float lambda = 0, float max_disturb_current = 0,
-  float min_disturb_current = 0, float disturb_model_gain = 0);
+  float min_disturb_current = 0, float disturb_model_gain = 0, float kp = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -143,18 +143,18 @@ protected:
 inline ControllerFactory::Builder make_SlidingMode_builder() {
 
   auto fn = [](std::vector<float> params) -> Controller * {
-    if (params.size() < 14)
+    if (params.size() < 15)
       return nullptr; // not enough parameters
 
     return new SlidingMode(params[0], params[1], params[2], params[3],
                                 params[4],params[5],params[6],params[7],params[8],params[9],params[10]
-                                ,params[11],params[12],params[13]);
+                                ,params[11],params[12],params[13],params[14]);
   };
 
   return {
       fn,
       {"max_f", "min_f", "max_g", "min_g", "eta","psi", "limit","gain_out","gain_dob","limit_dob","lambda",
-      "max_disturb_current","min_disturb_current","disturb_model_gain"},
+      "max_disturb_current","min_disturb_current","disturb_model_gain","kp"},
       {"reference"}};
 }
 

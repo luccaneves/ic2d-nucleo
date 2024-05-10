@@ -3,7 +3,7 @@
 using namespace forecast;
 
 SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
-,float max_disturb_current, float min_disturb_current, float disturb_model_gain)
+,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -40,7 +40,8 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       lambda(lambda),
       max_disturb_current(max_disturb_current),
       min_disturb_current(min_disturb_current),
-      disturb_model_gain(disturb_model_gain)
+      disturb_model_gain(disturb_model_gain),
+      kp(kp)
 
 {
     float freq = 15.0;
@@ -178,7 +179,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_3 = prev_ref_2;
     prev_ref_1 = ref[0];
 
-    float u = (deriv_force_desejada - gain_f_med*f - disturb_model_gain*dist_gain_med*g);
+    float u = (deriv_force_desejada - gain_f_med*f - disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau));
 
     float k = (beta*((max_f - gain_f_med)*abs(f) + etta) + (beta - 1)*abs(u) + disturb_model_gain*beta*(dist_gain_max - dist_gain_med)*abs(g));
 
