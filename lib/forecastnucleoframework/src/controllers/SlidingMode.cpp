@@ -2,7 +2,8 @@
 
 using namespace forecast;
 
-SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda)
+SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
+,float max_disturb_current, float min_disturb_current, float disturb_model_gain)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -36,7 +37,11 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       etta(eta),
       gain_dob(gain_dob),
       limit_dob(limit_dob),
-      lambda(lambda)
+      lambda(lambda),
+      max_disturb_current(max_disturb_current),
+      min_disturb_current(min_disturb_current),
+      disturb_model_gain(disturb_model_gain)
+
 {
     float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -122,6 +127,11 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_erro_2 = prev_erro_1;
     prev_erro_1 = err;
 
+    float dist_gain_max = max_g*max_disturb_current;
+    float dist_gain_min = min_g*min_disturb_current;
+
+    float dist_gain_med = dist_gain_max/2 + dist_gain_min/2;
+
 
 
     ierr += err * hw->get_dt();
@@ -168,9 +178,9 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_3 = prev_ref_2;
     prev_ref_1 = ref[0];
 
-    float u = (deriv_force_desejada - gain_f_med*f);
+    float u = (deriv_force_desejada - gain_f_med*f - dist_gain_med*g);
 
-    float k = (beta*((max_f - gain_f_med)*abs(f) + etta) + (beta - 1)*abs(u));
+    float k = (beta*((max_f - gain_f_med)*abs(f) + etta) + (beta - 1)*abs(u) + beta*(dist_gain_max - dist_gain_med)*abs(g));
 
     float sat_ = 0;
     float s = tau - ref[0];
