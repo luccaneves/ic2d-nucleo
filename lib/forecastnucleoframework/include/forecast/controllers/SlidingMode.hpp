@@ -153,7 +153,7 @@ inline ControllerFactory::Builder make_SlidingMode_builder() {
 
   return {
       fn,
-      {"max_f", "min_f", "max_g", "min_g", "eta","psi", "limit","gain_dob","limit_dob","lambda"
+      {"max_f", "min_f", "max_g", "min_g", "eta","psi", "limit","gain_out","gain_dob","limit_dob","lambda",
       "max_disturb_current","min_disturb_current","disturb_model_gain"},
       {"reference"}};
 }
