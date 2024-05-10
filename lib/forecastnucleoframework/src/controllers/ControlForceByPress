@@ -19,5 +19,29 @@ float kp_press, float ki_press, float kd_press)
 
 float ControlForceByPress::process(const IHardware *hw, std::vector<float> ref)
 {
-    
+    tau = hw->get_tau_s(1);
+    reference = ref[0];
+
+    err_tau = ref[0] - tau; 
+    derr_tau = (err_tau - errPast_tau) / hw->get_dt();
+    ierr_tau += err_tau * hw->get_dt();
+
+    errPast_tau = err_tau
+
+    out_tau = kp_force * err_tau + ki_force * ierr_tau + kd_force * derr_tau;
+
+    Pa = lowPassPa->process(hw->get_pressure(0)*100000,hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(1)*100000,hw->get_dt());
+    //reference_pl = ref[0];
+
+    Pl=Pa-0.75*Pb;
+
+    err = out_tau*0.03527 - Pl;
+    derr = (err - errPast)/ hw->get_dt();
+    ierr += err* hw->get_dt();
+
+    errPast = err;
+
+    out = kp_press*err + ki_press*ierr + kd_press*derr + out_tau*0.03527;
+
 }
