@@ -95,17 +95,25 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
     Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
 
-    Pa = hw->get_pressure(0)*100000;
-    Pb = hw->get_pressure(1)*100000;
-    Ps = hw->get_pressure(2)*100000;
-    Pt = hw->get_pressure(3)*100000;
+    //Pa = hw->get_pressure(0)*100000;
+    //Pb = hw->get_pressure(1)*100000;
+    //Ps = hw->get_pressure(2)*100000;
+    //Pt = hw->get_pressure(3)*100000;
 
-    if(Pa == 0){
-        Pa = 1;
+    if(Pa == Ps){
+        Pa = Ps*0.99;
     }
 
-    if(Pb == 0){
-        Pb = 1;
+    if(Pa == Pt){
+        Pa = Pt*1.01;
+    }
+
+    if(Pb == Ps){
+        Pb = Ps*0.99;
+    }
+
+    if(Pb == Pt){
+        Pb = Pt*1.01;
     }
 
     ixv = hw->get_tau_m(0) - 0.0250*0;
@@ -198,23 +206,10 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
             sat_ = -1; 
         }
     }
-
-    float d_disturb = (lambda/(g*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - (g)*disturb*Kpc);
-
-    disturb = disturb + d_disturb*(hw->get_dt());
-
-    disturb = gain_dob*disturb;
-
-    if(disturb > limit_dob/1000){
-        disturb = limit_dob/1000;
-    }
-    else if(disturb < -limit_dob/1000){
-        disturb = -limit_dob/1000;
-    }
     
 
     //current = 1/(0.86*g)*(u - k*sign(s));
-    out = (1/(gain_g_med*g))*(u - k*sat_)*1000 - gain_dob*disturb*1000;
+    out = (1/(gain_g_med*g))*(u - k*sat_)*1000;
 
     if(out > limit){
         out = limit;
@@ -229,6 +224,10 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     last_out = out;
 
     *(hw->var1) = out;
+    *(hw->var2) = gain_g_med*g;
+    *(hw->var3) = gain_dob*disturb*1000;
+    *(hw->var4) = k;
+    *(hw->var5) = sat_;
 
     return out*gain_out;
 }

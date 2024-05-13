@@ -26,9 +26,10 @@ public:
   * @param limit
 
   **/
-  SlidingMode(float max_f = 0, float min_f = 0, float max_g = 0, float min_g = 0, float etta = 0, float psi = 0, 
-  float limit = 0, float gain_out = 0, float gain_dob = 0, float limit_dob = 0, float lambda = 0, float max_disturb_current = 0,
-  float min_disturb_current = 0, float disturb_model_gain = 0, float kp = 0, float ki = 0);
+  SlidingMode(float max_f = 0, float min_f = 0, float max_g = 0, float min_g = 0, float etta = 0
+  , float psi = 0, float limit = 0, float gain_out = 0, float gain_dob = 0, float limit_dob = 0, 
+  float lambda = 0, float max_disturb_current = 0,float min_disturb_current = 0, float disturb_model_gain = 0, 
+  float kp = 0, float ki = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 

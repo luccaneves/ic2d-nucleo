@@ -201,7 +201,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->fric2) = (f*Kvc);
     *(hw->control_signal_teste) = (g*Kpc);
     *(hw->sprint_start_force) = expected_force;
-    *(hw->var1) = derr;
+    *(hw->var1) = out*0.955;
     *(hw->var2) = Pa;
     *(hw->var3) = Pb;
     *(hw->var4) = Ps;
