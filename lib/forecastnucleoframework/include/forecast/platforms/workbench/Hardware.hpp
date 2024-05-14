@@ -37,6 +37,12 @@ public:
     logs["Var4"] = var4;
     logs["Var5"] = var5;
 
+    logs["Var6"] = var6;
+    logs["Var7"] = var7;
+    logs["Var8"] = var8;
+    logs["Var9"] = var9;
+    logs["Var10"] = var10;
+
     logs["f"] = control_signal_teste;
     logs["g"] = sprint_start_force;
 

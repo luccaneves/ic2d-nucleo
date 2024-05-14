@@ -39,17 +39,28 @@ public:
   float Var3 = 10;
   float Var4 = 10;
   float Var5 = 10;
+  float Var6 = 10;
+  float Var7 = 10;
+  float Var8 = 10;
+  float Var9 = 10;
+  float Var10 = 10;
 
   float* vel_comp_value = &a;
   float* fric1 = &b;
   float* fric2 = &c;
   float* control_signal_teste = &d;
   float* sprint_start_force = &e;
+  
   float* var1 = &Var1;
   float* var2 = &Var2;
   float* var3 = &Var3;
   float* var4 = &Var4;
   float* var5 = &Var5;
+  float* var6 = &Var6;
+  float* var7 = &Var7;
+  float* var8 = &Var8;
+  float* var9 = &Var9;
+  float* var10 = &Var10;
   /**
    * @brief   Hardware constructor
    */
