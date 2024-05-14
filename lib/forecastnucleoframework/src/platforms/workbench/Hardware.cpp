@@ -70,7 +70,7 @@ forecast::Status forecast::Hardware::init() {
   lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassLoacCell2->clean();
 
-  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(3.0f);
+  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(15.0f);
   lowPassDX1->clean();
 
   lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);

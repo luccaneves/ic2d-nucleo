@@ -117,7 +117,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     }
 
     ixv = hw->get_tau_m(0) - 0.0250*0;
-    ixv = last_out;
+    //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
     err = ref[0] - tau;
@@ -209,7 +209,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     
 
     //current = 1/(0.86*g)*(u - k*sign(s));
-    out = (1/(gain_g_med*g))*(u - k*sat_)*1000;
+    out = ((u - k*sat_)*1000)/(gain_g_med*g);
 
     if(out > limit){
         out = limit;
