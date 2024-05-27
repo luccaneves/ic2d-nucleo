@@ -349,6 +349,8 @@ public:
   // void update(float controlTorque, float envTorque, float dt);
   virtual void update(float dt) override;
 
+  virtual void UpdateEncoder() override;
+
   virtual void home() override;
 
 protected:

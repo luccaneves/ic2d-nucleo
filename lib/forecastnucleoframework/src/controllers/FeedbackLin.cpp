@@ -3,7 +3,8 @@
 using namespace forecast;
 
 FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
-float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl)
+float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
+float gain_out)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -40,7 +41,8 @@ float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float 
       gain_vc(gain_vc),
       vc_limit(vc_limit),
       start_x(start_x),
-      fl(fl)
+      fl(fl),
+      gain_out(gain_out)
 {
     float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -139,8 +141,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     alfa = Ab/Aa;
     Kv = qn/(In*sqrt(pn/2));
     
-    Va = Vpl + Aa*(x);
-    Vb = Vpl + (L_cyl - x)*Ab;
+    Va = Vpl + Aa*((x - offset_x));
+    Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
 
     if(ixv >= 0.00000f){
         g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -201,7 +203,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->fric2) = (f*Kvc);
     *(hw->control_signal_teste) = (g*Kpc);
     *(hw->sprint_start_force) = expected_force;
-    *(hw->var1) = out*0.955;
+    *(hw->var1) = out;
     *(hw->var2) = Pa;
     *(hw->var3) = Pb;
     *(hw->var4) = Ps;
@@ -221,5 +223,5 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     last_out = out;
 
-    return out*0.955;
+    return out*gain_out;
 }

@@ -50,7 +50,7 @@ public:
   float* fric2 = &c;
   float* control_signal_teste = &d;
   float* sprint_start_force = &e;
-  
+
   float* var1 = &Var1;
   float* var2 = &Var2;
   float* var3 = &Var3;
@@ -240,6 +240,8 @@ public:
   };
 
   virtual void update(float dt) = 0;
+
+  virtual void UpdateEncoder() = 0;
 
   virtual void home() = 0; // pure virtual function to go home 
 };

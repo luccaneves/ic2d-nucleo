@@ -186,6 +186,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_5 = prev_ref_4;
     prev_ref_4 = prev_ref_3;
     prev_ref_3 = prev_ref_2;
+    prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref[0];
 
     float u = (deriv_force_desejada - gain_f_med*f - disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr);
