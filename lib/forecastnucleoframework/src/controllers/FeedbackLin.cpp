@@ -84,8 +84,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     if (once == 1)
     {
-        offset_x = x;
-        once = 0;
+        //offset_x = x;
+        //once = 0;
     }
 
     float deriv_force = hw->get_d_tau_s(1);
@@ -99,12 +99,20 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     Ps = hw->get_pressure(2)*100000;
     Pt = hw->get_pressure(3)*100000;
 
-    if(Pa == 0){
-        Pa = 1;
+    if(Pa == Ps){
+        Pa = Ps*0.99;
     }
 
-    if(Pb == 0){
-        Pb = 1;
+    if(Pa == Pt){
+        Pa = Pt*1.01;
+    }
+
+    if(Pb == Ps){
+        Pb = Ps*0.99;
+    }
+
+    if(Pb == Pt){
+        Pb = Pt*1.01;
     }
 
 

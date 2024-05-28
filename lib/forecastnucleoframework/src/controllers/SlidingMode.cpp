@@ -3,7 +3,7 @@
 using namespace forecast;
 
 SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
-,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki)
+,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -42,10 +42,11 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       min_disturb_current(min_disturb_current),
       disturb_model_gain(disturb_model_gain),
       kp(kp),
-      ki(ki)
+      ki(ki),
+      kd(kd)
 
 {
-    float freq = 15.0;
+    float freq = 5.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -95,10 +96,10 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
     Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
 
-    //Pa = hw->get_pressure(0)*100000;
-    //Pb = hw->get_pressure(1)*100000;
-    //Ps = hw->get_pressure(2)*100000;
-    //Pt = hw->get_pressure(3)*100000;
+    Pa = hw->get_pressure(0)*100000;
+    Pb = hw->get_pressure(1)*100000;
+    Ps = hw->get_pressure(2)*100000;
+    Pt = hw->get_pressure(3)*100000;
 
     if(Pa == Ps){
         Pa = Ps*0.99;
@@ -189,7 +190,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref[0];
 
-    float u = (deriv_force_desejada - gain_f_med*f - disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr);
+    float u = (deriv_force_desejada - gain_f_med*f - disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
 
     float k = (beta*((max_f - gain_f_med)*abs(f) + etta) + (beta - 1)*abs(u) + disturb_model_gain*beta*(dist_gain_max - dist_gain_med)*abs(g));
 
