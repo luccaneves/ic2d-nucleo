@@ -541,7 +541,7 @@ void forecast::Hardware::home()
 {
   // resetting the encoders to make the board think it's in the starting
   // position
-  encoder_motor->reset(0);
+  //encoder_motor->reset(0);
   encoder_env->reset(0);
   encoder_env_motor->reset(0);
 

@@ -34,15 +34,22 @@ int DigitalEncoderAB::getAngle() {
     else 
         return 0;
 
-    if(act_counter_value >= prec_counter_value) {
-        if(act_counter_value-prec_counter_value > offset) {
-            continuous_counter--;
-        }
+    if(act_counter_value != prec_counter_value) {
+        int dif = (act_counter_value - prec_counter_value);
+        bool condp = dif > offset;
+        bool condn = -dif > offset;
+
+        if (condp) continuous_counter--;
+        else if (condn) continuous_counter++;
+        // if(act_counter_value - prec_counter_value > offset) {
+        //     continuous_counter--;
+        // }
+        // if(prec_counter_value-act_counter_value > offset) {
+        //     continuous_counter++;
+        // }
     } else {
-        if(prec_counter_value-act_counter_value > offset) {
-            continuous_counter++;
-        }
     }
+
     prec_counter_value = act_counter_value;
     return act_counter_value + continuous_counter*0xffff;
 #endif
