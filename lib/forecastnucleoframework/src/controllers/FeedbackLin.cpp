@@ -98,6 +98,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     Pb = hw->get_pressure(1)*100000;
     Ps = hw->get_pressure(2)*100000;
     Pt = hw->get_pressure(3)*100000;
+    Pt = 0; // Sensor de pressão com problema
 
     if(Pa == Ps){
         Pa = Ps*0.99;
@@ -211,11 +212,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->fric2) = (f*Kvc);
     *(hw->control_signal_teste) = (g*Kpc);
     *(hw->sprint_start_force) = expected_force;
+
     *(hw->var1) = out;
     *(hw->var2) = Pa;
     *(hw->var3) = Pb;
     *(hw->var4) = Ps;
     *(hw->var5) = Pt;
+    *(hw->var6) = f*Kvc;
+    *(hw->var7) = g*Kpc;
+    *(hw->var8) = disturb*1000;
+    *(hw->var9) = expected_force;
 
     out = out;
 
