@@ -85,28 +85,47 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
     float Kfh = 0.0;
     float B_int = 0;
 
+    float expected_force = 0;
+
     float Kvc = 0.0f;
     float Kpc = 0.0f;
 
-    double prev1_inv_model_exit = 0;
-    double prev2_inv_model_exit = 0;
-    double prev3_inv_model_exit = 0;
-    double prev4_inv_model_exit = 0;
-    double prev5_inv_model_exit = 0;
+    double prev1_filter_exit_dx = 0;
+    double prev2_filter_exit_dx = 0;
+    double prev3_filter_exit_dx = 0;
+    double prev4_filter_exit_dx = 0;
+    double prev5_filter_exit_dx = 0;
 
+    double prev1_dx = 0;
+    double prev2_dx = 0;
+    double prev3_dx = 0;
+    double prev4_dx = 0;
+    double prev5_dx = 0;
 
-    double prev1_filter_exit = 0;
-    double prev2_filter_exit = 0;
-    double prev3_filter_exit = 0;
-    double prev4_filter_exit = 0;
-    double prev5_filter_exit = 0;
+    double prev1_filter_exit_dF = 0;
+    double prev2_filter_exit_dF = 0;
+    double prev3_filter_exit_dF = 0;
+    double prev4_filter_exit_dF = 0;
+    double prev5_filter_exit_dF = 0;
 
-    double controller_prev1_x;
-    double controller_prev2_x;
-    double controller_prev3_x;
-    double controller_prev4_x;
-    double controller_prev5_x;
-    double controller_prev6_x;
+    double prev1_dF = 0;
+    double prev2_dF = 0;
+    double prev3_dF = 0;
+    double prev4_dF = 0;
+    double prev5_dF = 0;
+
+    double prev1_filter_exit_current = 0;
+    double prev2_filter_exit_current = 0;
+    double prev3_filter_exit_current = 0;
+    double prev4_filter_exit_current = 0;
+    double prev5_filter_exit_current = 0;
+
+    double prev1_current = 0;
+    double prev2_current = 0;
+    double prev3_current = 0;
+    double prev4_current = 0;
+    double prev5_current = 0;
+
 
     float prev1_err = 0;
     float prev2_err = 0;

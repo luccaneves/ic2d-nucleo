@@ -54,8 +54,8 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
 
 
-    double filter_num[6] = {0  , 0.310425427160331E-4  , 0.308362809159582E-4 ,0,0,0};
-    double filter_den[6] = {1.000000000000000  ,-1.980136794483123 ,  0.980198673306755,0,0,0};
+    double filter_num[6] = {0  , 0.2212  , 0 ,0,0,0};
+    double filter_den[6] = {1.000000000000000  , -0.7788 , 0 ,0,0,0};
 
     reference = ref[0];
     
@@ -65,10 +65,8 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     float x = hw->get_theta(0);
     float dx = hw->get_d_theta(0);
 
-    Pa = lowPassPa->process(hw->get_pressure(0)*100000,hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1)*100000,hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2)*100000,hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3)*100000,hw->get_dt());
+    Pt = 0;
+    Ps = 10000000;
 
     float ixv = hw->get_tau_m(0);
 
@@ -100,110 +98,108 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     Va = Vpl + Aa*x;
     Vb = Vpl + (L_cyl - x)*Ab;
 
+    double va0 = Vpl + L_cyl*Ap;
+    double vb0 = Vpl + L_cyl*Ap*alfa;
+    double uv0 = 0;
+    double pa0 = alfa*Ps/(1 + alfa);
+    double pb0 = Ps/(1 + alfa);
+
     double g = 0;
 
-    if(ixv >= 0.0f){
-        g = Be*Aa*Kv*( round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb );
-        }
-    else{
-        g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
-        }
+    double Kth = Be*Ap*(1/va0 + alfa/vb0);
 
-    //f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
-    float f = Be*pow(Aa,2)*( pow(alfa,2)/Vb + 1/Va )*dx;
+    double Kqa_pos = (Kv)*sqrt(Ps-pa0);
+    double Kqb_pos= (Kv)*sqrt(pb0-Pt);
 
-    float deriv_force = kpc*f + (kvc*g/1000)*hw->get_tau_m(0) - B_int*hw->get_dd_theta(0);
+    double Kca_pos = Kv*uv0/(2*sqrt(Ps-pa0));
+    double Kcb_pos = -Kv*uv0/(2*sqrt(pb0 - Pt));
 
-    force_expected += deriv_force*hw->get_dt();
+    double Kce_pos = (1/(1 + alfa*alfa*alfa))*((vb0*Kca_pos - alfa*alfa*alfa*va0*Kcb_pos)/(vb0 + alfa*va0));
 
-    inv_model_exit = 
-    inv_model_num[0]*dx + 
-    inv_model_num[1]*controller_prev1_x + 
-    inv_model_num[2]*controller_prev2_x +
-    inv_model_num[3]*controller_prev3_x +
-    inv_model_num[4]*controller_prev4_x +
-    inv_model_num[5]*controller_prev5_x 
-    -
-    inv_model_den[1]*prev1_inv_model_exit - 
-    inv_model_den[2]*prev2_inv_model_exit -
-    inv_model_den[3]*prev3_inv_model_exit -
-    inv_model_den[4]*prev4_inv_model_exit -
-    inv_model_den[5]*prev5_inv_model_exit;
+    double Kqe_pos = (vb0*Kqb_pos + alfa*va0*Kqb_pos)/(vb0 + alfa*va0);
 
-    inv_model_exit = inv_model_exit;
 
-    filter_exit = 
-    filter_num[0]*controller_prev1_tauM + 
-    filter_num[1]*controller_prev2_tauM + 
-    filter_num[2]*controller_prev3_tauM + 
-    filter_num[3]*controller_prev4_tauM + 
-    filter_num[4]*controller_prev5_tauM  
-    -
-    filter_den[1]*prev1_filter_exit - 
-    filter_den[2]*prev2_filter_exit -
-    filter_den[3]*prev3_filter_exit -
-    filter_den[4]*prev4_filter_exit -
-    filter_den[5]*prev5_filter_exit;
+    double output_filter_dF = (dtau*filter_num[0] + 
+    prev1_dF*filter_num[1] + 
+    prev2_dF*filter_num[2] + 
+    prev3_dF*filter_num[3] + 
+    prev4_dF*filter_num[4] - 
+    filter_den[1]*prev1_filter_exit_dF -
+    filter_den[2]*prev2_filter_exit_dF -
+    filter_den[3]*prev3_filter_exit_dF -
+    filter_den[4]*prev4_filter_exit_dF)/filter_den[0];
 
-    filter_exit = filter_exit;
+    double output_filter_dx = (dx*filter_num[0] + 
+    prev1_dx*filter_num[1] + 
+    prev2_dx*filter_num[2] + 
+    prev3_dx*filter_num[3] + 
+    prev4_dx*filter_num[4] - 
+    filter_den[1]*prev1_filter_exit_dx -
+    filter_den[2]*prev2_filter_exit_dx -
+    filter_den[3]*prev3_filter_exit_dx -
+    filter_den[4]*prev4_filter_exit_dx)/filter_den[0];
 
-    double v = force_expected;
+    double output_filter_current = (ixv*filter_num[0] + 
+    prev1_current*filter_num[1] + 
+    prev2_current*filter_num[2] + 
+    prev3_current*filter_num[3] + 
+    prev4_current*filter_num[4] - 
+    filter_den[1]*prev1_filter_exit_current -
+    filter_den[2]*prev2_filter_exit_current -
+    filter_den[3]*prev3_filter_exit_current -
+    filter_den[4]*prev4_filter_exit_current)/filter_den[0];
 
-    prev5_filter_exit = prev4_filter_exit;
-    prev4_filter_exit = prev3_filter_exit;
-    prev3_filter_exit = prev2_filter_exit;
-    prev2_filter_exit = prev1_filter_exit;
-    prev1_filter_exit = filter_exit;
 
-    prev5_inv_model_exit = prev4_inv_model_exit;
-    prev4_inv_model_exit = prev3_inv_model_exit;
-    prev3_inv_model_exit = prev2_inv_model_exit;
-    prev2_inv_model_exit = prev1_inv_model_exit;
-    prev1_inv_model_exit = inv_model_exit;
+    prev4_current = prev3_current;
+    prev3_current = prev2_current;
+    prev2_current = prev1_current;
+    prev1_current = ixv;
 
-    controller_prev6_tauM = controller_prev5_tauM;
-    controller_prev5_tauM = controller_prev4_tauM;
-    controller_prev4_tauM = controller_prev3_tauM;
-    controller_prev3_tauM = controller_prev2_tauM;
-    controller_prev2_tauM = controller_prev1_tauM;
-    controller_prev1_tauM = v;
+    prev4_filter_exit_current = prev3_filter_exit_current;
+    prev3_filter_exit_current = prev2_filter_exit_current;
+    prev2_filter_exit_current = prev1_filter_exit_current;
+    prev1_filter_exit_current = output_filter_current;
 
-    controller_prev6_x = controller_prev5_x;
-    controller_prev5_x = controller_prev4_x;
-    controller_prev4_x = controller_prev3_x;
-    controller_prev3_x = controller_prev2_x;
-    controller_prev2_x = controller_prev1_x;
-    controller_prev1_x = dx;
+    prev4_dF = prev3_dF;
+    prev3_dF = prev2_dF;
+    prev2_dF = prev1_dF;
+    prev1_dF = dtau;
+
+    prev4_filter_exit_dF = prev3_filter_exit_dF;
+    prev3_filter_exit_dF = prev2_filter_exit_dF;
+    prev2_filter_exit_dF = prev1_filter_exit_dF;
+    prev1_filter_exit_dF = output_filter_dF;
+
+    prev4_dx = prev3_dx;
+    prev3_dx = prev2_dx;
+    prev2_dx = prev1_dx;
+    prev1_dx = dx;
+
+    prev4_filter_exit_dx = prev3_filter_exit_dx;
+    prev3_filter_exit_dx = prev2_filter_exit_dx;
+    prev2_filter_exit_dx = prev1_filter_exit_dx;
+    prev1_filter_exit_dx = output_filter_dx;
+
+    float comp_value = (output_filter_dF/Kth + Ap*output_filter_dx*kvc)/(Kqe_pos*kpc) - output_filter_current;
     
-    *(hw->fric1) = filter_exit;
-    *(hw->fric2) = inv_model_exit;
-
-    double dob_exit = (tau + inv_model_exit) - filter_exit;
-    //double dob_exit = (inv_model_exit) - filter_exit;
-
-    deriv_disturb = (2.45*dob_exit - 6*prev1_disturb + 7.5*prev2_disturb - 6.66*prev3_disturb 
-    + 3.75*prev4_disturb - 1.2*prev5_disturb + 0.16*prev6_disturb)/
-    (hw->get_dt());
-
-    prev6_disturb = prev5_disturb;
-    prev5_disturb = prev4_disturb;
-    prev4_disturb = prev3_disturb;
-    prev3_disturb = prev2_disturb;
-    prev2_disturb = prev1_disturb;
-    prev1_disturb = dob_exit;
-
-    double comp = deriv_disturb*1000/(g*kvc);
+    comp_value = comp_value*1000;
 
     float a = limit_dob;
 
-    if(comp > a){
-        comp = a;
+    if(comp_value > a){
+        comp_value = a;
     }
-    if(comp < -a){
-        comp = -a;
+    if(comp_value < -a){
+        comp_value = -a;
     }
 
-    out = kp * err + kd * derr + ki * ierr - gain_dob*comp;
+    float d_expected_force = (((ixv + comp_value)/1000)*Kqe_pos*kpc - dx*Ap*kvc)*Kth;
+
+    expected_force += d_expected_force*hw->get_dt();
+
+    *(hw->var1) = expected_force;
+
+    out = kp * err + kd * derr + ki * ierr - gain_dob*comp_value;
 
     float limit_sat = limit;
 
