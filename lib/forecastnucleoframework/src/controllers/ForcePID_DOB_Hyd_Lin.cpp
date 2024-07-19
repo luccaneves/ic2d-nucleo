@@ -198,6 +198,7 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     expected_force += d_expected_force*hw->get_dt();
 
     *(hw->var1) = expected_force;
+    *(hw->var2) = comp_value;
 
     out = kp * err + kd * derr + ki * ierr - gain_dob*comp_value;
 
