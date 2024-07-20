@@ -225,7 +225,9 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
 
     //*(hw->var4) = out;
-    //out = lowPass->process(out,hw->get_dt());
+
+    //Lucca: Adicionado filtro na saída. Vai dar merda?
+    out = lowPass->process(out,hw->get_dt());
 
     last_out = out;
 

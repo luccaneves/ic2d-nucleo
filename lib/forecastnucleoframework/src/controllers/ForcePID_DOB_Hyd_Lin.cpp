@@ -3,7 +3,7 @@
 using namespace forecast;
 
 ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd,float kvc, float kpc, float B_int, 
-float gain_dob, float limit_dob, float limit)
+float gain_dob, float limit_dob, float limit, float gain_out)
     : kp(kp),
       ki(ki),
       kd(kd),
@@ -16,7 +16,8 @@ float gain_dob, float limit_dob, float limit)
       B_int(B_int),
       gain_dob(gain_dob),
       limit_dob(limit_dob),
-      limit(limit)
+      limit(limit),
+      gain_out(gain_out)
 {
     logs.push_back(&reference);
 
@@ -139,7 +140,7 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     filter_den[3]*prev3_filter_exit_dx -
     filter_den[4]*prev4_filter_exit_dx)/filter_den[0];
 
-    double output_filter_current = (ixv*filter_num[0] + 
+    double output_filter_current = ((ixv/1000)*filter_num[0] + 
     prev1_current*filter_num[1] + 
     prev2_current*filter_num[2] + 
     prev3_current*filter_num[3] + 
@@ -153,7 +154,7 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
     prev4_current = prev3_current;
     prev3_current = prev2_current;
     prev2_current = prev1_current;
-    prev1_current = ixv;
+    prev1_current = (ixv/1000);
 
     prev4_filter_exit_current = prev3_filter_exit_current;
     prev3_filter_exit_current = prev2_filter_exit_current;
@@ -195,7 +196,14 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 
     float d_expected_force = (((ixv + comp_value)/1000)*Kqe_pos*kpc - dx*Ap*kvc)*Kth;
 
-    expected_force += d_expected_force*hw->get_dt();
+    if(hw->get_current_time() > 4){
+       if(once_force == 1){
+        once_force = 0;
+        expected_force = tau;
+       }
+       expected_force = expected_force + d_expected_force*hw->get_dt(); 
+    }
+
 
     *(hw->var1) = expected_force;
     *(hw->var2) = comp_value;
@@ -211,7 +219,7 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
         out = -limit_sat;
     }
 
-    out = lowPass->process(out,hw->get_dt());
+    out = lowPass->process(gain_out*out,hw->get_dt());
 
     return out;
 }
