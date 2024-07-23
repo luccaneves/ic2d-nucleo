@@ -52,6 +52,7 @@ protected:
   float dtau = 0.0f;
   float x = 0.0f;
   float dx = 0.0f;
+  float z = 0;
 
   float err = 0.0;
   float derr = 0.0;
