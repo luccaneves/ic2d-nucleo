@@ -28,7 +28,7 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
      * @param limit
      */
     ForcePID_DOB_Hyd_Lin(float kp = 0, float ki = 0, float kd = 0, float kvc = 0, float kpc = 0, 
-    float B_int = 0, float gain_dob = 0, float limit_dob = 0, float limit = 0, float gain_out = 0);
+    float B_int = 0, float gain_dob = 0, float limit_dob = 0, float limit = 0, float gain_out = 0, float gain_vc = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -50,6 +50,7 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
     float errPast = 0.0;
 
     float gain_out = 0;
+    float gain_vc = 0;
 
     float out;
     float reference = 0.0;
@@ -176,12 +177,13 @@ class ForcePID_DOB_Hyd_Lin : public Controller {
 inline ControllerFactory::Builder make_Force_PID_DOB_hyd_lin_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 10)
+        if (params.size() < 11)
             return nullptr;
-        return new ForcePID_DOB_Hyd_Lin(params[0], params[1], params[2],params[3],params[4],params[5],params[6],params[7],params[8],params[9]);
+        return new ForcePID_DOB_Hyd_Lin(params[0], params[1], params[2],params[3],params[4],params[5],params[6],params[7],params[8],params[9]
+        ,params[10]);
     };
 
-    return {fn, {"KP", "KI", "KD","Kvc","Kpc","B_int","Gain DOB","limit dob","limit","gain_out"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","Kvc","Kpc","B_int","Gain DOB","limit dob","limit","gain_out","gain_vc"}, {"reference"}};
 }
 
 }  // namespace forecast

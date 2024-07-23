@@ -3,7 +3,7 @@
 using namespace forecast;
 
 ForcePID_DOB_Hyd_Lin::ForcePID_DOB_Hyd_Lin(float kp, float ki, float kd,float kvc, float kpc, float B_int, 
-float gain_dob, float limit_dob, float limit, float gain_out)
+float gain_dob, float limit_dob, float limit, float gain_out, float gain_vc)
     : kp(kp),
       ki(ki),
       kd(kd),
@@ -17,7 +17,8 @@ float gain_dob, float limit_dob, float limit, float gain_out)
       gain_dob(gain_dob),
       limit_dob(limit_dob),
       limit(limit),
-      gain_out(gain_out)
+      gain_out(gain_out),
+      gain_vc(gain_vc)
 {
     logs.push_back(&reference);
 
@@ -196,7 +197,7 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 
     float d_expected_force = (((ixv + comp_value)/1000)*Kqe_pos*kpc - dx*Ap*kvc)*Kth;
 
-    if(hw->get_current_time() > 4){
+    if(hw->get_current_time() > 0.1){
        if(once_force == 1){
         once_force = 0;
         expected_force = tau;
@@ -212,12 +213,15 @@ float ForcePID_DOB_Hyd_Lin::process(const IHardware *hw, std::vector<float> ref)
 
     float limit_sat = limit;
 
+    out = out + gain_vc*((dx*Ap*kvc*1000)/(Kqe_pos*kpc));
+
     if(out > limit_sat){
         out = limit_sat;
     }
     else if(out < -limit_sat){
         out = -limit_sat;
     }
+
 
     out = lowPass->process(gain_out*out,hw->get_dt());
 
