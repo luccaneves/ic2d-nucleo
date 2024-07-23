@@ -159,9 +159,15 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
 
-    float d_disturb = (lambda/(g*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
+    //float d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
 
-    disturb = disturb + d_disturb*(hw->get_dt());
+    float dz = -lambda*z - (lambda/((g)*Kpc))*((g)*Kpc*lambda*tau/((g)*Kpc) - f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
+
+    //disturb = disturb + d_disturb*(hw->get_dt());
+
+    z += z + dz*hw->get_dt();
+
+    disturb = z + lambda*tau/(Kpc*(g));
 
     //disturb = lowPassD->process(disturb,hw->get_dt());
 
