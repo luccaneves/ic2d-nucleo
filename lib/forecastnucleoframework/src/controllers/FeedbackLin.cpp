@@ -4,7 +4,7 @@ using namespace forecast;
 
 FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
-float gain_out, float filter_out)
+float gain_out, float filter_out, float dob_formulation)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -43,7 +43,8 @@ float gain_out, float filter_out)
       start_x(start_x),
       fl(fl),
       gain_out(gain_out),
-      filter_out(filter_out)
+      filter_out(filter_out),
+      dob_formulation(dob_formulation)
 {
     float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -160,24 +161,25 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
     B_int = 0;
+    float d_disturb;
+    float dz;
+    
+    if(dob_formulation == 0){
+        d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
 
-    //float d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
+        //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
-    float dz = -lambda*z - (lambda/((g)*Kpc))*((g)*Kpc*lambda*tau/((g)*Kpc) - f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
+        disturb = disturb + d_disturb*(hw->get_dt());
+    }
+    else{
+        dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
-    //disturb = disturb + d_disturb*(hw->get_dt());
+        z = z + dz*hw->get_dt();
 
-    z += z + dz*hw->get_dt();
+        disturb = z + lambda*tau/(Kpc*(g));
+    }
 
-    disturb = z + lambda*tau/(Kpc*(g));
-
-    //disturb = lowPassD->process(disturb,hw->get_dt());
-
-    //f = Be*pow(Aa,2)*( -pow(alfa,2)/Vb - 1/Va )*dx;
-   
     v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
-
-    //out = Kpc/(g)*(-Kvc*f*1000 + v);
 
     disturb = gain_dob*disturb;
 
@@ -197,7 +199,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     //expected_force = tau;
 
-    if(hw->get_current_time() > 5*hw->get_dt()){
+    if(hw->get_current_time() > 3){
        if(once_force == 1){
         once_force = 0;
         expected_force = tau;
@@ -205,7 +207,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
        expected_force = expected_force + d_force*hw->get_dt(); 
     }
     else{
-       expected_force = tau; 
+       //expected_force = tau; 
     }
 
     d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0);

@@ -491,7 +491,7 @@ void forecast::Hardware::update(float dt) {
   //dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
   float dtauSensor_NoFilt  = (2.45*tauSensor - 6*prev1_tauSensor + 7.5*prev2_tauSensor - 6.66*prev3_tauSensor + 3.75*prev4_tauSensor - 1.2*prev5_tauSensor + 0.16*prev6_tauSensor)/dt;
   dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
-  dtauSensor = dtauSensor_NoFilt;
+  //dtauSensor = dtauSensor_NoFilt;
 
   //ddtauSensor = (2.28*dtauSensor - 5*prev1_dtauSensor + 5*prev2_dtauSensor - 3.33*prev3_dtauSensor + 1.25*prev4_dtauSensor - 0.2*prev5_dtauSensor)/dt;
 
