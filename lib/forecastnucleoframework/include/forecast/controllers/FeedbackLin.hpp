@@ -101,6 +101,42 @@ protected:
   float prev_erro_6 = 0.0;
   float prev_erro_7 = 0.0;
 
+  double prev1_filter_exit_dx = 0;
+  double prev2_filter_exit_dx = 0;
+  double prev3_filter_exit_dx = 0;
+  double prev4_filter_exit_dx = 0;
+  double prev5_filter_exit_dx = 0;
+
+  double prev1_dx = 0;
+  double prev2_dx = 0;
+  double prev3_dx = 0;
+  double prev4_dx = 0;
+  double prev5_dx = 0;
+
+  double prev1_filter_exit_dF = 0;
+  double prev2_filter_exit_dF = 0;
+  double prev3_filter_exit_dF = 0;
+  double prev4_filter_exit_dF = 0;
+  double prev5_filter_exit_dF = 0;
+
+  double prev1_dF = 0;
+  double prev2_dF = 0;
+  double prev3_dF = 0;
+  double prev4_dF = 0;
+  double prev5_dF = 0;
+
+  double prev1_filter_exit_current = 0;
+  double prev2_filter_exit_current = 0;
+  double prev3_filter_exit_current = 0;
+  double prev4_filter_exit_current = 0;
+  double prev5_filter_exit_current = 0;
+
+  double prev1_current = 0;
+  double prev2_current = 0;
+  double prev3_current = 0;
+  double prev4_current = 0;
+  double prev5_current = 0;
+
   float gain_vc = 0;
   float vc_limit = 0;
 

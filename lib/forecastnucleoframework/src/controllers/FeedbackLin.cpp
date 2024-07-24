@@ -74,6 +74,20 @@ float gain_out, float filter_out, float dob_formulation)
 float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 {
 
+    double Kth = 0;
+
+    double Kce = 0;
+
+    double Kqe = 0;
+
+    double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
+
+    double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
+
+
+    double filter_num[6] = {0  , 0.2212  , 0 ,0,0,0};
+    double filter_den[6] = {1.000000000000000  , -0.7788 , 0 ,0,0,0};
+
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
@@ -112,7 +126,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
 
     ixv = hw->get_tau_m(0) - 0.0250*0;
-    ixv = last_out;
+    //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
     err = ref[0] - tau;
@@ -171,13 +185,124 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         disturb = disturb + d_disturb*(hw->get_dt());
     }
-    else{
+    else if(dob_formulation == 1){
         dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
         z = z + dz*hw->get_dt();
 
         disturb = z + lambda*tau/(Kpc*(g));
     }
+    else{
+        Pt = 0;
+        Ps = 10000000;
+
+        double va0 = Vpl + L_cyl*Ap;
+        double vb0 = Vpl + L_cyl*Ap*alfa;
+        double uv0 = 0;
+        double pa0 = alfa*Ps/(1 + alfa);
+        double pb0 = Ps/(1 + alfa);
+
+        double g = 0;
+
+
+
+        Kth = Be*Ap*(1/va0 + alfa/vb0);
+
+        double Kqa_pos = (Kv)*sqrt(Ps-pa0);
+        double Kqb_pos= (Kv)*sqrt(pb0-Pt);
+
+        double Kca_pos = Kv*uv0/(2*sqrt(Ps-pa0));
+        double Kcb_pos = -Kv*uv0/(2*sqrt(pb0 - Pt));
+
+        double Kce_pos = (1/(1 + alfa*alfa*alfa))*((vb0*Kca_pos - alfa*alfa*alfa*va0*Kcb_pos)/(vb0 + alfa*va0));
+
+        double Kqe_pos = (vb0*Kqb_pos + alfa*va0*Kqb_pos)/(vb0 + alfa*va0);
+
+        double Kqa_neg = (Kv)*sqrt(pa0 - Pt);
+        double Kqb_neg= (Kv)*sqrt(Ps - pb0);
+
+        double Kca_neg = -Kv*uv0/(2*sqrt(pa0 - Pt));
+        double Kcb_neg = Kv*uv0/(2*sqrt(Ps - pb0));
+
+        double Kce_neg = (1/(1 + alfa*alfa*alfa))*((vb0*Kca_neg - alfa*alfa*alfa*va0*Kcb_neg)/(vb0 + alfa*va0));
+
+        double Kqe_neg = (vb0*Kqb_neg + alfa*va0*Kqb_neg)/(vb0 + alfa*va0);
+
+        if(ixv >=0){
+            Kce = Kce_pos;
+            Kqe = Kqe_pos;
+        }
+        else{
+            Kce = Kce_neg;
+            Kqe = Kqe_neg;
+        }
+
+
+        double output_filter_dF = (dtau*filter_num[0] + 
+        prev1_dF*filter_num[1] + 
+        prev2_dF*filter_num[2] + 
+        prev3_dF*filter_num[3] + 
+        prev4_dF*filter_num[4] - 
+        filter_den[1]*prev1_filter_exit_dF -
+        filter_den[2]*prev2_filter_exit_dF -
+        filter_den[3]*prev3_filter_exit_dF -
+        filter_den[4]*prev4_filter_exit_dF)/filter_den[0];
+
+        double output_filter_dx = (dx*filter_num[0] + 
+        prev1_dx*filter_num[1] + 
+        prev2_dx*filter_num[2] + 
+        prev3_dx*filter_num[3] + 
+        prev4_dx*filter_num[4] - 
+        filter_den[1]*prev1_filter_exit_dx -
+        filter_den[2]*prev2_filter_exit_dx -
+        filter_den[3]*prev3_filter_exit_dx -
+        filter_den[4]*prev4_filter_exit_dx)/filter_den[0];
+
+        double output_filter_current = ((ixv/1000)*filter_num[0] + 
+        prev1_current*filter_num[1] + 
+        prev2_current*filter_num[2] + 
+        prev3_current*filter_num[3] + 
+        prev4_current*filter_num[4] - 
+        filter_den[1]*prev1_filter_exit_current -
+        filter_den[2]*prev2_filter_exit_current -
+        filter_den[3]*prev3_filter_exit_current -
+        filter_den[4]*prev4_filter_exit_current)/filter_den[0];
+
+
+        prev4_current = prev3_current;
+        prev3_current = prev2_current;
+        prev2_current = prev1_current;
+        prev1_current = (ixv/1000);
+
+        prev4_filter_exit_current = prev3_filter_exit_current;
+        prev3_filter_exit_current = prev2_filter_exit_current;
+        prev2_filter_exit_current = prev1_filter_exit_current;
+        prev1_filter_exit_current = output_filter_current;
+
+        prev4_dF = prev3_dF;
+        prev3_dF = prev2_dF;
+        prev2_dF = prev1_dF;
+        prev1_dF = dtau;
+
+        prev4_filter_exit_dF = prev3_filter_exit_dF;
+        prev3_filter_exit_dF = prev2_filter_exit_dF;
+        prev2_filter_exit_dF = prev1_filter_exit_dF;
+        prev1_filter_exit_dF = output_filter_dF;
+
+        prev4_dx = prev3_dx;
+        prev3_dx = prev2_dx;
+        prev2_dx = prev1_dx;
+        prev1_dx = dx;
+
+        prev4_filter_exit_dx = prev3_filter_exit_dx;
+        prev3_filter_exit_dx = prev2_filter_exit_dx;
+        prev2_filter_exit_dx = prev1_filter_exit_dx;
+        prev1_filter_exit_dx = output_filter_dx;
+
+        disturb = (output_filter_dF/Kth + Ap*output_filter_dx*Kvc)/(Kqe*Kpc) - output_filter_current;
+    }
+
+
 
     v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
 
@@ -196,21 +321,29 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     else{
         out = v - disturb*1000 + leak_fix;
     }
-
+    float d_expected_force = 0;
     //expected_force = tau;
-
-    if(hw->get_current_time() > 3){
-       if(once_force == 1){
-        once_force = 0;
-        expected_force = tau;
-       }
-       expected_force = expected_force + d_force*hw->get_dt(); 
+    if(dob_formulation == 0 || dob_formulation == 1){
+        if(hw->get_current_time() > 3){
+            if(once_force == 1){
+                once_force = 0;
+                expected_force = tau;
+            }
+            expected_force = expected_force + d_force*hw->get_dt(); 
+        }
+        d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0);
     }
     else{
-       //expected_force = tau; 
-    }
+        d_expected_force = (((ixv + disturb)/1000)*Kqe*Kpc - dx*Ap*Kvc)*Kth;
 
-    d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0);
+        if(hw->get_current_time() > 0.1){
+            if(once_force == 1){
+                once_force = 0;
+                expected_force = tau;
+            }
+            expected_force = expected_force + d_expected_force*hw->get_dt(); 
+        }
+    }
     //expected_force = expected_force + deriv_force*hw->get_dt();
     //expected_force = tau;
 
