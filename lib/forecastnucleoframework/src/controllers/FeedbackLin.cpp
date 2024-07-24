@@ -85,8 +85,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
 
 
-    double filter_num[6] = {0  , 0.2212  , 0 ,0,0,0};
-    double filter_den[6] = {1.000000000000000  , -0.7788 , 0 ,0,0,0};
+    double filter_num[6] = {0  , 0.9179  , 0 ,0,0,0};
+    double filter_den[6] = {1.000000000000000  , -0.08208 , 0 ,0,0,0};
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
