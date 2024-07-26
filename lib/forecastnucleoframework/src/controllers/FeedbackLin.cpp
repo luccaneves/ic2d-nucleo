@@ -85,8 +85,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
 
 
-    double filter_num[6] = {0  , 0.9179  , 0 ,0,0,0};
-    double filter_den[6] = {1.000000000000000  , -0.08208 , 0 ,0,0,0};
+    double filter_num[6] = {0  , 0.3935  , 0 ,0,0,0};
+    double filter_den[6] = {1.000000000000000  , -0.6065 , 0 ,0,0,0};
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -152,33 +152,33 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     float De2 = pow(De, 2);
     float Dh2 = pow(Dh, 2);
 
-    Aa = (M_PI*(De2))/4;
-    Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-    Ap = Aa;                    
-    alfa = Ab/Aa;
-    Kv = qn/(In*sqrt(pn/2));
-    
-    Va = Vpl + Aa*((x - offset_x));
-    Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
-
-    if(ixv >= 0.00000f){
-        g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
-        }
-        
-    else{
-        g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
-        }
-
-    //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
-
-
-    f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
-
     B_int = 0;
     float d_disturb;
     float dz;
     
     if(dob_formulation == 0){
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
+        
+        Va = Vpl + Aa*((x - offset_x));
+        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
+
+        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+
+
+        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
         d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
@@ -186,6 +186,15 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         disturb = disturb + d_disturb*(hw->get_dt());
     }
     else if(dob_formulation == 1){
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
+        
+        Va = Vpl + Aa*((x - offset_x));
+        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+
         dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
         z = z + dz*hw->get_dt();
@@ -196,14 +205,33 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         Pt = 0;
         Ps = 10000000;
 
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
+        
+        Va = Vpl + Aa*((x - offset_x));
+        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
+
+        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+
+
+        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
         double va0 = Vpl + L_cyl*Ap;
         double vb0 = Vpl + L_cyl*Ap*alfa;
         double uv0 = 0;
         double pa0 = alfa*Ps/(1 + alfa);
         double pb0 = Ps/(1 + alfa);
-
-        double g = 0;
-
 
 
         Kth = Be*Ap*(1/va0 + alfa/vb0);
@@ -228,14 +256,14 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         double Kqe_neg = (vb0*Kqb_neg + alfa*va0*Kqb_neg)/(vb0 + alfa*va0);
 
-        if(ixv >=0){
+        //if(ixv >=0){
             Kce = Kce_pos;
             Kqe = Kqe_pos;
-        }
-        else{
+        //}
+        /*else{
             Kce = Kce_neg;
             Kqe = Kqe_neg;
-        }
+        }*/
 
 
         double output_filter_dF = (dtau*filter_num[0] + 
@@ -334,7 +362,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0);
     }
     else{
-        d_expected_force = (((ixv + disturb)/1000)*Kqe*Kpc - dx*Ap*Kvc)*Kth;
+        d_expected_force = (((ixv)/1000 + disturb)*Kqe*Kpc - dx*Ap*Kvc)*Kth;
 
         if(hw->get_current_time() > 0.1){
             if(once_force == 1){
@@ -353,12 +381,6 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->sprint_start_force) = expected_force;
 
     *(hw->var1) = out;
-    *(hw->var2) = Pa;
-    *(hw->var3) = Pb;
-    *(hw->var4) = Ps;
-    *(hw->var5) = Pt;
-    *(hw->var6) = f*Kvc;
-    *(hw->var7) = g*Kpc;
     *(hw->var8) = disturb*1000;
     *(hw->var9) = expected_force;
     //*(hw->var10) = Ap*(Pa - alfa*Pb);
