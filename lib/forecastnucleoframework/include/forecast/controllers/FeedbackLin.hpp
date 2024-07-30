@@ -145,6 +145,9 @@ protected:
   float fl = 0;
   float limit_dob = 0;
   float disturb = 0.0003;
+  float disturb1 = 0.000;
+  float disturb2 = 0.000;
+  float disturb3 = 0.000;
 
   float expected_force = 0.0;
   float last_out = 0.0;
