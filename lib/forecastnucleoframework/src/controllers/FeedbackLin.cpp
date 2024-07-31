@@ -118,6 +118,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     Pt = 0; // Sensor de pressão com problema
 
     if(pressure_predict == 1){
+        float De2 = pow(De, 2);
+        float Dh2 = pow(Dh, 2);
         Aa = (M_PI*(De2))/4;
         Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
         Ap = Aa;                    
@@ -134,10 +136,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         if(abs(dx) < 0.1)
             fric = dx*30/0.1;
         else 
-            fric = sign(dx)*(Fco + Fso*(exp((-abs(dx)/Cs))) + B_int*dx);
+            fric = abs(dx)*(Fco + Fso*(exp((-abs(dx)/Cs))) + B_int*dx);
 
-
-        float coulomb_fric = ;
 
         Ps = 10000000;
         Pt = 0;
