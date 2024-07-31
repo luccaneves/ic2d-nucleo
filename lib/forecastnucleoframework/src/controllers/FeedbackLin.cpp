@@ -234,9 +234,9 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-        float h1 = Ap*Be*(Pb - Pa)*(1/Va + alfa/Vb);
+        h1 = Ap*Be*(Pb - Pa)*(1/Va + alfa/Vb);
 
-        float h2 =  Ap*Be*(1/Va + alfa/Vb)*(sqrt(Ps - Pa) - sqrt(Pa - Pt) + sqrt(Pb - Pt) - sqrt(Ps - Pb));
+        h2 =  Ap*Be*(1/Va + alfa/Vb)*(sqrt(Ps - Pa) - sqrt(Pa - Pt) + sqrt(Pb - Pt) - sqrt(Ps - Pb));
 
         d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
