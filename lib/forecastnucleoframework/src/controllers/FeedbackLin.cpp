@@ -347,7 +347,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
     }
     else{
-        out = v - disturb*1000 + leak_fix;
+        out = v - disturb*1000 + leak_fix + gain_vc*dx;
     }
     float d_expected_force = 0;
     //expected_force = tau;
@@ -381,6 +381,9 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->sprint_start_force) = expected_force;
 
     *(hw->var1) = out;
+    *(hw->var2) = Ap*(Pa - alfa*Pb);
+    *(hw->var3) = (Pa - alfa*Pb);
+    *(hw->var4) = err;
     *(hw->var8) = disturb*1000;
     *(hw->var9) = expected_force;
     //*(hw->var10) = Ap*(Pa - alfa*Pb);
