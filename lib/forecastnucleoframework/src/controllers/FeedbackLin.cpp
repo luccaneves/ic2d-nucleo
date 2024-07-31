@@ -256,7 +256,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         disturb3 = disturb3 + d_disturb3*(hw->get_dt());
 
-        disturb = disturb3 + ((disturb1*h1)/(g*Kpc)) + ((disturb2*h2)/(g*Kpc))
+        disturb = disturb3 + ((disturb1*h1)/(g*Kpc)) + ((disturb2*h2)/(g*Kpc));
 
     }
     else{
