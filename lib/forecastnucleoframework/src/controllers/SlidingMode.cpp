@@ -100,21 +100,14 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     Pb = hw->get_pressure(1)*100000;
     Ps = hw->get_pressure(2)*100000;
     Pt = hw->get_pressure(3)*100000;
+    Pt = 0; // Sensor de pressão com problema
 
     if(Pa == Ps){
         Pa = Ps*0.99;
     }
 
-    if(Pa == Pt){
-        Pa = Pt*1.01;
-    }
-
     if(Pb == Ps){
         Pb = Ps*0.99;
-    }
-
-    if(Pb == Pt){
-        Pb = Pt*1.01;
     }
 
     ixv = hw->get_tau_m(0) - 0.0250*0;
