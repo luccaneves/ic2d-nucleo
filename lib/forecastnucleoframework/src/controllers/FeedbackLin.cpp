@@ -4,7 +4,7 @@ using namespace forecast;
 
 FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
-float gain_out, float filter_out, float dob_formulation)
+float gain_out, float filter_out, float dob_formulation, float pressure_predict)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -44,7 +44,8 @@ float gain_out, float filter_out, float dob_formulation)
       fl(fl),
       gain_out(gain_out),
       filter_out(filter_out),
-      dob_formulation(dob_formulation)
+      dob_formulation(dob_formulation),
+      pressure_predict(pressure_predict)
 {
     float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -110,11 +111,39 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
     Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
 
-    //Pa = hw->get_pressure(0)*100000;
-    //Pb = hw->get_pressure(1)*100000;
-    //Ps = hw->get_pressure(2)*100000;
+    Pa = hw->get_pressure(0)*100000;
+    Pb = hw->get_pressure(1)*100000;
+    Ps = hw->get_pressure(2)*100000;
     //Pt = hw->get_pressure(3)*100000;
     Pt = 0; // Sensor de pressão com problema
+
+    if(pressure_predict == 1){
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+
+        float Fco = 15;
+        float Fso = 15;
+        float Cs = 0.15;
+
+        float fric = 0;
+        float a = 0.001;
+
+
+        if(abs(dx) < 0.1)
+            fric = dx*30/0.1;
+        else 
+            fric = sign(dx)*(Fco + Fso*(exp((-abs(dx)/Cs))) + B_int*dx);
+
+
+        float coulomb_fric = ;
+
+        Ps = 10000000;
+        Pt = 0;
+        Pa = -((tau - fric)/Aa)*(1/(1 - (1/alfa)));
+        Pb = -((tau - fric)/Aa)*((1/(alfa*alfa))/(1 - (1/alfa)));
+    }
 
     if(Pa == Ps){
         Pa = Ps*0.99;

@@ -30,7 +30,7 @@ public:
                    float Kpc = 0, float B_int = 0, float leak_fix = 0,float limit = 0, 
                    float lambda = 0, float gain_dob = 0, float limit_dob = 0, 
                    float gain_vc = 0, float vc_limit = 0, float start_x = 0,float fl = 0,float gain_out = 0,
-                   float filter_out = 0, float dob_formulation = 0);
+                   float filter_out = 0, float dob_formulation = 0, float pressure_predict = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -152,6 +152,7 @@ protected:
   float expected_force = 0.0;
   float last_out = 0.0;
   float dob_formulation = 0;
+  float pressure_predict = 0;
 
   utility::AnalogFilter* lowPass;
   utility::AnalogFilter* lowPassD;
@@ -171,13 +172,13 @@ inline ControllerFactory::Builder make_feedback_lin_builder() {
 
     return new FeedbackLin(params[0], params[1], params[2], params[3],
                                 params[4],params[5],params[6],params[7],params[8],params[9],params[10],
-                                params[11],params[12],params[13],params[14],params[15],params[16],params[17]);
+                                params[11],params[12],params[13],params[14],params[15],params[16],params[17], params[18]);
   };
 
   return {
       fn,
       {"Kp", "Kd", "Ki", "gainF", "gainG","B", "Fix_Leak","limit","lambda","gain dob","limit dob","gain_vc","limit_vc",
-      "start_x","use_fl","gain_out","filter_out","dob_formulation"},
+      "start_x","use_fl","gain_out","filter_out","dob_formulation", "pressure_predict"},
       {"reference"}};
 }
 
