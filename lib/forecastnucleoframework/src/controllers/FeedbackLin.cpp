@@ -331,7 +331,50 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         //Passar filtro nas derivadas dos disturbios
 
-        double output_filter_d1 = (d_disturb1*filter_num[0] + 
+        disturb1 = disturb1 + d_disturb1*(hw->get_dt());
+
+        disturb2 = disturb2 + d_disturb2*(hw->get_dt());
+
+        disturb = (-d_disturb1 + disturb2)/(Kpc*g);
+
+    }
+    else if(dob_formulation == 4){
+        
+        filter_num[6] = {0  , 1  , 0 ,0,0,0};
+        filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
+
+        Pt = 0;
+        Ps = 10000000;
+
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
+        
+        Va = Vpl + Aa*((x - offset_x));
+        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
+
+        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
+        float d_disturb1;
+        float d_disturb2;
+
+        disturb1 = lambda*(tau - Ml*ddx - Kl*(x - offset_x));
+
+        disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc);
+
+        //Passar filtro nas derivadas dos disturbios
+
+        double output_filter_d1 = (disturb1*filter_num[0] + 
         prev1_dF*filter_num[1] + 
         prev2_dF*filter_num[2] + 
         prev3_dF*filter_num[3] + 
@@ -341,7 +384,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         filter_den[3]*prev3_filter_exit_dF -
         filter_den[4]*prev4_filter_exit_dF)/filter_den[0];
 
-        double output_filter_d2 = (d_disturb2*filter_num[0] + 
+        double output_filter_d2 = (disturb2*filter_num[0] + 
         prev1_dx*filter_num[1] + 
         prev2_dx*filter_num[2] + 
         prev3_dx*filter_num[3] + 
@@ -371,13 +414,17 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         prev2_filter_exit_dx = prev1_filter_exit_dx;
         prev1_filter_exit_dx = output_filter_d2;
 
+        d_disturb1 = (2.45*output_filter_d1 - 6*prev1_disturb1 + 7.5*prev2_disturb1 - 6.66*prev3_disturb1 
+        + 3.75*prev4_disturb1 - 1.2*prev5_disturb1 + 0.16*prev6_disturb1)/
+        (hw->get_dt());
 
-        disturb1 = disturb1 + output_filter_d1*(hw->get_dt());
+        prev6_disturb1 = prev5_disturb1;
+        prev5_disturb1 = prev4_disturb1;
+        prev4_disturb1 = prev3_disturb1;
+        prev3_disturb1 = prev2_disturb1;
+        prev1_disturb1 = output_filter_d1;
 
-        disturb2 = disturb2 + output_filter_d2*(hw->get_dt());
-
-        disturb = (-d_disturb1 + disturb2)/(Kpc*g);
-
+        disturb = (-d_disturb1 + output_filter_d2)/(Kpc*g);
     }
     else{
         Pt = 0;

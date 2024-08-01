@@ -150,6 +150,15 @@ protected:
   double prev4_current = 0;
   double prev5_current = 0;
 
+
+
+  double prev1_disturb1 = 0;
+  double prev2_disturb1 = 0;
+  double prev3_disturb1 = 0;
+  double prev4_disturb1 = 0;
+  double prev5_disturb1 = 0;
+  double prev6_disturb1 = 0;
+
   float gain_vc = 0;
   float vc_limit = 0;
 
