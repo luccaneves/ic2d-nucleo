@@ -57,6 +57,7 @@ protected:
 
   float out;
   float reference = 0.0;
+  
 
   float Be = 0.0f;
   float De = 0.0f;

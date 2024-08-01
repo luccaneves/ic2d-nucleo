@@ -4,7 +4,7 @@ using namespace forecast;
 
 FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
-float gain_out, float filter_out, float dob_formulation, float pressure_predict)
+float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -45,7 +45,9 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict)
       gain_out(gain_out),
       filter_out(filter_out),
       dob_formulation(dob_formulation),
-      pressure_predict(pressure_predict)
+      pressure_predict(pressure_predict),
+      Ml(Ml),
+      Kl(Kl)
 {
     float freq = 15.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -86,8 +88,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
 
 
-    double filter_num[6] = {0  , 0.3935  , 0 ,0,0,0};
-    double filter_den[6] = {1.000000000000000  , -0.6065 , 0 ,0,0,0};
+    double filter_num[6] = {0  , 1  , 0 ,0,0,0};
+    double filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -98,6 +100,11 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     x = hw->get_theta(0);
     dx = hw->get_d_theta(0);
+    ddx = hw->get_dd_theta(0);
+
+    float deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
+    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
+    (hw->get_dt());
 
     if (once == 1)
     {
@@ -288,6 +295,90 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         disturb = disturb3 + ((disturb1*h1)/(g*Kpc)) + ((disturb2*h2)/(g*Kpc));
 
     }
+    else if(dob_formulation == 3){
+
+        filter_num[6] = {0  , 1  , 0 ,0,0,0};
+        filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
+
+        Pt = 0;
+        Ps = 10000000;
+
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
+        
+        Va = Vpl + Aa*((x - offset_x));
+        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
+
+        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
+        float d_disturb1;
+        float d_disturb2;
+
+        d_disturb1 = lambda*(tau - Ml*ddx - Kl*(x - offset_x) - disturb1);
+
+        d_disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - disturb2);
+
+        //Passar filtro nas derivadas dos disturbios
+
+        double output_filter_d1 = (d_disturb1*filter_num[0] + 
+        prev1_dF*filter_num[1] + 
+        prev2_dF*filter_num[2] + 
+        prev3_dF*filter_num[3] + 
+        prev4_dF*filter_num[4] - 
+        filter_den[1]*prev1_filter_exit_dF -
+        filter_den[2]*prev2_filter_exit_dF -
+        filter_den[3]*prev3_filter_exit_dF -
+        filter_den[4]*prev4_filter_exit_dF)/filter_den[0];
+
+        double output_filter_d2 = (d_disturb2*filter_num[0] + 
+        prev1_dx*filter_num[1] + 
+        prev2_dx*filter_num[2] + 
+        prev3_dx*filter_num[3] + 
+        prev4_dx*filter_num[4] - 
+        filter_den[1]*prev1_filter_exit_dx -
+        filter_den[2]*prev2_filter_exit_dx -
+        filter_den[3]*prev3_filter_exit_dx -
+        filter_den[4]*prev4_filter_exit_dx)/filter_den[0];
+
+        prev4_dF = prev3_dF;
+        prev3_dF = prev2_dF;
+        prev2_dF = prev1_dF;
+        prev1_dF = d_disturb1;
+
+        prev4_filter_exit_dF = prev3_filter_exit_dF;
+        prev3_filter_exit_dF = prev2_filter_exit_dF;
+        prev2_filter_exit_dF = prev1_filter_exit_dF;
+        prev1_filter_exit_dF = output_filter_d1;
+
+        prev4_dx = prev3_dx;
+        prev3_dx = prev2_dx;
+        prev2_dx = prev1_dx;
+        prev1_dx = d_disturb2;
+
+        prev4_filter_exit_dx = prev3_filter_exit_dx;
+        prev3_filter_exit_dx = prev2_filter_exit_dx;
+        prev2_filter_exit_dx = prev1_filter_exit_dx;
+        prev1_filter_exit_dx = output_filter_d2;
+
+
+        disturb1 = disturb1 + output_filter_d1*(hw->get_dt());
+
+        disturb2 = disturb2 + output_filter_d2*(hw->get_dt());
+
+        disturb = (-d_disturb1 + disturb2)/(Kpc*g);
+
+    }
     else{
         Pt = 0;
         Ps = 10000000;
@@ -419,7 +510,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
 
 
-    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
+    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr + deriv_force_desejada; //Sinal trocado, derivada da ref
 
     disturb = gain_dob*disturb;
 
