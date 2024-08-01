@@ -530,7 +530,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     
     float d_expected_force = 0;
     //expected_force = tau;
-    if(dob_formulation == 0 || dob_formulation == 1 || dob_formulation == 2){
+    if(dob_formulation == 0 || dob_formulation == 1 || dob_formulation == 2 || dob_formulation == 3){
         if(hw->get_current_time() > 3){
             if(once_force == 1){
                 once_force = 0;
