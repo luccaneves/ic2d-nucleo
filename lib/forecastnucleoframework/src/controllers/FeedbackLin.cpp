@@ -88,8 +88,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
 
 
-    double filter_num[6] = {0  , 1  , 0 ,0,0,0};
-    double filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
+    double filter_num[6] = {0.0  , 1.0000000000000000 , 0.0 ,0.0,0.0,0.0};
+    double filter_den[6] = {1.000000000000000  , 0.0 , 0.0 ,0.0,0.0,0.0};
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -106,10 +106,17 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
+    prev_ref_6 = prev_ref_5;
+    prev_ref_5 = prev_ref_4;
+    prev_ref_4 = prev_ref_3;
+    prev_ref_3 = prev_ref_2;
+    prev_ref_2 = prev_ref_1;
+    prev_ref_1 = ref[0];
+
     if (once == 1)
     {
-        //offset_x = x;
-        //once = 0;
+        offset_x = x;
+        once = 0;
     }
 
     float deriv_force = hw->get_d_tau_s(1);
@@ -241,7 +248,19 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         Va = Vpl + Aa*((x - offset_x));
         Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
 
-        dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
+
+        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+
+        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
+        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
         z = z + dz*hw->get_dt();
 
@@ -297,8 +316,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
     else if(dob_formulation == 3){
 
-        filter_num[6] = {0  , 1  , 0 ,0,0,0};
-        filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
+        //filter_num[6] = {0  , 1  , 0 ,0,0,0};
+        //filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
 
         Pt = 0;
         Ps = 10000000;
@@ -340,8 +359,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
     else if(dob_formulation == 4){
         
-        filter_num[6] = {0  , 1  , 0 ,0,0,0};
-        filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
+        //filter_num[6] = {0  , 1  , 0 ,0,0,0};
+        //filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
 
         Pt = 0;
         Ps = 10000000;
