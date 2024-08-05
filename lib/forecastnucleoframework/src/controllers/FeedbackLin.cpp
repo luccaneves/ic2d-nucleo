@@ -579,7 +579,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
 
 
-    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr + deriv_force_desejada; //Sinal trocado, derivada da ref
+    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
 
     disturb = gain_dob*disturb;
 
@@ -591,7 +591,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
 
     if(fl == 1){
-        out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
+        out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
     }
     else{
         out = v - disturb*1000 + leak_fix + gain_vc*dx;
