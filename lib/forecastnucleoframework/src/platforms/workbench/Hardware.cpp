@@ -64,28 +64,28 @@ forecast::Status forecast::Hardware::init() {
 
   //auto enabled = torque_sensor->enable();
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassTauSensor->clean();
 
-  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
   lowPassLoacCell2->clean();
 
   lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
   lowPassDX1->clean();
 
-  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(20.0f);
   lowPassDX1_E->clean();
 
-  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(3.0f);
+  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
   lowPassDDX1->clean();
   
-  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
   lowPassDDDX1->clean();
 
-  lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(20.0f);
   lowPassDDX1_E->clean();
 
-  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
   lowPassDF1->clean();
 
   return Status::NO_ERROR;
@@ -268,7 +268,10 @@ void forecast::Hardware::update(float dt) {
   current_time = get_current_time();
 
   /* Motor encoder update */
-  thetaM = encoder_motor->getAngleRad()*0.001; // mm -> m
+  float theta_m_nofilt = 0;
+  theta_m_nofilt = encoder_motor->getAngleRad()*0.001; // mm -> m
+  //lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  thetaM = lowPassDDDX1->process(theta_m_nofilt,dt);
   // thetaM += 1;
   // dthetaM = (thetaM - prev_thetaM) / dt;
   //float dthetaM_NoFilt = -encoder_motor->getVelocityRad(dt)*0.001;
@@ -298,7 +301,10 @@ void forecast::Hardware::update(float dt) {
   if(counter == FINITE_DIF_SAMPLING_COUNTER){
     float dthetaM_NoFilt = (2.45*thetaM - 6*prev1_thetaM + 7.5*prev2_thetaM - 6.666666*prev3_thetaM + 3.75*prev4_thetaM - 1.2*prev5_thetaM + 0.1666666*prev6_thetaM)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
+    dthetaM_NoFilt = (thetaM - prev1_thetaM)/dt;
+
     dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    //dthetaM = dthetaM_NoFilt;
     
     float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.666666*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.1666666*prev6_dthetaM)/dt;
     
@@ -490,6 +496,7 @@ void forecast::Hardware::update(float dt) {
   //float dtauSensor_NoFilt = (tauSensor - prev_tauSensor) / dt;
   //dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
   float dtauSensor_NoFilt  = (2.45*tauSensor - 6*prev1_tauSensor + 7.5*prev2_tauSensor - 6.66*prev3_tauSensor + 3.75*prev4_tauSensor - 1.2*prev5_tauSensor + 0.16*prev6_tauSensor)/dt;
+  dtauSensor_NoFilt = (tauSensor - prev1_tauSensor)/dt;
   dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
   //dtauSensor = dtauSensor_NoFilt;
 
