@@ -49,7 +49,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       Ml(Ml),
       Kl(Kl)
 {
-    float freq = 20.0;
+    float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);

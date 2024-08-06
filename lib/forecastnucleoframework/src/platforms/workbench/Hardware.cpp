@@ -67,25 +67,25 @@ forecast::Status forecast::Hardware::init() {
   lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassTauSensor->clean();
 
-  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassLoacCell2->clean();
 
-  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDX1->clean();
 
-  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDX1_E->clean();
 
-  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDDX1->clean();
   
-  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDDDX1->clean();
 
-  lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDDX1_E->clean();
 
-  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDF1->clean();
 
   return Status::NO_ERROR;
