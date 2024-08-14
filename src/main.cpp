@@ -29,6 +29,7 @@
 #include <forecast/controllers/ForcePID_VC_LinMot.hpp>
 #include <forecast/controllers/FeedbackLin.hpp>
 #include <forecast/controllers/Imp_Dob_LinMot_4000.hpp>
+#include <forecast/controllers/Impedance_Admitance_Switch.hpp>
 
 /** Refgen Headers */
 #include <forecast/reference_generators/ConstantRefGen.hpp>
@@ -36,6 +37,7 @@
 #include <forecast/reference_generators/Sinusoid.hpp>
 #include <forecast/reference_generators/Ramp.hpp>
 #include <forecast/reference_generators/Sweep.hpp>
+
 
 
 #include <debug.hpp>
@@ -80,6 +82,7 @@ int main()
     app.get_controller_factory().add("DOB HYD (2000Hz)", make_Force_PID_DOB_hyd_builder());
     app.get_controller_factory().add("DOB HYD LIN (2000Hz)", make_Force_PID_DOB_hyd_lin_builder());
     app.get_controller_factory().add("IMP DOB_4000Hz_LinMot", make_Imp_Dob_LinMot_4000_builder());
+    app.get_controller_factory().add("IMP ADM SWITCH", make_impedance_admitance_control_builder());
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 
