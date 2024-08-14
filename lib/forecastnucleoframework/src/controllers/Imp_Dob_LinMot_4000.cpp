@@ -18,6 +18,7 @@ Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd,float Ides
       derr(0.f),
       ierr(0.f)
 {
+
     logs.push_back(&reference);
     lowPass = utility::AnalogFilter::getLowPassFilterHz(20.0f);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
