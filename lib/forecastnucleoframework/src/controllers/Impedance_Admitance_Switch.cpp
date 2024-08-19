@@ -245,13 +245,13 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
         ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());
 
         /* FORCE LOOP */
-        tau_err = ref[0] - (tau - tau_eq);
+        tau_err = (tau);
         //Lucca: n tenho certeza disso...
         
         theta_ref = admittanceTF->process(tau_err,hw->get_dt());
 
         /* POSITION LOOP */
-        err_adm = theta_ref - theta;
+        err_adm = ref[0] - theta_ref;
         derr_adm = (2.45*err - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
     
         derr_adm = lowPass->process(derr_adm,hw->get_dt());
