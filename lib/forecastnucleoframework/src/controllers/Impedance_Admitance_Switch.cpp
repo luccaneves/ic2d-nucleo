@@ -2,7 +2,8 @@
 
 using namespace forecast;
 
-Impedance_Admitance_Switch::Impedance_Admitance_Switch(float kp, float ki, float kd,float Ides, float Ddes, float Kdes, float DobGain, float vc_gain, float jm, float bm, float Kp_pos, float Kd_pos, float Ki_pos, float switch_method)
+Impedance_Admitance_Switch::Impedance_Admitance_Switch(float kp, float ki, float kd,float Ides, float Ddes, float Kdes, 
+float DobGain, float vc_gain, float jm, float bm, float Kp_pos, float Kd_pos, float Ki_pos, float switch_method)
     : kp(kp),
       ki(ki),
       kd(kd),
@@ -61,21 +62,25 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
     /* Get the equilibrium state */
     if (once)
     {
+        tau_eq = tau;
         theta_eq = theta;
         once = false;
         errPast = 0;
     }
 
-    //Colcolar código para definir se é impedancia ou admitancia
+    //Colocar código para definir se é impedancia ou admitancia
     if(switch_method == 0){
 
     }
+
     else if(switch_method == 1){
 
     }
+
     else if(switch_method == 2){
 
     }
+    
     else{
 
     }
@@ -240,15 +245,27 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
         ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());
 
         /* FORCE LOOP */
-        tau_err = ref[0] - tau;
+        tau_err = ref[0] - (tau - tau_eq);
+        //Lucca: n tenho certeza disso...
+        
         theta_ref = admittanceTF->process(tau_err,hw->get_dt());
 
         /* POSITION LOOP */
-        err = theta_ref - theta;
-        derr = (err - err_past)/hw->get_dt();
-        err_past = err;
+        err_adm = theta_ref - theta;
+        derr_adm = (2.45*err - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
+    
+        derr_adm = lowPass->process(derr_adm,hw->get_dt());
+
+        ierr_adm += err_adm*hw->get_dt();
         
-        out = kp*err + kd*derr;
+        last_erro_6 = last_erro_5;
+        last_erro_5 = last_erro_4;
+        last_erro_4 = last_erro_3;
+        last_erro_3 = last_erro_2;
+        last_erro_2 = last_erro_1;
+        last_erro_1 = err_adm;
+        
+        out = Kp_pos*err_adm + Kd_pos*derr_adm + Ki_pos*ierr_adm;
     }
 
     

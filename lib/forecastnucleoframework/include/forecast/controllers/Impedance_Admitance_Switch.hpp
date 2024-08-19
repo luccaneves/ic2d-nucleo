@@ -59,10 +59,15 @@ public:
     bool once = true;
     float tau_ref = 0.0f;
     float theta_eq = 0.0f;
+    float tau_eq = 0.0f;
 
     float err = 0.0;
     float derr = 0.0;
     float ierr = 0.0;
+
+    float err_adm = 0.0;
+    float derr_adm = 0.0;
+    float ierr_adm = 0.0;
 
     float errPast = 0.0;
 
@@ -110,6 +115,12 @@ public:
     float prev5_err = 0;
     float prev6_err = 0;
 
+    float last_erro_1 = 0;
+    float last_erro_2 = 0;
+    float last_erro_3 = 0;
+    float last_erro_4 = 0;
+    float last_erro_5 = 0;
+    float last_erro_6 = 0;
     
 
     utility::AnalogFilter* lowPass;
@@ -132,7 +143,8 @@ inline ControllerFactory::Builder make_impedance_admitance_control_builder() {
         params[10],params[11],params[12],params[13]);
     };
 
-    return {fn, {"KP", "KI", "KD","Ides","Bdes","Kdes","DOB_GAIN","VC_gain","jm","bm","Kp_pos","Kd_pos","Ki_pos","Switch_method"}, {"reference"}};
+    return {fn, {"KP_imp", "KI_imp", "KD_imp","Ides","Bdes","Kdes","DOB_GAIN","VC_gain","jm","bm",
+    "Kp_adm","Kd_adm","Ki_adm","Switch_method"}, {"reference"}};
 }
 
 } // namespace forecast
