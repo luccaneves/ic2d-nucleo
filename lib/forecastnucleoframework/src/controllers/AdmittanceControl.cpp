@@ -49,6 +49,11 @@ float AdmittanceControl::process(const IHardware *hw, std::vector<float> ref)
 
     if (ref.size() < 1) // no ref, no output
         return 0.f;
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
+    theta = hw->get_theta(0);
+    dtheta = hw->get_d_theta(0);
+    ddtheta = hw->get_dd_theta(0);
 
     dtheta_filt = lowPassDTheta->process(theta, hw->get_dt());
     ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());
@@ -60,7 +65,7 @@ float AdmittanceControl::process(const IHardware *hw, std::vector<float> ref)
     theta_ref = admittanceTF->process(tau_err,hw->get_dt());
 
     /* POSITION LOOP */
-    err_adm = ref[0] - theta_ref;
+    err_adm = (ref[0] + theta_ref) - theta;
     derr_adm = (2.45*err - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
 
     //derr_adm = lowPass->process(derr_adm,hw->get_dt());
