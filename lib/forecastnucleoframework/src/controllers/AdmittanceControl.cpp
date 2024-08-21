@@ -11,10 +11,11 @@ AdmittanceControl::AdmittanceControl()
 
 AdmittanceControl::AdmittanceControl(float kp,
                                     float kd,
+                                    float ki,
                                     float k_des,
                                     float b_des,
                                     float j_des)
-    : kp(kp), kd(kd), k_des(k_des), b_des(b_des), j_des(j_des), theta(0.f),
+    : kp(kp), kd(kd),ki(ki), k_des(k_des), b_des(b_des), j_des(j_des), theta(0.f),
       err(0.f)
 {
     /*
@@ -45,31 +46,37 @@ AdmittanceControl::AdmittanceControl(float kp,
 
 float AdmittanceControl::process(const IHardware *hw, std::vector<float> ref)
 {
+
     if (ref.size() < 1) // no ref, no output
         return 0.f;
-
-    tau = hw->get_tau_s(1); // tauSensor -> index 1
-    dtau = hw->get_d_tau_s(1);  // tauSensor
-
-    theta = hw->get_theta(0); // thetaM -> index 1
-    dtheta = hw->get_d_theta(0); 
-    ddtheta = hw->get_dd_theta(0);
 
     dtheta_filt = lowPassDTheta->process(theta, hw->get_dt());
     ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());
 
     /* FORCE LOOP */
-    tau_err = ref[0] - tau;
+    tau_err = (tau);
+    //Lucca: n tenho certeza disso...
+    
     theta_ref = admittanceTF->process(tau_err,hw->get_dt());
 
     /* POSITION LOOP */
-    err = theta_ref - theta;
-    derr = (err - err_past)/hw->get_dt();
-    err_past = err;
-    
-    out = kp*err + kd*derr;
+    err_adm = ref[0] - theta_ref;
+    derr_adm = (2.45*err - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
 
-    return out;
+    //derr_adm = lowPass->process(derr_adm,hw->get_dt());
+
+    ierr_adm += err_adm*hw->get_dt();
+    
+    last_erro_6 = last_erro_5;
+    last_erro_5 = last_erro_4;
+    last_erro_4 = last_erro_3;
+    last_erro_3 = last_erro_2;
+    last_erro_2 = last_erro_1;
+    last_erro_1 = err_adm;
+    
+    out = kp*err_adm + kd*derr_adm;
+
+    return out;  
 }
 
 float AdmittanceControl::process_mtx(const IHardware *hw, std::vector<float> ref)

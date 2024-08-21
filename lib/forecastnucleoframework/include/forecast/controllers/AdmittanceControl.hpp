@@ -28,7 +28,7 @@ public:
    * @param j_des
 
   **/
-  AdmittanceControl(float kp, float kd, float k_des, float b_des, float j_des);
+  AdmittanceControl(float kp, float kd,float ki, float k_des, float b_des, float j_des);
 
   /**
    * @brief Admittance Control process function
@@ -52,6 +52,7 @@ public:
 protected:
   float kp = 0.0f;
   float kd = 0.0f;
+  float ki = 0;
 
   float k_des = 0.0f;
   float b_des = 0.0f;
@@ -74,6 +75,17 @@ protected:
 
   float err_past = 0.0;
 
+  float last_erro_1 = 0;
+  float last_erro_2 = 0;
+  float last_erro_3 = 0;
+  float last_erro_4 = 0;
+  float last_erro_5 = 0;
+  float last_erro_6 = 0;
+
+  float err_adm = 0.0;
+  float derr_adm = 0.0;
+  float ierr_adm = 0.0;
+
   float out;
 
   utility::AnalogFilter *lowPassDTheta;
@@ -89,16 +101,16 @@ protected:
 inline ControllerFactory::Builder make_admittance_control_builder() {
 
   auto fn = [](std::vector<float> params) -> Controller * {
-    if (params.size() < 5)
+    if (params.size() < 1)
       return nullptr; // not enough parameters
 
     return new AdmittanceControl(params[0], params[1], params[2], params[3],
-                                 params[4]);
+                                 params[4], params[5]);
   };
 
   return {
       fn,
-      {"Kp", "Kd", "K_des", "B_des", "J_des"},
+      {"Kp", "Kd","Ki", "K_des", "B_des", "J_des"},
       {"tau_err", "theta_ref", "err", "derr", "dtheta_filt", "ddtheta_filt"}};
 }
 } // namespace forecast
