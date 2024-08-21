@@ -48,12 +48,12 @@ float AdmittanceControl::process(const IHardware *hw, std::vector<float> ref)
     if (ref.size() < 1) // no ref, no output
         return 0.f;
 
-    tau = -hw->get_tau_s(1); // tauSensor -> index 1
-    dtau = -hw->get_d_tau_s(1);  // tauSensor
+    tau = hw->get_tau_s(1); // tauSensor -> index 1
+    dtau = hw->get_d_tau_s(1);  // tauSensor
 
-    theta = -hw->get_theta(0); // thetaM -> index 1
-    dtheta = -hw->get_d_theta(0); 
-    ddtheta = -hw->get_dd_theta(0);
+    theta = hw->get_theta(0); // thetaM -> index 1
+    dtheta = hw->get_d_theta(0); 
+    ddtheta = hw->get_dd_theta(0);
 
     dtheta_filt = lowPassDTheta->process(theta, hw->get_dt());
     ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());

@@ -34,9 +34,24 @@ public:
   float d = 10;
   float e = 10;
 
+
+  float Var1 = 10;
+  float Var2 = 10;
+  float Var3 = 10;
+  float Var4 = 10;
+  float Var5 = 10;
+
   float* vel_comp_value = &a;
   float* fric1 = &b;
   float* fric2 = &c;
+
+  float* var1 = &Var1;
+  float* var2 = &Var2;
+  float* var3 = &Var3;
+  float* var4 = &Var4;
+  float* var5 = &Var5;
+
+
   float* control_signal_teste = &d;
   float* sprint_start_force = &e;
   /**

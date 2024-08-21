@@ -30,6 +30,14 @@ public:
     logs["VC"] = vel_comp_value;
     logs["Rise Time"] = fric1;
     logs["Overshoot"] = fric2;
+
+    logs["Var 1"] = var1;
+    logs["Var 2"] = var2;
+    logs["Var 3"] = var3;
+    logs["Var 4"] = var4;
+    logs["Var 5"] = var5;
+    
+
     logs["ContSigTest"] = control_signal_teste;
     logs["sprint_start_force"] = sprint_start_force;
 
