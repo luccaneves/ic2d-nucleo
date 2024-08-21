@@ -31,7 +31,12 @@ public:
                    float alpha_max = 0,
                    float etta_switch2 = 0, float freq_cutoff_switch2 = 0, float switch2_neg_gamma = 0, float switch2_threshold_force = 0, float switch2_delta = 0, float switch2_p = 0);
 
-  virtual float process(const IHardware *hw, std::vector<float> ref) override;
+   virtual float process(const IHardware *hw, std::vector<float> ref) override;
+
+   float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, float ref);
+
+   float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, float ref);
+
    protected:
     float kp = 0.0;
     float ki = 0.0;
