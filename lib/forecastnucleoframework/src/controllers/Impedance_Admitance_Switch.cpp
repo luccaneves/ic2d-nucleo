@@ -160,6 +160,7 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
 
 
     reference = tau_ref;
+    reference  = ref[0];
     //tau = hw->get_tau_s(1);     // was 0: tauS
     //dtau = hw->get_d_tau_s(1);  // was 0: tauS
 
