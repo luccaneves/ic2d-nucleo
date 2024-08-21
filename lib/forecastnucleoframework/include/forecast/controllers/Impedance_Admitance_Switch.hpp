@@ -33,9 +33,9 @@ public:
 
    virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
-   float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, float ref);
+   float Impedance_Controller(const IHardware *hw, float ref);
 
-   float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, float ref);
+   float Admitance_Controller(const IHardware *hw, float ref);
 
    protected:
     float kp = 0.0;

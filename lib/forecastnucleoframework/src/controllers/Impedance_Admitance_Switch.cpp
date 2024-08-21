@@ -160,6 +160,7 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
 
 
     reference = tau_ref;
+    reference  = ref[0];
     //tau = hw->get_tau_s(1);     // was 0: tauS
     //dtau = hw->get_d_tau_s(1);  // was 0: tauS
 
@@ -212,9 +213,6 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
 }
 
 float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, float ref){
-    if (ref.size() < 1) // no ref, no output
-        return 0.f;
-
     dtheta_filt = lowPassDTheta->process(theta, hw->get_dt());
     ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());
 
@@ -300,11 +298,11 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
         }
 
         if(flag_impedance_admitance == 1){
-            out = Impedance_Controller(ref[0]);
+            out = Impedance_Controller(hw,ref[0]);
         }
         else{
 
-            out = Admitance_Controller(ref[0]);
+            out = Admitance_Controller(hw,ref[0]);
         }
 
         out = lowPass->process(out,hw->get_dt());
@@ -337,11 +335,11 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
             float out_imp = 0; 
 
             if(1){
-                out_imp = Impedance_Controller(ref[0]);
+                out_imp = Impedance_Controller(hw,ref[0]);
             }
             if(1){
                 
-                out_adm = Admitance_Controller(ref[0])
+                out_adm = Admitance_Controller(hw,ref[0]);
             }
 
             out = lowPass->process(out_imp*alpha_switch2 + out_adm*(1 - alpha_switch2), hw->get_dt());
@@ -350,7 +348,7 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
         
         else{
          /* POSITION LOOP */
-                out = Impedance_Controller(ref[0] + switch4_new_theta_ref);
+                out = Impedance_Controller(hw,ref[0] + switch4_new_theta_ref);
 
                 out = lowPass->process(out, hw->get_dt());    
                 switch4_new_theta_ref = admittanceTF->process((-tau + tau_ref),hw->get_dt());
