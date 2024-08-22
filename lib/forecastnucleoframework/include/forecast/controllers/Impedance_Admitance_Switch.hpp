@@ -90,11 +90,24 @@ public:
     double prev5_inv_model_exit = 0;
 
 
+    double prev1_inv_model_exit_adm = 0;
+    double prev2_inv_model_exit_adm = 0;
+    double prev3_inv_model_exit_adm = 0;
+    double prev4_inv_model_exit_adm = 0;
+    double prev5_inv_model_exit_adm = 0;
+
+
     double prev1_filter_exit = 0;
     double prev2_filter_exit = 0;
     double prev3_filter_exit = 0;
     double prev4_filter_exit = 0;
     double prev5_filter_exit = 0;
+
+    double prev1_filter_exit_adm = 0;
+    double prev2_filter_exit_adm = 0;
+    double prev3_filter_exit_adm = 0;
+    double prev4_filter_exit_adm = 0;
+    double prev5_filter_exit_adm = 0;
 
     double controller_prev1_tauSensor;
     double controller_prev2_tauSensor;
@@ -102,6 +115,13 @@ public:
     double controller_prev4_tauSensor;
     double controller_prev5_tauSensor;
     double controller_prev6_tauSensor;
+
+    double controller_prev1_tauSensor_adm;
+    double controller_prev2_tauSensor_adm;
+    double controller_prev3_tauSensor_adm;
+    double controller_prev4_tauSensor_adm;
+    double controller_prev5_tauSensor_adm;
+    double controller_prev6_tauSensor_adm;
 
     float Kp_pos = 0;
     float Kd_pos = 0;
@@ -117,6 +137,13 @@ public:
     double controller_prev4_tauM;
     double controller_prev5_tauM;
     double controller_prev6_tauM;
+
+    double controller_prev1_tauM_adm;
+    double controller_prev2_tauM_adm;
+    double controller_prev3_tauM_adm;
+    double controller_prev4_tauM_adm;
+    double controller_prev5_tauM_adm;
+    double controller_prev6_tauM_adm;
 
     float prev1_err = 0;
     float prev2_err = 0;

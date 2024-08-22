@@ -47,6 +47,8 @@ AdmittanceControl::AdmittanceControl(float kp,
     }
 }
 
+
+
 float AdmittanceControl::process(const IHardware *hw, std::vector<float> ref)
 {
 
