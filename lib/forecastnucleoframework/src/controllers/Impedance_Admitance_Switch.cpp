@@ -159,8 +159,8 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
 
 
 
-    reference = tau_ref;
-    reference  = ref[0];
+    //reference = tau_ref;
+  
     //tau = hw->get_tau_s(1);     // was 0: tauS
     //dtau = hw->get_d_tau_s(1);  // was 0: tauS
 
@@ -170,7 +170,7 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
     tau = hw->get_tau_s(1);
     dtau = hw->get_d_tau_s(1);
 
-    err = reference - tau;
+    err = tau_ref - tau;
 
     derr = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
     + 3.75*prev4_err - 1.2*prev5_err + 0.16*prev6_err)/
@@ -186,7 +186,7 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
     
     //*(hw->fric2) = filter_exit;
 
-    float out = kp * err + kd * derr + ki * ierr + reference;
+    float out = kp * err + kd * derr + ki * ierr + tau_ref;
 
     double dob_exit = (tau + inv_model_exit) - filter_exit;
 
@@ -252,7 +252,7 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
     dtheta_filt = lowPassD->process(dtheta, hw->get_dt());
     ddtheta_filt = lowPassDD->process(ddtheta, hw->get_dt());
 
-
+    reference = ref[0];
     /* Get the equilibrium state */
     if (once)
     {

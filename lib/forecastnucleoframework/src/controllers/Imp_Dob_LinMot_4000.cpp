@@ -145,7 +145,8 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
 
 
 
-    reference = tau_ref;
+    //reference = tau_ref;
+    reference = ref[0];
     //tau = hw->get_tau_s(1);     // was 0: tauS
     //dtau = hw->get_d_tau_s(1);  // was 0: tauS
 
@@ -155,7 +156,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     tau = hw->get_tau_s(1);
     dtau = hw->get_d_tau_s(1);
 
-    err = reference - tau;
+    err = tau_ref - tau;
 
     derr = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
     + 3.75*prev4_err - 1.2*prev5_err + 0.16*prev6_err)/
@@ -171,7 +172,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     
     //*(hw->fric2) = filter_exit;
 
-    float out = kp * err + kd * derr + ki * ierr + reference;
+    float out = kp * err + kd * derr + ki * ierr + tau_ref;
 
     double dob_exit = (tau + inv_model_exit) - filter_exit;
 

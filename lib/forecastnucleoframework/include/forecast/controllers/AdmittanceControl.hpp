@@ -28,7 +28,7 @@ public:
    * @param j_des
 
   **/
-  AdmittanceControl(float kp, float kd,float ki, float k_des, float b_des, float j_des);
+  AdmittanceControl(float kp, float kd,float ki, float k_des, float b_des, float j_des,float dob_gain);
 
   /**
    * @brief Admittance Control process function
@@ -57,6 +57,42 @@ protected:
   float k_des = 0.0f;
   float b_des = 0.0f;
   float j_des = 0.0f;
+
+  float reference = 0.0;
+
+  float dob_gain = 0;
+
+  double prev1_inv_model_exit = 0;
+  double prev2_inv_model_exit = 0;
+  double prev3_inv_model_exit = 0;
+  double prev4_inv_model_exit = 0;
+  double prev5_inv_model_exit = 0;
+
+
+  double prev1_filter_exit = 0;
+  double prev2_filter_exit = 0;
+  double prev3_filter_exit = 0;
+  double prev4_filter_exit = 0;
+  double prev5_filter_exit = 0;
+
+  double controller_prev1_tauSensor;
+  double controller_prev2_tauSensor;
+  double controller_prev3_tauSensor;
+  double controller_prev4_tauSensor;
+  double controller_prev5_tauSensor;
+  double controller_prev6_tauSensor;
+
+
+
+  double controller_prev1_tauM;
+  double controller_prev2_tauM;
+  double controller_prev3_tauM;
+  double controller_prev4_tauM;
+  double controller_prev5_tauM;
+  double controller_prev6_tauM;
+
+
+  utility::AnalogFilter *lowPassExit;
 
   float tau = 0.0f;
   float dtau = 0.0f;
@@ -105,12 +141,12 @@ inline ControllerFactory::Builder make_admittance_control_builder() {
       return nullptr; // not enough parameters
 
     return new AdmittanceControl(params[0], params[1], params[2], params[3],
-                                 params[4], params[5]);
+                                 params[4], params[5], params[6]);
   };
 
   return {
       fn,
-      {"Kp", "Kd","Ki", "K_des", "B_des", "J_des"},
+      {"Kp", "Kd","Ki", "K_des", "B_des", "J_des","dob_gain"},
       {"tau_err", "theta_ref", "err", "derr", "dtheta_filt", "ddtheta_filt"}};
 }
 } // namespace forecast
