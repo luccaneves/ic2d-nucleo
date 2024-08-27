@@ -247,7 +247,7 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
     theta_ref = admittanceTF->process(tau_err,hw->get_dt());
 
     /* POSITION LOOP */
-    err_adm = (ref[0] + theta_ref) - theta;
+    err_adm = (ref + theta_ref) - theta;
     derr_adm = (2.45*err_adm - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
 
     //derr_adm = lowPass->process(derr_adm,hw->get_dt());
@@ -341,7 +341,7 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
     }
     
     *(hw->var1) = out;
-    *(hw->var2) = ref[0];
+    *(hw->var2) = ref;
     *(hw->var3) = dtheta;
     *(hw->var4) = dob_exit;
 

@@ -1,5 +1,6 @@
 #include <forecast/controllers/ImpedanceHyd.hpp>
 
+
 using namespace forecast;
 
 ImpedanceHyd::ImpedanceHyd(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
@@ -77,7 +78,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     
 }
 
-float Force_Controller(const IHardware *hw, std::vector<float> ref){
+float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
 
     double Kth = 0;
 
@@ -134,6 +135,7 @@ float Force_Controller(const IHardware *hw, std::vector<float> ref){
     //Pb = hw->get_pressure(1)*100000;
     //Ps = hw->get_pressure(2)*100000;
     //Pt = hw->get_pressure(3)*100000;
+    Ps = 10000000;
     Pt = 0; // Sensor de pressão com problema
 
     if(pressure_predict == 1){

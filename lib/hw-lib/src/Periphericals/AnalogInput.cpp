@@ -218,7 +218,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
     //find for ADC (1, 2 or 3)
     _Conversor = (ADC_TypeDef *)pinmap_peripheral(pin, PinMap_ADC);
     //configure the GPIO
-    pinmap_pinout(pin, PinMap_ADC);*/
+    pinmap_pinout(pinNUMBER_ADC_CHANNELS_USED, PinMap_ADC);*/
     //find for channel (1, 2, ... or 15)
 
     _Channel = channel;

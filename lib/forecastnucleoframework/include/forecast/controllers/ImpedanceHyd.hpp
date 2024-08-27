@@ -1,5 +1,5 @@
-#ifndef FEEDBACK_LIN_H
-#define FEEDBACK_LIN_H
+#ifndef IMPEDANCE_HYD_H
+#define IMPEDANCE_HYD_H
 
 #include <utility/filters/AnalogFilter.hpp>
 
@@ -32,6 +32,7 @@ public:
                    float gain_vc = 0, float vc_limit = 0, float start_x = 0,float fl = 0,float gain_out = 0,
                    float filter_out = 0, float dob_formulation = 0, float pressure_predict = 0, float Ml = 0, float Kl = 0,
                    float Kdes = 0, float Bdes = 0, float Mdes = 0);
+
 
   float Force_Controller(const IHardware *hw, float ref);
 

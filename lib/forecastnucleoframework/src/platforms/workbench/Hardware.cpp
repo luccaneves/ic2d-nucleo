@@ -60,8 +60,8 @@ forecast::Status forecast::Hardware::init() {
     if (not pressureSensorTInit())
       return Status::PRESSURE_SENSOR_T_INIT_ERR;
 
-    if (not torqueSensor2Init())
-      return Status::TORQUE_SENSOR_2_INIT_ERR;
+    /*if (not torqueSensor2Init())
+      return Status::TORQUE_SENSOR_2_INIT_ERR;*/
 
   //load_cell2_sensor = new AnalogInput(PC_1);
 
@@ -70,7 +70,7 @@ forecast::Status forecast::Hardware::init() {
   lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassTauSensor->clean();
 
-  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassLoacCell2->clean();
 
   lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
@@ -536,13 +536,13 @@ void forecast::Hardware::update(float dt) {
   float lc2_signed_voltage = 0;
 
 
-  float lc2_signed_voltage = load_cell2_sensor->read_average_float() * 3.324f - center_voltage;
+  //lc2_signed_voltage = load_cell2_sensor->read_average_float() * 3.324f - center_voltage;
   if (lc2_signed_voltage >= 0.00f) {
     amplitude_voltage = 3.324 -center_voltage;
-    tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_250_RANGE*1.25f;
+    tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE*1.25f;
   } else{
     amplitude_voltage = center_voltage - 0.00;
-   tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_250_RANGE*1.25f;
+   tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE*1.25f;
   }
   float tauS_filt = lowPassLoacCell2->process(-tauS, dt);
   tauS = tauS_filt; // Bias in Newton, hydraulic tests 2023-09-11
