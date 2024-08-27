@@ -14,8 +14,8 @@ namespace envMotor{
     //constexpr float LINMOT_FORCE_MIN = -255.00;
     //constexpr float KT = (LINMOT_FORCE_MAX - LINMOT_FORCE_MIN);
     
-    constexpr float HYD_CURRENT_MAX = 10.00;
-    constexpr float HYD_CURRENT_MIN = -10.00;
+    constexpr float HYD_CURRENT_MAX = 50.00;
+    constexpr float HYD_CURRENT_MIN = -50.00;
     constexpr float KT = (HYD_CURRENT_MAX - HYD_CURRENT_MIN);
     
     constexpr float JM = 1.0000f;
