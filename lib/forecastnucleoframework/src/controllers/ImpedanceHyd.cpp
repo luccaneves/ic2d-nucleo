@@ -1,10 +1,10 @@
-#include <forecast/controllers/FeedbackLin.hpp>
+#include <forecast/controllers/ImpedanceHyd.hpp>
 
 using namespace forecast;
 
-FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
+ImpedanceHyd::ImpedanceHyd(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
-float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl)
+float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl, float Kdes, float Bdes,float Mdes)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -47,7 +47,10 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       dob_formulation(dob_formulation),
       pressure_predict(pressure_predict),
       Ml(Ml),
-      Kl(Kl)
+      Kl(Kl),
+      Kdes(Kdes),
+      Bdes(Bdes),
+      Mdes(Mdes)
 {
     float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -74,8 +77,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     
 }
 
-float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
-{
+float Force_Controller(const IHardware *hw, std::vector<float> ref){
 
     double Kth = 0;
 
@@ -93,20 +95,20 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
-    reference = ref[0];
+
     
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
+    tau = hw->get_tau_s(0);
+    dtau = hw->get_d_tau_s(0);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
-    float deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
+    float deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
-    deriv_force_desejada = (ref[0] - prev_ref_1)/(hw->get_dt());
+    deriv_force_desejada = (ref - prev_ref_1)/(hw->get_dt());
     deriv_force_desejada = lowPassDx->process(deriv_force_desejada,hw->get_dt());
 
     prev_ref_6 = prev_ref_5;
@@ -114,7 +116,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_4 = prev_ref_3;
     prev_ref_3 = prev_ref_2;
     prev_ref_2 = prev_ref_1;
-    prev_ref_1 = ref[0];
+    prev_ref_1 = ref;
 
     if (once == 1)
     {
@@ -175,7 +177,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
-    err = ref[0] - tau;
+    err = ref - tau;
     derr = (err - errPast) / hw->get_dt();
 
     /*derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
@@ -635,6 +637,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     *(hw->var8) = disturb*1000;
     *(hw->var9) = expected_force;
     //*(hw->var10) = Ap*(Pa - alfa*Pb);
+    float out = 0;
     out = out;
 
     if(out > limit){
@@ -650,6 +653,33 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     if(filter_out == 1){
         out = lowPass->process(out,hw->get_dt());
     }
+
+    return out;
+}
+
+float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
+{
+    reference = ref[0];
+    
+    tau = hw->get_tau_s(0);
+    dtau = hw->get_d_tau_s(0);
+
+    float theta = hw->get_theta(1);
+    float dtheta = hw->get_d_theta(1);
+    float ddtheta = hw->get_dd_theta(1);
+
+        /* Get the equilibrium state */
+    if (once)
+    {
+        theta_eq = theta;
+        once = false;
+        errPast = 0;
+    }
+
+    /* POSITION LOOP */
+    float tau_ref = /*k_des*ref[0] - */ - Kdes*((theta - theta_eq) - ref[0]) -  Bdes*dtheta - Mdes*ddtheta;
+
+    out = Force_Controller(hw,tau_ref);
 
     last_out = out;
 
