@@ -91,6 +91,9 @@ forecast::Status forecast::Hardware::init() {
   lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDF1->clean();
 
+  lowPassDF1_S = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassDF1_S->clean();
+
   return Status::NO_ERROR;
 }
 
@@ -547,6 +550,19 @@ void forecast::Hardware::update(float dt) {
   float tauS_filt = lowPassLoacCell2->process(tauS, dt);
   tauS = tauS_filt; // Bias in Newton, hydraulic tests 2023-09-11
 
+  float dtauS_NoFilt = (2.45*tauS - 6*prev1_tauS + 7.5*prev2_tauS - 6.66*prev3_tauS + 3.75*prev4_tauS - 1.2*prev5_tauS + 0.16*prev6_tauS)/dt;
+
+  dtauS_NoFilt = (tauS - prev1_tauS)/dt;
+  dtauS = lowPassDF1_S->process(dtauS_NoFilt, dt);
+  
+  prev6_tauS = prev5_tauS;
+  prev5_tauS = prev4_tauS;
+  prev4_tauS = prev3_tauS;
+  prev3_tauS = prev2_tauS;
+  prev2_tauS = prev1_tauS;
+  prev1_tauS = tauS;
+
+
 
 }
 void forecast::Hardware::home() 
@@ -567,6 +583,7 @@ void forecast::Hardware::home()
   //lowPassTauSensor->clean();
   lowPassLoacCell2->clean();
 
+  lowPassDF1_S->clean();
   lowPassDF1->clean();
   lowPassDX1->clean();
   lowPassDDX1->clean();

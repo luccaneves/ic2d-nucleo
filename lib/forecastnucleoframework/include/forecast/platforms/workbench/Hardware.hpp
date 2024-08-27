@@ -401,6 +401,7 @@ protected:
   utility::AnalogFilter* lowPassDDX1;
   utility::AnalogFilter* lowPassDDDX1;
   utility::AnalogFilter* lowPassDF1;
+  utility::AnalogFilter* lowPassDF1_S;
 
   float t, dt, current_time, duration_t;
   float start_t;

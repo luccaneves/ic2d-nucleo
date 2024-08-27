@@ -28,6 +28,14 @@ public:
   float prev2_tauSensor = 0;
   float prev1_tauSensor = 0;
 
+
+  float prev6_tauS = 0;
+  float prev5_tauS = 0;
+  float prev4_tauS = 0;
+  float prev3_tauS = 0;
+  float prev2_tauS = 0;
+  float prev1_tauS = 0;
+
   float a = 10;
   float b = 10;
   float c = 10;
