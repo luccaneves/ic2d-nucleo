@@ -4,7 +4,7 @@
 namespace envMotor{
 
     constexpr PinName MOTOR_ENABLE_PIN = PC_11;
-    constexpr PinName MOTOR_CURRENT_FEEDBACK_PIN = PA_1;
+    constexpr PinName MOTOR_CURRENT_FEEDBACK_PIN = PA_4;
     constexpr PinName MOTOR_ANALOG_PIN = PA_5;
 
 

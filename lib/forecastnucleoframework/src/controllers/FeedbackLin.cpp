@@ -123,15 +123,14 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
 
     float deriv_force = hw->get_d_tau_s(1);
-    Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
+    Pa = lowPassPa->process(hw->get_pressure(2)*100000, hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(3)*100000, hw->get_dt());
 
     //Pa = hw->get_pressure(0)*100000;
     //Pb = hw->get_pressure(1)*100000;
     //Ps = hw->get_pressure(2)*100000;
     //Pt = hw->get_pressure(3)*100000;
+    Ps = 10000000;
     Pt = 0; // Sensor de pressão com problema
 
     if(pressure_predict == 1){
@@ -211,7 +210,6 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     float h2;
 
-    
     if(dob_formulation == 0){
         Aa = (M_PI*(De2))/4;
         Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);

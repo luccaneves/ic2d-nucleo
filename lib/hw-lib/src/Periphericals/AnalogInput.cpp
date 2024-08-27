@@ -238,7 +238,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_4;
+    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -401,7 +401,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
 
         _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
         _Conversor->SQR2 = /*(14) + */(15 << 0) + (11 << 5);
-        _Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10) + (14 << 25) + (12 << 15) + (13 << 20);
+        _Conversor->SQR3 = (4 << 0) + (4 << 5) + (10 << 10) + (14 << 25) + (12 << 15) + (13 << 20);
 
     #endif
 
