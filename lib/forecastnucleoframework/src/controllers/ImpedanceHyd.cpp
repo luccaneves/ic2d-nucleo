@@ -126,10 +126,8 @@ float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
     }
 
     float deriv_force = hw->get_d_tau_s(1);
-    Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
+    Pa = lowPassPa->process(hw->get_pressure(2)*100000, hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(3)*100000, hw->get_dt());
 
     //Pa = hw->get_pressure(0)*100000;
     //Pb = hw->get_pressure(1)*100000;
@@ -175,7 +173,7 @@ float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
     }
 
 
-    ixv = hw->get_tau_m(0) - 0.0250*0;
+    ixv = last_out - 0.0250*0;
     //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
@@ -239,7 +237,7 @@ float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
 
         f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-        d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
+        d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
@@ -267,7 +265,7 @@ float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
 
         f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
+        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(last_out/1000));
 
         z = z + dz*hw->get_dt();
 
@@ -300,19 +298,19 @@ float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
 
         h2 =  Ap*Be*(1/Va + alfa/Vb)*(sqrt(Ps - Pa) - sqrt(Pa - Pt) + sqrt(Pb - Pt) - sqrt(Ps - Pb));
 
-        d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+        d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
         disturb1 = disturb1 + d_disturb1*(hw->get_dt());
 
-        d_disturb2 = (lambda/((h2)))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+        d_disturb2 = (lambda/((h2)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
         disturb2 = disturb2 + d_disturb2*(hw->get_dt());
 
-        d_disturb3 = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+        d_disturb3 = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
@@ -353,7 +351,7 @@ float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
 
         d_disturb1 = lambda*(tau - Ml*ddx - Kl*(x - offset_x) - disturb1);
 
-        d_disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - disturb2);
+        d_disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - disturb2);
 
         //Passar filtro nas derivadas dos disturbios
 
@@ -396,7 +394,7 @@ float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
 
         disturb1 = lambda*(tau - Ml*ddx - Kl*(x - offset_x));
 
-        disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc);
+        disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc);
 
         //Passar filtro nas derivadas dos disturbios
 
@@ -611,7 +609,7 @@ float ImpedanceHyd::Force_Controller(const IHardware *hw, float ref){
             }
             expected_force = expected_force + d_force*hw->get_dt(); 
         }
-        d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0);
+        d_force = -f*Kvc + (g*Kpc*(last_out/1000 + disturb)) - B_int*hw->get_dd_theta(0);
     }
     else{
         d_expected_force = (((ixv)/1000 + disturb)*Kqe*Kpc - dx*Ap*Kvc)*Kth;
