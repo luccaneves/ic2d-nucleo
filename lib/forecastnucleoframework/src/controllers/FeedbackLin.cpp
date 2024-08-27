@@ -65,9 +65,9 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
-    In = 0.01f; //  Nominal valve input for Moog 24 [A]
+    In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
-    qn = 0.000125f; // Nominal flow for Moog 24 [m^3/s]
+    qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
     
 
     logs.push_back(&reference);
