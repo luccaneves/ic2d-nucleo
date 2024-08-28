@@ -24,13 +24,17 @@ class Imp_Dob_LinMot_4000 : public Controller {
   * @param Ddes
   * @param Kdes
   * @param DobGain
+  * @param VC_gain
+  * @param Jm
+  * @param Bm
      */
     Imp_Dob_LinMot_4000(float kp = 0, float ki = 0, float kd = 0, float Ides = 0,
-                   float Ddes = 0, float Kdes = 0, float DobGain = 0, float Jl = 0, float Bl = 0, float Kl = 0);
+                   float Ddes = 0, float Kdes = 0, float DobGain = 0, float VC_gain = 0, float Jm = 0, float Bm = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
    protected:
+    
     float kp = 0.0;
     float ki = 0.0;
     float kd = 0.0;
@@ -44,6 +48,12 @@ class Imp_Dob_LinMot_4000 : public Controller {
     float Kl = 0.0;
 
     float DobGain = 0;
+
+    float VC_gain = 0;
+
+    float Jm = 0;
+    float Bm = 0;
+
 
 
     float tau = 0.0f;
@@ -107,22 +117,20 @@ class Imp_Dob_LinMot_4000 : public Controller {
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
     utility::AnalogFilter* lowPassDD;
-    utility::AnalogFilter* lowPassPs;
-    utility::AnalogFilter* lowPassPt;
-    utility::AnalogFilter* lowPassPa;
-    utility::AnalogFilter* lowPassPb;
+    utility::AnalogFilter* lowPassDForce;
+
 };
 
 inline ControllerFactory::Builder make_Imp_Dob_LinMot_4000_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 10)
+        if (params.size() < 9)
             return nullptr;
         return new Imp_Dob_LinMot_4000(params[0], params[1], params[2]
         , params[3], params[4], params[5],params[6],params[7],params[8],params[9]);
     };
 
-    return {fn, {"KP", "KI", "KD","Ides","Bdes","Kdes","DOB_GAIN","Jl","Bl","Kl"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","Ides","Bdes","Kdes","DOB_GAIN","VC_gain","jm","bm"}, {"reference"}};
 }
 
 }  // namespace forecast
