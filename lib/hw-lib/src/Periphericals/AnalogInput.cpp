@@ -400,7 +400,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
         _Conversor->SMPR2 |= (7U << 3*1);////Setar sampling time do ADC do canal 1
 
         _Conversor->SQR1 |= ((NUMBER_ADC_CHANNELS_USED - 1) << 20);
-        _Conversor->SQR2 = /*(14) + */(15 << 0) + (11 << 5);
+        _Conversor->SQR2 = /*(14) + */(15 << 0);
         _Conversor->SQR3 = (4 << 0) + (1 << 5) + (10 << 10) + (14 << 25) + (12 << 15) + (13 << 20);
 
     #endif

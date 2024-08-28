@@ -76,21 +76,6 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 
 float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 {
-
-    double Kth = 0;
-
-    double Kce = 0;
-
-    double Kqe = 0;
-
-    double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
-
-    double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
-
-
-    double filter_num[6] = {0.0  , 1.0000000000000000 , 0.0 ,0.0,0.0,0.0};
-    double filter_den[6] = {1.000000000000000  , 0.0 , 0.0 ,0.0,0.0,0.0};
-
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
@@ -128,7 +113,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     Ps = 10000000;
     Pt = 0; // Sensor de pressão com problema
 
-    if(pressure_predict == 1){
+    /*if(pressure_predict == 1){
         float De2 = pow(De, 2);
         float Dh2 = pow(Dh, 2);
         Aa = (M_PI*(De2))/4;
@@ -154,7 +139,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         Pt = 0;
         Pa = -((tau - fric)/Aa)*(1/(1 - (1/alfa)));
         Pb = -((tau - fric)/Aa)*((1/(alfa*alfa))/(1 - (1/alfa)));
-    }
+    }*/
 
     if(Pa == Ps){
         Pa = Ps*0.99;
@@ -162,6 +147,14 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     if(Pb == Ps){
         Pb = Ps*0.99;
+    }
+
+    if(Pa == Pt){
+        Pa = Ps*0.02;
+    }
+
+    if(Pb == Pt){
+        Pb = Ps*0.02;
     }
 
 
@@ -311,265 +304,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         disturb = disturb3 + ((disturb1*h1)/(g*Kpc)) + ((disturb2*h2)/(g*Kpc));
 
     }
-    else if(dob_formulation == 3){
 
-        //filter_num[6] = {0  , 1  , 0 ,0,0,0};
-        //filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
-
-        Pt = 0;
-        Ps = 10000000;
-
-        Aa = (M_PI*(De2))/4;
-        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-        Ap = Aa;                    
-        alfa = Ab/Aa;
-        Kv = qn/(In*sqrt(pn/2));
-        
-        Va = Vpl + Aa*((x - offset_x));
-        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
-
-        if(ixv >= 0.00000f){
-            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
-            }
-            
-        else{
-            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
-            }
-
-        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
-
-        float d_disturb1;
-        float d_disturb2;
-
-        d_disturb1 = lambda*(tau - Ml*ddx - Kl*(x - offset_x) - disturb1);
-
-        d_disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - disturb2);
-
-        //Passar filtro nas derivadas dos disturbios
-
-        disturb1 = disturb1 + d_disturb1*(hw->get_dt());
-
-        disturb2 = disturb2 + d_disturb2*(hw->get_dt());
-
-        disturb = (-d_disturb1 + disturb2)/(Kpc*g);
-
-    }
-    else if(dob_formulation == 4){
-        
-        //filter_num[6] = {0  , 1  , 0 ,0,0,0};
-        //filter_den[6] = {1.000000000000000  , 0 , 0 ,0,0,0};
-
-        Pt = 0;
-        Ps = 10000000;
-
-        Aa = (M_PI*(De2))/4;
-        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-        Ap = Aa;                    
-        alfa = Ab/Aa;
-        Kv = qn/(In*sqrt(pn/2));
-        
-        Va = Vpl + Aa*((x - offset_x));
-        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
-
-        if(ixv >= 0.00000f){
-            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
-            }
-            
-        else{
-            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
-            }
-
-        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
-
-        float d_disturb1;
-        float d_disturb2;
-
-        disturb1 = lambda*(tau - Ml*ddx - Kl*(x - offset_x));
-
-        disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc);
-
-        //Passar filtro nas derivadas dos disturbios
-
-        double output_filter_d1 = (disturb1*filter_num[0] + 
-        prev1_dF*filter_num[1] + 
-        prev2_dF*filter_num[2] + 
-        prev3_dF*filter_num[3] + 
-        prev4_dF*filter_num[4] - 
-        filter_den[1]*prev1_filter_exit_dF -
-        filter_den[2]*prev2_filter_exit_dF -
-        filter_den[3]*prev3_filter_exit_dF -
-        filter_den[4]*prev4_filter_exit_dF)/filter_den[0];
-
-        double output_filter_d2 = (disturb2*filter_num[0] + 
-        prev1_dx*filter_num[1] + 
-        prev2_dx*filter_num[2] + 
-        prev3_dx*filter_num[3] + 
-        prev4_dx*filter_num[4] - 
-        filter_den[1]*prev1_filter_exit_dx -
-        filter_den[2]*prev2_filter_exit_dx -
-        filter_den[3]*prev3_filter_exit_dx -
-        filter_den[4]*prev4_filter_exit_dx)/filter_den[0];
-
-        prev4_dF = prev3_dF;
-        prev3_dF = prev2_dF;
-        prev2_dF = prev1_dF;
-        prev1_dF = d_disturb1;
-
-        prev4_filter_exit_dF = prev3_filter_exit_dF;
-        prev3_filter_exit_dF = prev2_filter_exit_dF;
-        prev2_filter_exit_dF = prev1_filter_exit_dF;
-        prev1_filter_exit_dF = output_filter_d1;
-
-        prev4_dx = prev3_dx;
-        prev3_dx = prev2_dx;
-        prev2_dx = prev1_dx;
-        prev1_dx = d_disturb2;
-
-        prev4_filter_exit_dx = prev3_filter_exit_dx;
-        prev3_filter_exit_dx = prev2_filter_exit_dx;
-        prev2_filter_exit_dx = prev1_filter_exit_dx;
-        prev1_filter_exit_dx = output_filter_d2;
-
-        d_disturb1 = (2.45*output_filter_d1 - 6*prev1_disturb1 + 7.5*prev2_disturb1 - 6.66*prev3_disturb1 
-        + 3.75*prev4_disturb1 - 1.2*prev5_disturb1 + 0.16*prev6_disturb1)/
-        (hw->get_dt());
-
-        prev6_disturb1 = prev5_disturb1;
-        prev5_disturb1 = prev4_disturb1;
-        prev4_disturb1 = prev3_disturb1;
-        prev3_disturb1 = prev2_disturb1;
-        prev1_disturb1 = output_filter_d1;
-
-        disturb = (-d_disturb1 + output_filter_d2)/(Kpc*g);
-    }
-    else{
-        Pt = 0;
-        Ps = 10000000;
-
-        Aa = (M_PI*(De2))/4;
-        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-        Ap = Aa;                    
-        alfa = Ab/Aa;
-        Kv = qn/(In*sqrt(pn/2));
-        
-        Va = Vpl + Aa*((x - offset_x));
-        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
-
-        if(ixv >= 0.00000f){
-            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
-            }
-            
-        else{
-            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
-            }
-
-        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
-
-
-        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
-
-        double va0 = Vpl + L_cyl*Ap;
-        double vb0 = Vpl + L_cyl*Ap*alfa;
-        double uv0 = 0;
-        double pa0 = alfa*Ps/(1 + alfa);
-        double pb0 = Ps/(1 + alfa);
-
-
-        Kth = Be*Ap*(1/va0 + alfa/vb0);
-
-        double Kqa_pos = (Kv)*sqrt(Ps-pa0);
-        double Kqb_pos= (Kv)*sqrt(pb0-Pt);
-
-        double Kca_pos = Kv*uv0/(2*sqrt(Ps-pa0));
-        double Kcb_pos = -Kv*uv0/(2*sqrt(pb0 - Pt));
-
-        double Kce_pos = (1/(1 + alfa*alfa*alfa))*((vb0*Kca_pos - alfa*alfa*alfa*va0*Kcb_pos)/(vb0 + alfa*va0));
-
-        double Kqe_pos = (vb0*Kqb_pos + alfa*va0*Kqb_pos)/(vb0 + alfa*va0);
-
-        double Kqa_neg = (Kv)*sqrt(pa0 - Pt);
-        double Kqb_neg= (Kv)*sqrt(Ps - pb0);
-
-        double Kca_neg = -Kv*uv0/(2*sqrt(pa0 - Pt));
-        double Kcb_neg = Kv*uv0/(2*sqrt(Ps - pb0));
-
-        double Kce_neg = (1/(1 + alfa*alfa*alfa))*((vb0*Kca_neg - alfa*alfa*alfa*va0*Kcb_neg)/(vb0 + alfa*va0));
-
-        double Kqe_neg = (vb0*Kqb_neg + alfa*va0*Kqb_neg)/(vb0 + alfa*va0);
-
-        //if(ixv >=0){
-            Kce = Kce_pos;
-            Kqe = Kqe_pos;
-        //}
-        /*else{
-            Kce = Kce_neg;
-            Kqe = Kqe_neg;
-        }*/
-
-
-        double output_filter_dF = (dtau*filter_num[0] + 
-        prev1_dF*filter_num[1] + 
-        prev2_dF*filter_num[2] + 
-        prev3_dF*filter_num[3] + 
-        prev4_dF*filter_num[4] - 
-        filter_den[1]*prev1_filter_exit_dF -
-        filter_den[2]*prev2_filter_exit_dF -
-        filter_den[3]*prev3_filter_exit_dF -
-        filter_den[4]*prev4_filter_exit_dF)/filter_den[0];
-
-        double output_filter_dx = (dx*filter_num[0] + 
-        prev1_dx*filter_num[1] + 
-        prev2_dx*filter_num[2] + 
-        prev3_dx*filter_num[3] + 
-        prev4_dx*filter_num[4] - 
-        filter_den[1]*prev1_filter_exit_dx -
-        filter_den[2]*prev2_filter_exit_dx -
-        filter_den[3]*prev3_filter_exit_dx -
-        filter_den[4]*prev4_filter_exit_dx)/filter_den[0];
-
-        double output_filter_current = ((ixv/1000)*filter_num[0] + 
-        prev1_current*filter_num[1] + 
-        prev2_current*filter_num[2] + 
-        prev3_current*filter_num[3] + 
-        prev4_current*filter_num[4] - 
-        filter_den[1]*prev1_filter_exit_current -
-        filter_den[2]*prev2_filter_exit_current -
-        filter_den[3]*prev3_filter_exit_current -
-        filter_den[4]*prev4_filter_exit_current)/filter_den[0];
-
-
-        prev4_current = prev3_current;
-        prev3_current = prev2_current;
-        prev2_current = prev1_current;
-        prev1_current = (ixv/1000);
-
-        prev4_filter_exit_current = prev3_filter_exit_current;
-        prev3_filter_exit_current = prev2_filter_exit_current;
-        prev2_filter_exit_current = prev1_filter_exit_current;
-        prev1_filter_exit_current = output_filter_current;
-
-        prev4_dF = prev3_dF;
-        prev3_dF = prev2_dF;
-        prev2_dF = prev1_dF;
-        prev1_dF = dtau;
-
-        prev4_filter_exit_dF = prev3_filter_exit_dF;
-        prev3_filter_exit_dF = prev2_filter_exit_dF;
-        prev2_filter_exit_dF = prev1_filter_exit_dF;
-        prev1_filter_exit_dF = output_filter_dF;
-
-        prev4_dx = prev3_dx;
-        prev3_dx = prev2_dx;
-        prev2_dx = prev1_dx;
-        prev1_dx = dx;
-
-        prev4_filter_exit_dx = prev3_filter_exit_dx;
-        prev3_filter_exit_dx = prev2_filter_exit_dx;
-        prev2_filter_exit_dx = prev1_filter_exit_dx;
-        prev1_filter_exit_dx = output_filter_dx;
-
-        disturb = (output_filter_dF/Kth + Ap*output_filter_dx*Kvc)/(Kqe*Kpc) - output_filter_current;
-    }
 
 
 
@@ -588,11 +323,12 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
     }
     else{
-        out = v - disturb*1000 + leak_fix + gain_vc*dx;
+        out = v;
     }
     
     float d_expected_force = 0;
     //expected_force = tau;
+
     if(dob_formulation == 0 || dob_formulation == 1 || dob_formulation == 2 || dob_formulation == 3){
         if(hw->get_current_time() > 3){
             if(once_force == 1){
@@ -603,31 +339,12 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         }
         d_force = -f*Kvc + (g*Kpc*(last_out/1000 + disturb)) - B_int*hw->get_dd_theta(0);
     }
-    else{
-        d_expected_force = (((ixv)/1000 + disturb)*Kqe*Kpc - dx*Ap*Kvc)*Kth;
 
-        if(hw->get_current_time() > 0.1){
-            if(once_force == 1){
-                once_force = 0;
-                expected_force = tau;
-            }
-            expected_force = expected_force + d_expected_force*hw->get_dt(); 
-        }
-    }
     //expected_force = expected_force + deriv_force*hw->get_dt();
     //expected_force = tau;
 
-    *(hw->fric1) = disturb*1000;
-    *(hw->fric2) = (f*Kvc);
-    *(hw->control_signal_teste) = (g*Kpc);
-    *(hw->sprint_start_force) = expected_force;
 
-    *(hw->var1) = out;
-    *(hw->var2) = Ap*(Pa - alfa*Pb);
-    *(hw->var3) = (Pa - alfa*Pb);
-    *(hw->var4) = err;
-    *(hw->var8) = disturb*1000;
-    *(hw->var9) = expected_force;
+
     //*(hw->var10) = Ap*(Pa - alfa*Pb);
     out = out;
 
@@ -644,6 +361,11 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     if(filter_out == 1){
         out = lowPass->process(out,hw->get_dt());
     }
+
+    *(hw->var1) = out;
+
+    *(hw->var8) = disturb*1000;
+    *(hw->var9) = expected_force;
 
     last_out = out;
 
