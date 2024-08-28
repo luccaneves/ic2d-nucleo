@@ -60,6 +60,9 @@ forecast::Status forecast::Hardware::init() {
     if (not pressureSensorTInit())
       return Status::PRESSURE_SENSOR_T_INIT_ERR;
 
+    if (not torqueSensor2Init())
+      return Status::TORQUE_SENSOR_2_INIT_ERR;
+
   //load_cell2_sensor = new AnalogInput(PC_1);
 
   //auto enabled = torque_sensor->enable();
@@ -168,7 +171,7 @@ bool forecast::Hardware::torqueSensorInit() {
                       ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
 
   /* Enable the ADC - In continous mode the ADC start is done automatically */
-  //auto enabled = load_cell2_sensor->enable();
+  auto enabled = load_cell2_sensor->enable();
   //tauSOffset = load_cell2_sensor->read_average_float() * 3.3f;
 
   return true;
@@ -214,7 +217,7 @@ bool forecast::Hardware::pressureSensorTInit() {
                       ADC_Continuous, ADC_Dma, DMA_BUFFER_SIZE);
 
   /* Enable the ADC - In continous mode the ADC start is done automatically */
-  auto enabled = pressure_sensor_t->enable();
+  //auto enabled = pressure_sensor_t->enable();
 
   return true;
 }
@@ -522,20 +525,22 @@ void forecast::Hardware::update(float dt) {
 
 
   // Read Load Cell 2 
-  /*
+
+  float center_voltage2(LOADCELL_5K_OFFSET);
+  
   float lc2_signed_voltage = 0;
-  float lc2_signed_voltage = load_cell2_sensor->read_average_float() * 3.324f - 1.749;
+  lc2_signed_voltage = load_cell2_sensor->read_average_float() * 3.324f - center_voltage2;
   if (lc2_signed_voltage >= 0.00f) {
-    amplitude_voltage = 3.324 -center_voltage;
+    amplitude_voltage = 3.324 -center_voltage2;
     tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
   } else{
-    amplitude_voltage = center_voltage - 0.00;
+    amplitude_voltage = center_voltage2 - 0.00;
    tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
   }
-  float tauS_filt = lowPassLoacCell2->process(-tauS, dt);
+  float tauS_filt = lowPassLoacCell2->process(tauS, dt);
   tauS = tauS_filt; // Bias in Newton, hydraulic tests 2023-09-11
 
-}*/
+
 }
 void forecast::Hardware::home() 
 {
