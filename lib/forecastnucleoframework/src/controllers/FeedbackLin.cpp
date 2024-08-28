@@ -65,9 +65,9 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
-    In = 0.01f; //  Nominal valve input for Moog 24 [A]
+    In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
-    qn = 0.000125f; // Nominal flow for Moog 24 [m^3/s]
+    qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
     
 
     logs.push_back(&reference);
@@ -95,12 +95,12 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
+    tau = hw->get_tau_s(0);
+    dtau = hw->get_d_tau_s(0);
 
-    x = hw->get_theta(0);
-    dx = hw->get_d_theta(0);
-    ddx = hw->get_dd_theta(0);
+    x = hw->get_theta(1);
+    dx = hw->get_d_theta(1);
+    ddx = hw->get_dd_theta(1);
 
     float deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
@@ -119,16 +119,13 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(1);
-    Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
+    float deriv_force = hw->get_d_tau_s(0);
 
-    Pa = hw->get_pressure(0)*100000;
-    Pb = hw->get_pressure(1)*100000;
-    Ps = hw->get_pressure(2)*100000;
+    Pa = hw->get_pressure(3)*100000;
+    Pb = hw->get_pressure(2)*100000;
+
     //Pt = hw->get_pressure(3)*100000;
+    Ps = 10000000;
     Pt = 0; // Sensor de pressão com problema
 
     if(pressure_predict == 1){
@@ -168,7 +165,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
 
 
-    ixv = hw->get_tau_m(0) - 0.0250*0;
+    ixv = last_out - 0.0250*0;
     //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
@@ -232,7 +229,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-        d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
+        d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
@@ -260,7 +257,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
+        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(last_out/1000));
 
         z = z + dz*hw->get_dt();
 
@@ -293,19 +290,19 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         h2 =  Ap*Be*(1/Va + alfa/Vb)*(sqrt(Ps - Pa) - sqrt(Pa - Pt) + sqrt(Pb - Pt) - sqrt(Ps - Pb));
 
-        d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+        d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
         disturb1 = disturb1 + d_disturb1*(hw->get_dt());
 
-        d_disturb2 = (lambda/((h2)))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+        d_disturb2 = (lambda/((h2)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
         disturb2 = disturb2 + d_disturb2*(hw->get_dt());
 
-        d_disturb3 = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+        d_disturb3 = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
         //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
@@ -346,7 +343,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         d_disturb1 = lambda*(tau - Ml*ddx - Kl*(x - offset_x) - disturb1);
 
-        d_disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc - disturb2);
+        d_disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - disturb2);
 
         //Passar filtro nas derivadas dos disturbios
 
@@ -389,7 +386,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         disturb1 = lambda*(tau - Ml*ddx - Kl*(x - offset_x));
 
-        disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*hw->get_tau_m(0)*Kpc);
+        disturb2 =  lambda*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc);
 
         //Passar filtro nas derivadas dos disturbios
 
@@ -576,7 +573,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
 
 
-    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr + deriv_force_desejada; //Sinal trocado, derivada da ref
+    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
 
     disturb = gain_dob*disturb;
 
@@ -588,7 +585,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
 
     if(fl == 1){
-        out = (1000*(v))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
+        out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
     }
     else{
         out = v - disturb*1000 + leak_fix + gain_vc*dx;
@@ -604,7 +601,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             }
             expected_force = expected_force + d_force*hw->get_dt(); 
         }
-        d_force = -f*Kvc + (g*Kpc*(hw->get_tau_m(0)/1000 + disturb)) - B_int*hw->get_dd_theta(0);
+        d_force = -f*Kvc + (g*Kpc*(last_out/1000 + disturb)) - B_int*hw->get_dd_theta(0);
     }
     else{
         d_expected_force = (((ixv)/1000 + disturb)*Kqe*Kpc - dx*Ap*Kvc)*Kth;

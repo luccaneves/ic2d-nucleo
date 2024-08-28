@@ -25,8 +25,8 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
     //tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
     //dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
 
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
+    tau = hw->get_tau_s(0);
+    dtau = hw->get_d_tau_s(0);
 
     err = ref[0] - tau;
     //Lucca TO DO: Corrigir essa derivada. Fazer inf dif com mais pontos
@@ -36,7 +36,7 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
 
      //Lucca TO DO: Comentar ref[0] depois
 
-    out = ref[0] + kp * err + kd * derr + ki * ierr;
+    out = kp * err + kd * derr + ki * ierr;
 
     return out;
 }
