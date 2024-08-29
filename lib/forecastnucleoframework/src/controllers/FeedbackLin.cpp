@@ -364,7 +364,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     *(hw->var1) = out;
 
-    *(hw->var8) = disturb*1000;
+    *(hw->var8) = expected_force;
     *(hw->var9) = reference;
 
     last_out = out;

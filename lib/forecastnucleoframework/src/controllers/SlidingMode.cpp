@@ -62,9 +62,9 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
-    In = 0.01f; //  Nominal valve input for Moog 24 [A]
+    In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
-    qn = 0.000125f; // Nominal flow for Moog 24 [m^3/s]
+    qn = 0.000166666f; // Nominal flow for Moog 24 [m^3/s]
     
 
     logs.push_back(&reference);
@@ -78,11 +78,11 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
+    tau = hw->get_tau_s(0);
+    dtau = hw->get_d_tau_s(0);
 
-    x = hw->get_theta(0);
-    dx = hw->get_d_theta(0);
+    x = hw->get_theta(1);
+    dx = hw->get_d_theta(1);
 
     if (once == 1)
     {
@@ -90,16 +90,12 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(1);
-    Pa = lowPassPa->process(hw->get_pressure(0)*100000, hw->get_dt());
-    Pb = lowPassPb->process(hw->get_pressure(1)*100000, hw->get_dt());
-    Ps = lowPassPs->process(hw->get_pressure(2)*100000, hw->get_dt());
-    Pt = lowPassPt->process(hw->get_pressure(3)*100000, hw->get_dt());
+    float deriv_force = hw->get_d_tau_s(0);
 
-    Pa = hw->get_pressure(0)*100000;
-    Pb = hw->get_pressure(1)*100000;
-    Ps = hw->get_pressure(2)*100000;
-    Pt = hw->get_pressure(3)*100000;
+    Pa = hw->get_pressure(2)*100000;
+    Pb = hw->get_pressure(3)*100000;
+    Ps = 10000000;
+    Pt = 0;
     Pt = 0; // Sensor de pressão com problema
 
     if(Pa == Ps){
@@ -110,7 +106,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         Pb = Ps*0.99;
     }
 
-    ixv = hw->get_tau_m(0) - 0.0250*0;
+    ixv = last_out - 0.0250*0;
     //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
@@ -194,7 +190,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         sat_ = s/psi;
         }
     else{
-        if(s > 0){
+        if(s >= 0){
            sat_ = 1; 
         }
         else if(s < 0){
