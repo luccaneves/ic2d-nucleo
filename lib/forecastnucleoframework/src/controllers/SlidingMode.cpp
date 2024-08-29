@@ -164,7 +164,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 
     beta = sqrt(max_g/min_g);
     gain_g_med = sqrt(max_g*min_g);
-    gain_f_med = (max_f - min_f)/2;
+    gain_f_med = (max_f + min_f)/2;
 
     deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
@@ -181,7 +181,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 
     float u = (deriv_force_desejada - gain_f_med*f - disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
 
-    float k = (beta*((max_f - gain_f_med)*abs(f) + etta) + (beta - 1)*abs(u) + disturb_model_gain*beta*(dist_gain_max - dist_gain_med)*abs(g));
+    float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + (beta - 1)*abs(u) + disturb_model_gain*beta*(abs(dist_gain_max - dist_gain_med)*(g)));
 
     float sat_ = 0;
     float s = tau - ref[0];
