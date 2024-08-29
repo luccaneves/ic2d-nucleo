@@ -46,7 +46,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       kd(kd)
 
 {
-    float freq = 5.0;
+    float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -92,9 +92,9 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 
     float deriv_force = hw->get_d_tau_s(0);
 
-    Pa = hw->get_pressure(2)*100000;
-    Pb = hw->get_pressure(3)*100000;
-    Ps = 10000000;
+    Pa = hw->get_pressure(3)*100000;
+    Pb = hw->get_pressure(2)*100000;
+    Ps = 16000000;
     Pt = 0;
     Pt = 0; // Sensor de pressão com problema
 
@@ -145,7 +145,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     Ap = Aa;                    
     alfa = Ab/Aa;
     Kv = qn/(In*sqrt(pn/2));
-    
+
     Va = Vpl + Aa*(x);
     Vb = Vpl + (L_cyl - x)*Ab;
 
@@ -170,7 +170,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
-    deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
+    //deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
 
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
@@ -215,7 +215,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     last_out = out;
 
     *(hw->var1) = out;
-    *(hw->var2) = gain_g_med*g;
+    *(hw->var2) = ref[0];
     *(hw->var3) = gain_dob*disturb*1000;
     *(hw->var4) = k;
     *(hw->var5) = sat_;

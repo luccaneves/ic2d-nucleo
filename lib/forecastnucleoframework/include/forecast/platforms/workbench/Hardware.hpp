@@ -393,6 +393,7 @@ protected:
 
   utility::AnalogFilter* lowPassTauSensor;
   utility::AnalogFilter* lowPassLoacCell2;
+  utility::AnalogFilter* lowPassLoacCell2_D;
 
   utility::AnalogFilter* lowPassDX1_E;
   utility::AnalogFilter* lowPassDDX1_E;
@@ -429,6 +430,13 @@ protected:
   float prev3_dtauSensor = 0;
   float prev2_dtauSensor = 0;
   float prev1_dtauSensor = 0;
+
+  float prev6_dtauS = 0;
+  float prev5_dtauS = 0;
+  float prev4_dtauS = 0;
+  float prev3_dtauS = 0;
+  float prev2_dtauS = 0;
+  float prev1_dtauS = 0;
 
   float thetaM;
   float dthetaM;
@@ -495,6 +503,13 @@ protected:
   float prev3_dthetaE = 0;
   float prev2_dthetaE = 0;
   float prev1_dthetaE = 0;
+
+  float prev6_tauS = 0;
+  float prev5_tauS = 0;
+  float prev4_tauS = 0;
+  float prev3_tauS = 0;
+  float prev2_tauS = 0;
+  float prev1_tauS = 0;
 
   float prev_thetaE;
   float prev_dthetaE;

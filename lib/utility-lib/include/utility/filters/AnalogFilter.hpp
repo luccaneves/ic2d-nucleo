@@ -56,6 +56,8 @@ namespace utility
 
         static AnalogFilter *getLowPassFilterHz(double f);
 
+        static AnalogFilter *getLowPassFilterHz2(double f);
+
         /**
          * @brief   builds an approximate differentiator filtering with cut-off
          *          frequency f [Hz] (second order low pass)

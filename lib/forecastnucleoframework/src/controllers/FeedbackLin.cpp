@@ -49,7 +49,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       Ml(Ml),
       Kl(Kl)
 {
-    float freq = 15.0;
+    float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -110,7 +110,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     Pb = hw->get_pressure(2)*100000;
 
     //Pt = hw->get_pressure(3)*100000;
-    Ps = 10000000;
+    Ps = 16000000;
     Pt = 0; // Sensor de pressão com problema
 
     /*if(pressure_predict == 1){
@@ -250,7 +250,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(last_out/1000));
+        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)- f*Kvc + (g)*Kpc*(last_out/1000));
 
         z = z + dz*hw->get_dt();
 
@@ -303,11 +303,86 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         disturb = disturb3 + ((disturb1*h1)/(g*Kpc)) + ((disturb2*h2)/(g*Kpc));
 
+    }else if(dob_formulation == 3){
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
+        
+        Va = Vpl + Aa*((x - offset_x));
+        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
+
+        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+
+
+        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
+        h1 = Ap*Be*(Pb - Pa)*(1/Va + alfa/Vb);
+
+        d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1);
+
+
+        dz = -lambda*z - (lambda/((h1)))*((lambda*tau)- f*Kvc + (g)*Kpc*(last_out/1000));
+
+        z = z + dz*hw->get_dt();
+
+        disturb = z + lambda*tau/((h1));
+
+        //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
+
+        disturb = ((disturb*h1)/(g*Kpc));
+    }
+    else if(dob_formulation == 4){
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
+        
+        Va = Vpl + Aa*((x - offset_x));
+        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
+
+        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+
+
+        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
+        h1 = Ap*Be*(Pb - Pa)*(1/Va + alfa/Vb);
+
+        d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1);
+
+
+        dz = -lambda*z - (lambda)*((lambda*tau)- f*Kvc + (g)*Kpc*(last_out/1000));
+
+        z = z + dz*hw->get_dt();
+
+        disturb = z + lambda*tau;
+
+        //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
+
+        disturb = ((disturb)/(g*Kpc));
     }
 
 
 
-
+    float leak_term = Ap*Be*0.000025*(1/Va + alfa/Vb);
     v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
 
     disturb = gain_dob*disturb;
@@ -363,8 +438,9 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     }
 
     *(hw->var1) = out;
-
-    *(hw->var8) = expected_force;
+    *(hw->var2) = disturb;
+    *(hw->var7) = expected_force - tau;
+    *(hw->var8) = ref[0]  - tau;
     *(hw->var9) = reference;
 
     last_out = out;

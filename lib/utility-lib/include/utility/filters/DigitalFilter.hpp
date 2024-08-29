@@ -60,6 +60,8 @@ namespace utility {
 		 */
 		static DigitalFilter* getLowPassFilterHz(double f, double TS);
 
+		static DigitalFilter* getLowPassFilterHz2(double f, double TS);
+
 		/**
 		 * @brief 	builds an approximate differentiator filter with cut-off 
 		 * 			frequency f [Hz]

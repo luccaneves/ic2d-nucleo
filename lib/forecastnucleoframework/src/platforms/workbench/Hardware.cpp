@@ -64,28 +64,31 @@ forecast::Status forecast::Hardware::init() {
 
   auto enabled = torque_sensor->enable();
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassTauSensor->clean();
 
-  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassLoacCell2->clean();
 
-  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(20.0f);
+  lowPassLoacCell2_D = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassLoacCell2_D->clean();
+
+  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDX1->clean();
 
-  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDX1_E->clean();
 
-  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(3.0f);
+  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDDX1->clean();
   
-  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDDDX1->clean();
 
-  lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(5.0f);
+  lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDDX1_E->clean();
 
-  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDF1->clean();
 
   return Status::NO_ERROR;
@@ -537,7 +540,20 @@ void forecast::Hardware::update(float dt) {
   float tauS_filt = lowPassLoacCell2->process(tauS, dt);
   tauS = tauS_filt; // Bias in Newton, hydraulic tests 2023-09-11
 
+  float dTauS_no_filt = 0;
 
+  dTauS_no_filt = (2.45*tauS - 6*prev1_tauS+ 7.5*prev2_tauS- 6.66*prev3_tauS+ 3.75*prev4_tauS- 1.2*prev5_tauS + 0.16*prev6_tauS)/dt;
+
+  //dTauS_no_filt = (tauS - prev1_tauS)/(hw->get_dt());
+
+  dtauS = lowPassLoacCell2_D->process(dTauS_no_filt,dt);
+
+  prev6_tauS = prev5_tauS;
+  prev5_tauS = prev4_tauS;
+  prev4_tauS = prev3_tauS;
+  prev3_tauS = prev2_tauS;
+  prev2_tauS = prev1_tauS;
+  prev1_tauS = tauS;
 }
 void forecast::Hardware::home() 
 {
@@ -556,6 +572,7 @@ void forecast::Hardware::home()
 
   //lowPassTauSensor->clean();
   lowPassLoacCell2->clean();
+  lowPassLoacCell2_D->clean();
 
   lowPassDF1->clean();
   lowPassDX1->clean();
