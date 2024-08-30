@@ -10,7 +10,7 @@ float output = (amplitude * (-1)* cos(2 * M_PI * frequency * hw->get_current_tim
 float time = hw->get_current_time();
 float duration = hw->get_duration_time();
 
-if (time > 10.0f && time < duration - 5.0f){
+if (time > 5.0f && time < duration - 5.0f){
         return {output};
     } 
 else {
