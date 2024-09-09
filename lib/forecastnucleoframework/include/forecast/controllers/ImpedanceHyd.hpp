@@ -167,6 +167,15 @@ protected:
   double prev5_disturb1 = 0;
   double prev6_disturb1 = 0;
 
+
+
+  double prev1_ref_x_1 = 0;
+  double prev1_ref_x_2 = 0;
+  double prev1_ref_x_3 = 0;
+  double prev1_ref_x_4 = 0;
+  double prev1_ref_x_5 = 0;
+  double prev1_ref_x_6 = 0;
+
   float gain_vc = 0;
   float vc_limit = 0;
 
@@ -174,7 +183,7 @@ protected:
   float gain_dob = 0;
   float fl = 0;
   float limit_dob = 0;
-  float disturb = 0.0003;
+  float disturb = 0.000;
   float disturb1 = 0.000;
   float disturb2 = 0.000;
   float disturb3 = 0.000;

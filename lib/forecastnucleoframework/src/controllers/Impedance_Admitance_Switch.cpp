@@ -212,11 +212,8 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
     return control_output_no_filter;
 }
 
-
-
-
 float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, float ref){
-{   double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
+    double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
 
     double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
 
@@ -347,7 +344,7 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
 
     out -= DobGain*dob_exit;
 
-    return out;  }
+    return out;  
 }
 
 float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float> ref)
@@ -380,13 +377,11 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
             if(((time_start_cycle) <= time) 
             && 
             (time < (time_start_cycle + (1 - n_percent)*duty_delta)))
-            
             {
                 flag_impedance_admitance = 1;
             }
 
-            else
-            {
+            else{
                 flag_impedance_admitance = 0;
             }
 
@@ -416,8 +411,6 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
         out = lowPass->process(out,hw->get_dt());
 
     }
-
-
 
     else{
         if(switch_method == 2){
