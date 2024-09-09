@@ -52,6 +52,13 @@ class ForcePID_DOB : public Controller {
     float derr = 0.0;
     float ierr = 0.0;
 
+    float time_start = 0;
+    float time_end = 0;
+    float rise_time = 0;
+    float once_start = 1;
+    float once_end = 1;
+    float max_tau = 0;
+
     float errPast = 0.0;
 
     float out;
