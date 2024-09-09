@@ -396,6 +396,7 @@ AnalogInput::AnalogInput(uint32_t channel, ADCPrescaler Prescaler, ADCAlign Alig
         _Conversor->SMPR1 |= (7U << 3*1);//Setar sampling time do ADC do canal 11
         _Conversor->SMPR1 |= (7U);//Setar sampling time do ADC do canal 10
 
+        _Conversor->SMPR2 |= (7U << 3*5);////Setar sampling time do ADC do canal 5
         _Conversor->SMPR2 |= (7U << 3*4);////Setar sampling time do ADC do canal 4
         _Conversor->SMPR2 |= (7U << 3*1);////Setar sampling time do ADC do canal 1
 

@@ -64,7 +64,7 @@ forecast::Status forecast::Hardware::init() {
 
   auto enabled = torque_sensor->enable();
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassTauSensor->clean();
 
   lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
@@ -88,7 +88,10 @@ forecast::Status forecast::Hardware::init() {
   lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(40.0f);
   lowPassDDX1_E->clean();
 
-  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassTauE = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassTauE->clean();
+
+  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassDF1->clean();
 
   return Status::NO_ERROR;
@@ -460,6 +463,9 @@ void forecast::Hardware::update(float dt) {
   prev_dtauS = dtauS; 
   */
 
+   float tauE_nofilt = env_motor->getTorqueFeedback();
+   tauE = lowPassTauE->process(tauE_nofilt,dt);
+
 
   float amplitude_voltage(1);
   float center_voltage(LOADCELL_250_OFFSET);
@@ -581,6 +587,7 @@ void forecast::Hardware::home()
 
   lowPassDX1_E->clean();
   lowPassDDX1_E->clean();
+  lowPassTauE->clean();
 
   prev6_dthetaM = 0;
   prev5_dthetaM = 0;

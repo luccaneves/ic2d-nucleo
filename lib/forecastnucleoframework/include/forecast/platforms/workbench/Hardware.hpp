@@ -397,6 +397,7 @@ protected:
 
   utility::AnalogFilter* lowPassDX1_E;
   utility::AnalogFilter* lowPassDDX1_E;
+  utility::AnalogFilter* lowPassTauE;
 
   utility::AnalogFilter* lowPassDX1;
   utility::AnalogFilter* lowPassDDX1;

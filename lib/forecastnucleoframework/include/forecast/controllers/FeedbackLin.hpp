@@ -166,7 +166,7 @@ protected:
   float gain_dob = 0;
   float fl = 0;
   float limit_dob = 0;
-  float disturb = 0.0003;
+  float disturb = 0.000;
   float disturb1 = 0.000;
   float disturb2 = 0.000;
   float disturb3 = 0.000;

@@ -80,8 +80,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(0);
-    dtau = hw->get_d_tau_s(0);
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
@@ -104,7 +104,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(0);
+    float deriv_force = hw->get_d_tau_s(1);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
@@ -405,7 +405,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //expected_force = tau;
 
     if(dob_formulation == 0 || dob_formulation == 1 || dob_formulation == 2 || dob_formulation == 3){
-        if(hw->get_current_time() > 3){
+        if(hw->get_current_time() > 7){
             if(once_force == 1){
                 once_force = 0;
                 expected_force = tau;
@@ -437,13 +437,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         out = lowPass->process(out,hw->get_dt());
     }
 
-    *(hw->var1) = out;
-    *(hw->var2) = disturb;
-    *(hw->var7) = expected_force - tau;
-    *(hw->var8) = ref[0]  - tau;
+    *(hw->var1) = d_force;
+    *(hw->var2) = deriv_force;
+    *(hw->var3) = out;
+    *(hw->var4) = hw->get_tau_m(1);
+
+    *(hw->var7) = expected_force;
+    *(hw->var8) = disturb;
     *(hw->var9) = reference;
 
-    last_out = out;
+    last_out = hw->get_tau_m(1);
 
     return out*gain_out;
 }
