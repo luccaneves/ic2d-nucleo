@@ -198,6 +198,8 @@ protected:
   float disturb2 = 0.000;
   float disturb3 = 0.000;
 
+  float deriv_ref = 0;
+
   float expected_force = 0.0;
   float last_out = 0.0;
   float dob_formulation = 0;
@@ -214,7 +216,7 @@ protected:
   utility::AnalogFilter *admittanceTF;
 };
 
-inline ControllerFactory::Builder make_ImpedanceHyd_builder() {
+inline ControllerFactory::Builder make_AdmHyd_builder() {
 
   auto fn = [](std::vector<float> params) -> Controller * {
     if (params.size() < 1)

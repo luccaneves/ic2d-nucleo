@@ -32,7 +32,7 @@
 #include <forecast/controllers/SlidingMode.hpp>
 #include <forecast/controllers/ImpedanceHyd.hpp>
 #include <forecast/controllers/Impedance_Admitance_Switch.hpp>
-
+#include <forecast/controllers/AdmittanceHyd.hpp>
 
 /** Refgen Headers */
 #include <forecast/reference_generators/ConstantRefGen.hpp>
@@ -87,7 +87,7 @@ int main()
     app.get_controller_factory().add("SlidingMode", make_SlidingMode_builder());
     app.get_controller_factory().add("Imp_Hyd", make_ImpedanceHyd_builder()); 
     app.get_controller_factory().add("IMP_ADM_SWITCH", make_impedance_admitance_control_builder()); 
-
+    app.get_controller_factory().add("ADM HYD", make_AdmHyd_builder()); 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 
     DEBUG_INFO("finished with app\n");

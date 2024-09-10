@@ -58,7 +58,7 @@ AdmittanceHyd::AdmittanceHyd(float kp,float kd,float ki, float Kdes, float Bdes,
 }
 
 float AdmittanceHyd::PositionController(const IHardware *hw, float ref){
-    err_adm = (ref + theta_ref) - x;
+    err_adm = ref;
     derr_adm = (2.45*err_adm - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
 
     ierr_adm += err_adm*hw->get_dt();
@@ -101,12 +101,24 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
+    deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
+
+    prev1_ref_x_6 = prev1_ref_x_5;
+    prev1_ref_x_5 = prev1_ref_x_4;
+    prev1_ref_x_4 = prev1_ref_x_3;
+    prev1_ref_x_3 = prev1_ref_x_2;
+    prev1_ref_x_2 = prev1_ref_x_1;
+    prev1_ref_x_1 = reference;
+
 
     theta_ref = admittanceTF->process(tau,hw->get_dt());
 
-    float ref_adm = (ref[0] + theta_ref);
+    float ref_adm = (ref[0] + theta_ref) - x;
 
     float out = PositionController(hw,ref_adm);
+
+    *(hw->var7) = deriv_ref;
+    *(hw->var9) = reference;
 
     return out;
 }
