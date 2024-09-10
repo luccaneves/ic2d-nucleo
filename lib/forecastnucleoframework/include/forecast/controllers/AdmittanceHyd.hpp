@@ -1,5 +1,5 @@
-#ifndef IMP_HYD_H
-#define IMP_HYD_H
+#ifndef ADM_HYD_H
+#define ADM_HYD_H
 
 #include <utility/filters/AnalogFilter.hpp>
 
@@ -10,7 +10,7 @@ namespace forecast {
 /**
  * @brief Feedback Linearization Control class
  **/
-class ImpedanceHyd : public Controller {
+class AdmittanceHyd : public Controller {
 public:
   /**
    * @brief Construct a new Feedback Linearization object. This constructor
@@ -26,16 +26,12 @@ public:
   * @param limit
 
   **/
-  ImpedanceHyd(float kp = 0, float kd = 0, float ki = 0, float Kvc = 0,
-                   float Kpc = 0, float B_int = 0, float leak_fix = 0,float limit = 0, 
-                   float lambda = 0, float gain_dob = 0, float limit_dob = 0, 
-                   float gain_vc = 0, float vc_limit = 0, float start_x = 0,float fl = 0,float gain_out = 0,
-                   float filter_out = 0, float dob_formulation = 0, float pressure_predict = 0, float Ml = 0, float Kl = 0,
-                   float Kdes = 0, float Bdes = 0, float Mdes = 0);
+  AdmittanceHyd(float kp = 0, float kd = 0, float ki = 0, float Kdes = 0, float Bdes = 0, float Mdes = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
-  float ForceController(const IHardware *hw, float ref);
+  float PositionController(const IHardware *hw, float ref);
+
 
 protected:
 
@@ -51,12 +47,26 @@ protected:
   float once_force = 1;
   float filter_out = 0;
 
+  float err_adm;
+  float derr_adm;
+
+  float ierr_adm;
+
+  float theta_ref = 0;
+
   float gain_out = 0;
 
   float Kvc = 0.0f;
   float Kpc = 0.0f;
   float Ml = 0;
   float Kl = 0;
+
+  float last_erro_1 = 0;
+  float last_erro_2 = 0;
+  float last_erro_3 = 0;
+  float last_erro_4 = 0;
+  float last_erro_5 = 0;
+  float last_erro_6 = 0;
 
   float tau = 0.0f;
   float dtau = 0.0f;
@@ -66,8 +76,6 @@ protected:
   float z = 0;
   float aux1 = 0;
   float aux2 = 0;
-
-  float deriv_ref = 0;
 
   float prev_ref_1 = 0.0;
   float prev_ref_2 = 0.0;
@@ -190,6 +198,8 @@ protected:
   float disturb2 = 0.000;
   float disturb3 = 0.000;
 
+  float deriv_ref = 0;
+
   float expected_force = 0.0;
   float last_out = 0.0;
   float dob_formulation = 0;
@@ -203,25 +213,21 @@ protected:
   utility::AnalogFilter* lowPassPt;
   utility::AnalogFilter* lowPassPa;
   utility::AnalogFilter* lowPassPb;
+  utility::AnalogFilter *admittanceTF;
 };
 
-inline ControllerFactory::Builder make_ImpedanceHyd_builder() {
+inline ControllerFactory::Builder make_AdmHyd_builder() {
 
   auto fn = [](std::vector<float> params) -> Controller * {
     if (params.size() < 1)
       return nullptr; // not enough parameters
 
-    return new ImpedanceHyd(params[0], params[1], params[2], params[3],
-                                params[4],params[5],params[6],params[7],params[8],params[9],params[10],
-                                params[11],params[12],params[13],params[14],params[15],params[16],params[17], params[18]
-                                , params[19], params[20]
-                                , params[21], params[22], params[23]);
+    return new AdmittanceHyd(params[0], params[1], params[2], params[3], params[4], params[5]);
   };
 
   return {
       fn,
-      {"Kp", "Kd", "Ki", "gainF", "gainG","B", "Fix_Leak","limit","lambda","gain dob","limit dob","gain_vc","limit_vc",
-      "start_x","use_fl","gain_out","filter_out","dob_formulation", "pressure_predict","Ml","Kl","Kdes","Bdes","Mdes"},
+      {"Kp", "Kd", "Ki","Kdes","Bdes","Mdes"},
       {"reference"}};
 }
 

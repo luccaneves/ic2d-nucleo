@@ -25,10 +25,10 @@ float PositionPID::process(const IHardware *hw, std::vector<float> ref) {
 
   double filter_exit = 0;
 
-  float tau = hw->get_tau_s(1);
-  float dtau = hw->get_d_tau_s(1);
-  theta = hw->get_theta(0);
-  dtheta = hw->get_d_theta(0);
+  float tau = hw->get_tau_s(0);
+  float dtau = hw->get_d_tau_s(0);
+  theta = hw->get_theta(1);
+  dtheta = hw->get_d_theta(1);
 
 
   //dtheta = hw->get_d_theta(0);

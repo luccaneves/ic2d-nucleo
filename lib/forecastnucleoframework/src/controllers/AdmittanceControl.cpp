@@ -84,6 +84,7 @@ float AdmittanceControl::process(const IHardware *hw, std::vector<float> ref)
 
     /* POSITION LOOP */
     err_adm = (ref[0] + theta_ref) - theta;
+    
     derr_adm = (2.45*err_adm - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
 
     //derr_adm = lowPass->process(derr_adm,hw->get_dt());
