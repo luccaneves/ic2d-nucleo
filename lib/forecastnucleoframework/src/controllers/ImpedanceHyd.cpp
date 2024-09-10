@@ -52,7 +52,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       Bdes(Bdes),
       Mdes(Mdes)
 {
-    float freq = 15.0;
+    float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -78,6 +78,21 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 }
 
 float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
+    float deriv_ref = (2.45*reference - 6*prev1_ref_x_1 + 7.5*prev1_ref_x_2 - 6.66*prev1_ref_x_3 
+    + 3.75*prev1_ref_x_4 - 1.2*prev1_ref_x_5 + 0.16*prev1_ref_x_6)/
+    (hw->get_dt());
+
+
+    deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
+
+    prev1_ref_x_6 = prev1_ref_x_5;
+    prev1_ref_x_5 = prev1_ref_x_4;
+    prev1_ref_x_4 = prev1_ref_x_3;
+    prev1_ref_x_3 = prev1_ref_x_2;
+    prev1_ref_x_2 = prev1_ref_x_1;
+    prev1_ref_x_1 = reference;
+
+
     float deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
@@ -101,7 +116,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     Pb = hw->get_pressure(2)*100000;
 
     //Pt = hw->get_pressure(3)*100000;
-    Ps = 10000000;
+    Ps = 16000000;
     Pt = 0; // Sensor de pressão com problema
 
     /*if(pressure_predict == 1){
@@ -353,12 +368,16 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
         out = lowPass->process(out,hw->get_dt());
     }
 
-    *(hw->var1) = out;
+    *(hw->var1) = d_force;
+    *(hw->var2) = deriv_force;
+    *(hw->var3) = out;
+    *(hw->var4) = hw->get_tau_m(1);
 
-    *(hw->var8) = disturb*1000;
+    *(hw->var7) = deriv_ref;
+    *(hw->var8) = disturb;
     *(hw->var9) = reference;
 
-    last_out = out;
+    last_out = hw->get_tau_m(1);
 
     return out*gain_out;
 
@@ -377,7 +396,9 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
-    float tau_ref = - Kdes*(x - ref[0]) -  Bdes*dx - Mdes*ddx;
+    float tau_ref = -Kdes*(x - ref[0]) - Bdes*dx - Mdes*ddx;
 
     float out = ForceController(hw,tau_ref);
+
+    return out;
 }
