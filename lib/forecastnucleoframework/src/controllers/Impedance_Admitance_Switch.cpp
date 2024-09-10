@@ -281,7 +281,7 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
 
     theta_ref = admittanceTF->process(tau,hw->get_dt());
 
-    float ref_adm = (ref + theta_ref);
+    float ref_adm = (ref + theta_ref) - x;
 
     float out = PositionController(hw,ref_adm);
 
