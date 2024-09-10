@@ -32,7 +32,6 @@ public:
 
   float PositionController(const IHardware *hw, float ref);
 
-  float PositionController(const IHardware *hw, float ref);
 
 protected:
 

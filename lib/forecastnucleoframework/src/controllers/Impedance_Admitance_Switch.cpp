@@ -4,8 +4,8 @@ using namespace forecast;
 
 Impedance_Admitance_Switch::Impedance_Admitance_Switch(
 float kp, float ki, float kd,
-float Ides, float Ddes, float Kdes, 
-float DobGain, 
+float Mdes, float Bdes, float Kdes, 
+float gain_dob, 
 float Kp_pos, float Kd_pos, float Ki_pos, 
 
 float switch_method,
@@ -17,9 +17,9 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
       ki(ki),
       kd(kd),
       Kdes(Kdes),
-      Ddes(Ddes),
-      Ides(Ides),
-      DobGain(gain_dob),
+      Bdes(Bdes),
+      Mdes(Mdes),
+      gain_dob(gain_dob),
       errPast(0.f),
       err(0.f),
       derr(0.f),
@@ -54,14 +54,14 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
     Switch2_LowPass = utility::AnalogFilter::getLowPassFilterHz(freq_cutoff_switch2);
 
-    if(Ides > 0){
-        double a_ADM[3] = {Ides,Ddes,Kdes};
+    if(Mdes > 0){
+        double a_ADM[3] = {Mdes,Bdes,Kdes};
         double b_ADM[3] = {0.0,0.0,1.0};   
         admittanceTF = new utility::AnalogFilter(2, a_ADM, b_ADM);
     }
 
     else {
-        double a_ADM[2] = {Ddes,Kdes};
+        double a_ADM[2] = {Bdes,Kdes};
         double b_ADM[2] = {0.0,1.0};   
         admittanceTF = new utility::AnalogFilter(1, a_ADM, b_ADM); 
     }
@@ -218,7 +218,7 @@ float Impedance_Admitance_Switch::ForceController(const IHardware *hw, float ref
 }
 
 float Impedance_Admitance_Switch::PositionController(const IHardware *hw, float ref){
-    err_adm = (ref[0] + theta_ref) - x;
+    err_adm = (ref + theta_ref) - x;
     derr_adm = (2.45*err_adm - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
 
     ierr_adm += err_adm*hw->get_dt();
@@ -238,7 +238,7 @@ float Impedance_Admitance_Switch::PositionController(const IHardware *hw, float 
 float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, float ref){
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
-    reference = ref[0];
+    reference = ref;
     
     tau = hw->get_tau_s(0);
     dtau = hw->get_d_tau_s(0);
@@ -247,7 +247,7 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
-    float tau_ref = -Kdes*(x - ref[0]) - Bdes*(dx - deriv_ref) - Mdes*ddx;
+    float tau_ref = -Kdes*(x - ref) - Bdes*(dx - deriv_ref) - Mdes*ddx;
 
     float out = ForceController(hw,tau_ref);
 
@@ -269,7 +269,7 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
-    reference = ref[0];
+    reference = ref;
     
     tau = hw->get_tau_s(0);
     dtau = hw->get_d_tau_s(0);
@@ -281,7 +281,7 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
 
     theta_ref = admittanceTF->process(tau,hw->get_dt());
 
-    float ref_adm = (ref[0] + theta_ref);
+    float ref_adm = (ref + theta_ref);
 
     float out = PositionController(hw,ref_adm);
 
@@ -340,7 +340,7 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
         }
 
         else if(switch_method == 1){
-            if(abs(ref[0] - theta) > alpha_max){
+            if(abs(ref[0] - x) > alpha_max){
                 flag_impedance_admitance = 0;
             }
             else{
@@ -400,6 +400,7 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
                 out = Impedance_Controller(hw,ref[0] + switch4_new_theta_ref);
 
                 out = lowPass->process(out, hw->get_dt());    
+                float tau_ref = -Kdes*(x - reference) - Bdes*(dx - deriv_ref) - Mdes*ddx;
                 switch4_new_theta_ref = admittanceTF->process((-tau + tau_ref),hw->get_dt());
         }
     }
