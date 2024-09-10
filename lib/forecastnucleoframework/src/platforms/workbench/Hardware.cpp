@@ -310,7 +310,7 @@ void forecast::Hardware::update(float dt) {
     
     //double ddthetaM_NoFilt = (double)(4.511111*((double)thetaM) - 17.4*((double)prev1_thetaM) + 29.25*((double)prev2_thetaM) -28.22222*((double)prev3_thetaM) + 16.5*((double)prev4_thetaM)  -5.4*((double)prev5_thetaM) + 0.761111*((double)prev6_thetaM))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
     
-    float dthetaE_NoFilt = (2.45*thetaE - 6*prev1_thetaE + 7.5*prev2_thetaE - 6.66*prev3_thetaE + 3.75*prev4_thetaE - 1.2*prev5_thetaE + 0.16*prev6_thetaE)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
+    float dthetaE_NoFilt = (2.45*thetaE - 6*prev1_thetaE + 7.5*prev2_thetaE - 6.66666666*prev3_thetaE + 3.75*prev4_thetaE - 1.2*prev5_thetaE + 0.1666666*prev6_thetaE)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
     //float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.66*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.16*prev6_dthetaM)/dt;
     

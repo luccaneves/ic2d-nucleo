@@ -2,8 +2,13 @@
 
 using namespace forecast;
 
-Impedance_Admitance_Switch::Impedance_Admitance_Switch(float kp, float ki, float kd,float Ides, float Ddes, float Kdes, 
-float DobGain, float vc_gain, float jm, float bm, float Kp_pos, float Kd_pos, float Ki_pos, float switch_method,
+Impedance_Admitance_Switch::Impedance_Admitance_Switch(
+float kp, float ki, float kd,
+float Ides, float Ddes, float Kdes, 
+float DobGain, 
+float Kp_pos, float Kd_pos, float Ki_pos, 
+
+float switch_method,
 float duty_delta,float n_percent, 
 float alpha_max,
 float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float switch2_threshold_force, float switch2_delta, float switch2_p
@@ -14,10 +19,7 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
       Kdes(Kdes),
       Ddes(Ddes),
       Ides(Ides),
-      VC_gain(vc_gain),
-      Jm(jm),
-      Bm(bm),
-      DobGain(DobGain),
+      DobGain(gain_dob),
       errPast(0.f),
       err(0.f),
       derr(0.f),
@@ -37,14 +39,19 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
       switch2_p(switch2_p)
 
 {
+    limit = 30;
+    limit_dob = 30;
+    lambda = 10;
+    Kvc = 1;
+    Kpc = 1.4;
+
+
+
+
     logs.push_back(&reference);
-    lowPass_PosDeriv = utility::AnalogFilter::getDifferentiatorHz(10.0f);
+
     lowPass = utility::AnalogFilter::getLowPassFilterHz(20.0f);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
-    lowPassDD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
-    lowPassDForce = utility::AnalogFilter::getLowPassFilterHz(15.0f);
-    lowPassDTheta = utility::AnalogFilter::getDifferentiatorHz(100.0f);
-    lowPassDDTheta = utility::AnalogFilter::getDifferentiatorHz(10.0f);
     Switch2_LowPass = utility::AnalogFilter::getLowPassFilterHz(freq_cutoff_switch2);
 
     if(Ides > 0){
@@ -60,197 +67,162 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
     }
 }
 
-float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, float ref){
-     /* POSITION LOOP */
-    tau_ref = /*k_des*ref[0] - */ - Kdes*((theta - theta_eq) - ref) -  Ddes*dtheta - Ides*ddtheta;
+float Impedance_Admitance_Switch::ForceController(const IHardware *hw, float ref){
 
-    *(hw->fric1) = (theta - theta_eq);
+    float deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66666*prev_ref_3 
+    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16666*prev_ref_6)/
+    (hw->get_dt());
 
-    float x = hw->get_theta(0);
+    prev_ref_6 = prev_ref_5;
+    prev_ref_5 = prev_ref_4;
+    prev_ref_4 = prev_ref_3;
+    prev_ref_3 = prev_ref_2;
+    prev_ref_2 = prev_ref_1;
+    prev_ref_1 = ref;
 
-    float compensate_1 = ((ddtheta*Jm)) + (dtheta*Bm);
+    if (once == 1)
+    {
+        offset_x = x;
+        once = 0;
+    }
 
-    float compensate_2 = 0;
+    float deriv_force = hw->get_d_tau_s(0);
 
-    float compensate_3 = 0;
+    Pa = hw->get_pressure(3)*100000;
+    Pb = hw->get_pressure(2)*100000;
 
-    *(hw->vel_comp_value) = VC_gain*( compensate_2  + compensate_1);
+    Ps = 16000000;
+    Pt = 0; // Sensor de pressão com problema
 
+    if(Pa == Ps){
+        Pa = Ps*0.99;
+    }
 
-    //double inv_model_num[6] = {0.571428571428571,  -1.707480636386558  , 1.700840103589048 , -0.564787194477277,0 , 0};
-    //double inv_model_den[6] = {1.000000000000000 , -2.973906285106519  , 2.947998206924892  ,-0.974091536281782, 0, 0};
+    if(Pb == Ps){
+        Pb = Ps*0.99;
+    }
 
-    double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
+    if(Pa == Pt){
+        Pa = Ps*0.02;
+    }
 
-    double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
-
-
-    double filter_num[6] = {0  , 0.310425427160331E-4  , 0.308362809159582E-4 ,0,0,0};
-    double filter_den[6] = {1.000000000000000  ,-1.980136794483123 ,  0.980198673306755,0,0,0};
-    //double filter_den[6] = {0, 0,0,0,0,0};
-
-    double inv_model_exit = 0;
-
-    double filter_exit = 0;
-
-    if(hw->get_current_time() > 0){
-        float value = hw->get_tau_s(1);
-        value = dtheta;
-
-        inv_model_exit = 
-        inv_model_num[0]*value + 
-        inv_model_num[1]*controller_prev1_tauSensor + 
-        inv_model_num[2]*controller_prev2_tauSensor +
-        inv_model_num[3]*controller_prev3_tauSensor +
-        inv_model_num[4]*controller_prev4_tauSensor +
-        inv_model_num[5]*controller_prev5_tauSensor 
-        -
-        inv_model_den[1]*prev1_inv_model_exit - 
-        inv_model_den[2]*prev2_inv_model_exit -
-        inv_model_den[3]*prev3_inv_model_exit -
-        inv_model_den[4]*prev4_inv_model_exit -
-        inv_model_den[5]*prev5_inv_model_exit;
-
-        inv_model_exit = inv_model_exit/inv_model_den[0];
-
-        filter_exit = 
-        filter_num[0]*(*(hw->fric2)) + 
-        filter_num[1]*controller_prev1_tauM + 
-        filter_num[2]*controller_prev2_tauM + 
-        filter_num[3]*controller_prev3_tauM + 
-        filter_num[4]*controller_prev4_tauM  
-        -
-        filter_den[1]*prev1_filter_exit - 
-        filter_den[2]*prev2_filter_exit -
-        filter_den[3]*prev3_filter_exit -
-        filter_den[4]*prev4_filter_exit -
-        filter_den[5]*prev5_filter_exit;
-
-        filter_exit = filter_exit/filter_den[0];
-
-
-
-        prev5_filter_exit = prev4_filter_exit;
-        prev4_filter_exit = prev3_filter_exit;
-        prev3_filter_exit = prev2_filter_exit;
-        prev2_filter_exit = prev1_filter_exit;
-        prev1_filter_exit = filter_exit;
-
-        prev5_inv_model_exit = prev4_inv_model_exit;
-        prev4_inv_model_exit = prev3_inv_model_exit;
-        prev3_inv_model_exit = prev2_inv_model_exit;
-        prev2_inv_model_exit = prev1_inv_model_exit;
-        prev1_inv_model_exit = inv_model_exit;
-
-        controller_prev6_tauM = controller_prev5_tauM;
-        controller_prev5_tauM = controller_prev4_tauM;
-        controller_prev4_tauM = controller_prev3_tauM;
-        controller_prev3_tauM = controller_prev2_tauM;
-        controller_prev2_tauM = controller_prev1_tauM;
-        controller_prev1_tauM = *(hw->fric2);
-
-        controller_prev6_tauSensor = controller_prev5_tauSensor;
-        controller_prev5_tauSensor = controller_prev4_tauSensor;
-        controller_prev4_tauSensor = controller_prev3_tauSensor;
-        controller_prev3_tauSensor = controller_prev2_tauSensor;
-        controller_prev2_tauSensor = controller_prev1_tauSensor;
-        controller_prev1_tauSensor = value;
+    if(Pb == Pt){
+        Pb = Ps*0.02;
     }
 
 
+    ixv = last_out - 0.0250*0;
+    //ixv = last_out;
+    //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
-    //reference = tau_ref;
-  
-    //tau = hw->get_tau_s(1);     // was 0: tauS
-    //dtau = hw->get_d_tau_s(1);  // was 0: tauS
+    err = ref - tau;
+    derr = (err - errPast) / hw->get_dt();
 
-    //tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
-    //dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
-
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
-
-    err = tau_ref - tau;
-
-    derr = (2.45*err - 6*prev1_err + 7.5*prev2_err - 6.66*prev3_err 
-    + 3.75*prev4_err - 1.2*prev5_err + 0.16*prev6_err)/
+    derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
+    + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
     (hw->get_dt());
 
+    derr = lowPassD->process(derr,hw->get_dt());
 
-    //derr = lowPassDForce->process(derr,hw->get_dt());
-
+    prev_erro_7 = prev_erro_6;
+    prev_erro_6 = prev_erro_5;
+    prev_erro_5 = prev_erro_4;
+    prev_erro_4 = prev_erro_3;
+    prev_erro_3 = prev_erro_2;
+    prev_erro_2 = prev_erro_1;
+    prev_erro_1 = err;
 
     ierr += err * hw->get_dt();
     errPast = err;
 
+    float De2 = pow(De, 2);
+    float Dh2 = pow(Dh, 2);
+
+    B_int = 0;
+    float d_disturb;
+
+    float dz;
+
+
     
-    //*(hw->fric2) = filter_exit;
+    if(1){
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
+        
+        Va = Vpl + Aa*((x - offset_x));
+        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
 
-    float out = kp * err + kd * derr + ki * ierr + tau_ref;
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
 
-    double dob_exit = (tau + inv_model_exit) - filter_exit;
+        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
 
-    int a = 45;
+        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-    if(dob_exit > a){
-        dob_exit = a;
+        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(last_out/1000));
+
+        z = z + dz*hw->get_dt();
+
+        disturb = z + lambda*tau/(Kpc*(g));
     }
-    if(dob_exit < -a){
-        dob_exit = -a;
+
+
+    v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
+
+    disturb = gain_dob*disturb;
+
+    if(disturb > limit_dob/1000){
+        disturb = limit_dob/1000;
+    }
+    else if(disturb < -limit_dob/1000){
+        disturb = -limit_dob/1000;
     }
 
+    out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
 
-    prev5_err = prev4_err;
-    prev4_err = prev3_err;
-    prev3_err = prev2_err;
-    prev2_err = prev1_err;
-    prev1_err = err;
+    if(out > limit){
+        out = limit;
+    }
+    else if(out < -limit){
+        out = -limit;
+    }
 
+    //*(hw->var4) = out;
 
-    float control_output_no_filter = out - DobGain*dob_exit + VC_gain*(compensate_1);
+    //Lucca: Adicionado filtro na saída. Vai dar merda?
+    if(filter_out == 1){
+        out = lowPass->process(out,hw->get_dt());
+    }
 
-    return control_output_no_filter;
+    *(hw->var1) = d_force;
+    *(hw->var2) = deriv_force;
+    *(hw->var3) = out;
+    *(hw->var4) = hw->get_tau_m(1);
+
+    *(hw->var7) = deriv_ref;
+    *(hw->var8) = disturb;
+    *(hw->var9) = reference;
+
+    last_out = hw->get_tau_m(1);
+
+    return out*gain_out;
+
 }
 
-float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, float ref){
-    double inv_model_num[6] = { 0   ,1.592230835850342 , -1.582310443952793 ,0,0 , 0};
-
-    double inv_model_den[6] = {1.000000000000000  ,-1.984087638487695  , 0.984127320055285, 0   ,0,0};
-
-
-    double filter_num[6] = {0  , 0.310425427160331E-4  , 0.308362809159582E-4 ,0,0,0};
-    double filter_den[6] = {1.000000000000000  ,-1.980136794483123 ,  0.980198673306755,0,0,0};
-        //double filter_den[6] = {0, 0,0,0,0,0};
-
-    double inv_model_exit = 0;
-
-    double filter_exit = 0;
-
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
-    theta = hw->get_theta(0);
-    dtheta = hw->get_d_theta(0);
-    ddtheta = hw->get_dd_theta(0);
-
-    reference = ref;
-
-    dtheta_filt = lowPassDTheta->process(theta, hw->get_dt());
-    ddtheta_filt = lowPassDDTheta->process(dtheta, hw->get_dt());
-
-    /* FORCE LOOP */
-    tau_err = (tau);
-    //Lucca: n tenho certeza disso...
-    
-    theta_ref = admittanceTF->process(tau_err,hw->get_dt());
-
-    /* POSITION LOOP */
-    err_adm = (ref + theta_ref) - theta;
+float Impedance_Admitance_Switch::PositionController(const IHardware *hw, float ref){
+    err_adm = (ref[0] + theta_ref) - x;
     derr_adm = (2.45*err_adm - 6*last_erro_1 + 7.5*last_erro_2 - 6.66*last_erro_3 + 3.75*last_erro_4 - 1.2*last_erro_5 + 0.16*last_erro_6)/(hw->get_dt());
 
-    //derr_adm = lowPass->process(derr_adm,hw->get_dt());
-
     ierr_adm += err_adm*hw->get_dt();
-    
+
     last_erro_6 = last_erro_5;
     last_erro_5 = last_erro_4;
     last_erro_4 = last_erro_3;
@@ -258,112 +230,88 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
     last_erro_2 = last_erro_1;
     last_erro_1 = err_adm;
 
-    if(hw->get_current_time() > 0){
-        float value = hw->get_tau_s(1);
-        value = dtheta;
+    float out = kp*err_adm + kd*derr_adm + ki*ierr_adm;
 
-        inv_model_exit = 
-        inv_model_num[0]*value + 
-        inv_model_num[1]*controller_prev1_tauSensor_adm + 
-        inv_model_num[2]*controller_prev2_tauSensor_adm +
-        inv_model_num[3]*controller_prev3_tauSensor_adm +
-        inv_model_num[4]*controller_prev4_tauSensor_adm +
-        inv_model_num[5]*controller_prev5_tauSensor_adm 
-        -
-        inv_model_den[1]*prev1_inv_model_exit_adm - 
-        inv_model_den[2]*prev2_inv_model_exit_adm -
-        inv_model_den[3]*prev3_inv_model_exit_adm -
-        inv_model_den[4]*prev4_inv_model_exit_adm -
-        inv_model_den[5]*prev5_inv_model_exit_adm;
+    return out;
+}
 
-        inv_model_exit = inv_model_exit/inv_model_den[0];
-
-        filter_exit = 
-        filter_num[0]*(*(hw->fric2)) + 
-        filter_num[1]*controller_prev1_tauM_adm + 
-        filter_num[2]*controller_prev2_tauM_adm + 
-        filter_num[3]*controller_prev3_tauM_adm + 
-        filter_num[4]*controller_prev4_tauM_adm  
-        -
-        filter_den[1]*prev1_filter_exit_adm - 
-        filter_den[2]*prev2_filter_exit_adm -
-        filter_den[3]*prev3_filter_exit_adm -
-        filter_den[4]*prev4_filter_exit_adm -
-        filter_den[5]*prev5_filter_exit_adm;
-
-        filter_exit = filter_exit/filter_den[0];
-
-
-
-        prev5_filter_exit_adm = prev4_filter_exit_adm;
-        prev4_filter_exit_adm = prev3_filter_exit_adm;
-        prev3_filter_exit_adm = prev2_filter_exit_adm;
-        prev2_filter_exit_adm = prev1_filter_exit_adm;
-        prev1_filter_exit_adm = filter_exit;
-
-        prev5_inv_model_exit_adm = prev4_inv_model_exit_adm;
-        prev4_inv_model_exit_adm = prev3_inv_model_exit_adm;
-        prev3_inv_model_exit_adm = prev2_inv_model_exit_adm;
-        prev2_inv_model_exit_adm = prev1_inv_model_exit_adm;
-        prev1_inv_model_exit_adm = inv_model_exit;
-
-        controller_prev6_tauM_adm = controller_prev5_tauM_adm;
-        controller_prev5_tauM_adm = controller_prev4_tauM_adm;
-        controller_prev4_tauM_adm = controller_prev3_tauM_adm;
-        controller_prev3_tauM_adm = controller_prev2_tauM_adm;
-        controller_prev2_tauM_adm = controller_prev1_tauM_adm;
-        controller_prev1_tauM_adm = *(hw->fric2);
-
-        controller_prev6_tauSensor_adm = controller_prev5_tauSensor_adm;
-        controller_prev5_tauSensor_adm = controller_prev4_tauSensor_adm;
-        controller_prev4_tauSensor_adm = controller_prev3_tauSensor_adm;
-        controller_prev3_tauSensor_adm = controller_prev2_tauSensor_adm;
-        controller_prev2_tauSensor_adm = controller_prev1_tauSensor_adm;
-        controller_prev1_tauSensor_adm = value;
-    }
-
+float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, float ref){
+    //Kvc = Kvc*0.089;
+    //Kpc = Kpc*0.089;
+    reference = ref[0];
     
-    out = kp*err_adm + kd*derr_adm + ki*ierr_adm;
+    tau = hw->get_tau_s(0);
+    dtau = hw->get_d_tau_s(0);
 
-    int a = 30;
+    x = hw->get_theta(1);
+    dx = hw->get_d_theta(1);
+    ddx = hw->get_dd_theta(1);
 
-    double dob_exit = (tau + inv_model_exit) - filter_exit;
+    float tau_ref = -Kdes*(x - ref[0]) - Bdes*(dx - deriv_ref) - Mdes*ddx;
 
-    if(dob_exit > a){
-        dob_exit = a;
+    float out = ForceController(hw,tau_ref);
+
+    return out;
+}
+
+float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, float ref){
+   if(Mdes > 0){
+        double a_ADM[3] = {Mdes,Bdes,Kdes};
+        double b_ADM[3] = {0.0,0.0,1.0};   
+        admittanceTF = new utility::AnalogFilter(2, a_ADM, b_ADM);
     }
 
-    if(dob_exit < -a){
-        dob_exit = -a;
+    else {
+        double a_ADM[2] = {Bdes,Kdes};
+        double b_ADM[2] = {0.0,1.0};   
+        admittanceTF = new utility::AnalogFilter(1, a_ADM, b_ADM); 
     }
+
+    //Kvc = Kvc*0.089;
+    //Kpc = Kpc*0.089;
+    reference = ref[0];
     
-    *(hw->var1) = out;
-    *(hw->var2) = ref;
-    *(hw->var3) = dtheta;
-    *(hw->var4) = dob_exit;
+    tau = hw->get_tau_s(0);
+    dtau = hw->get_d_tau_s(0);
 
-    out -= DobGain*dob_exit;
+    x = hw->get_theta(1);
+    dx = hw->get_d_theta(1);
+    ddx = hw->get_dd_theta(1);
 
-    return out;  
+
+    theta_ref = admittanceTF->process(tau,hw->get_dt());
+
+    float ref_adm = (ref[0] + theta_ref);
+
+    float out = PositionController(hw,ref_adm);
+
+    return out;
 }
 
 float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float> ref)
 {
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
-    theta = hw->get_theta(0);
-    dtheta = hw->get_d_theta(0);
-    ddtheta = hw->get_dd_theta(0);
-    dtheta_filt = lowPassD->process(dtheta, hw->get_dt());
-    ddtheta_filt = lowPassDD->process(ddtheta, hw->get_dt());
+    tau = hw->get_tau_s(0);
+    dtau = hw->get_d_tau_s(0);
+    x = hw->get_theta(1);
+    dx = hw->get_d_theta(1);
+    ddx = hw->get_dd_theta(1);
+
+    deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
+
+    prev1_ref_x_6 = prev1_ref_x_5;
+    prev1_ref_x_5 = prev1_ref_x_4;
+    prev1_ref_x_4 = prev1_ref_x_3;
+    prev1_ref_x_3 = prev1_ref_x_2;
+    prev1_ref_x_2 = prev1_ref_x_1;
+    prev1_ref_x_1 = reference;
+
 
     reference = ref[0];
     /* Get the equilibrium state */
     if (once)
     {
         tempo_start =  hw->get_t();
-        tau_eq = tau;
-        theta_eq = theta;
+        theta_eq = x;
         once = false;
         errPast = 0;
     }

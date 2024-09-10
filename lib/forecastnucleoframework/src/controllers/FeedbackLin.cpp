@@ -87,8 +87,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
-    float deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
-    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
+    float deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.6666666*prev_ref_3 
+    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.1666666*prev_ref_6)/
     (hw->get_dt());
 
     prev_ref_6 = prev_ref_5;
