@@ -51,6 +51,8 @@ protected:
   float once_force = 1;
   float filter_out = 0;
 
+  float start_force = 0;
+
   float gain_out = 0;
 
   float Kvc = 0.0f;

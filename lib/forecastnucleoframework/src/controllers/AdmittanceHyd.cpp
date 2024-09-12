@@ -54,6 +54,18 @@ AdmittanceHyd::AdmittanceHyd(float kp,float kd,float ki, float Kdes, float Bdes,
     
 
     logs.push_back(&reference);
+
+    if(Mdes > 0){
+        double a_ADM[3] = {Mdes,Bdes,Kdes};
+        double b_ADM[3] = {0.0,0.0,1.0};   
+        admittanceTF = new utility::AnalogFilter(2, a_ADM, b_ADM);
+    }
+
+    else {
+        double a_ADM[2] = {Bdes,Kdes};
+        double b_ADM[2] = {0.0,1.0};   
+        admittanceTF = new utility::AnalogFilter(1, a_ADM, b_ADM); 
+    }
     
 }
 
@@ -78,17 +90,6 @@ float AdmittanceHyd::PositionController(const IHardware *hw, float ref){
 
 float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
 {
-    if(Mdes > 0){
-        double a_ADM[3] = {Mdes,Bdes,Kdes};
-        double b_ADM[3] = {0.0,0.0,1.0};   
-        admittanceTF = new utility::AnalogFilter(2, a_ADM, b_ADM);
-    }
-
-    else {
-        double a_ADM[2] = {Bdes,Kdes};
-        double b_ADM[2] = {0.0,1.0};   
-        admittanceTF = new utility::AnalogFilter(1, a_ADM, b_ADM); 
-    }
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -101,6 +102,11 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
+    if(once == 1 && hw->get_current_time() > 1){
+        once = 0;
+        start_force = tau;
+    }
+
     deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
 
     prev1_ref_x_6 = prev1_ref_x_5;
@@ -110,15 +116,32 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
     prev1_ref_x_2 = prev1_ref_x_1;
     prev1_ref_x_1 = reference;
 
-
-    theta_ref = admittanceTF->process(tau,hw->get_dt());
+    theta_ref = admittanceTF->process((tau - start_force),hw->get_dt());
 
     float ref_adm = (ref[0] + theta_ref) - x;
 
-    float out = PositionController(hw,ref_adm);
+    float out;
+
+    if(hw->get_current_time() < 1.2){
+        out = 0;
+    }
+    else{
+        out = PositionController(hw,ref_adm);
+    }
+
+
+    *(hw->var5) = ref_adm;
+    *(hw->var6) = theta_ref;
 
     *(hw->var7) = deriv_ref;
+    *(hw->var8) = tau - start_force;
     *(hw->var9) = reference;
+
+    if(hw->get_current_time() < 1.2){
+        out = 0;
+    }
+
+    *(hw->var4) = out;
 
     return out;
 }
