@@ -358,7 +358,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
         out = lowPass->process(out,hw->get_dt());
     }
 
-    *(hw->var1) = d_force;
+    *(hw->var1) = tau;
     *(hw->var2) = deriv_force;
     *(hw->var3) = out;
     *(hw->var4) = hw->get_tau_m(1);
@@ -379,7 +379,7 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(0);
+    tau = hw->get_tau_s(0) - start_force;
     dtau = hw->get_d_tau_s(0);
 
     x = hw->get_theta(1);
@@ -397,7 +397,20 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
 
     float tau_ref = -Kdes*(x - ref[0]) - Bdes*(dx - deriv_ref) - Mdes*ddx;
 
-    float out = ForceController(hw,tau_ref);
+    float out;
+
+    if(once == 1 && hw->get_current_time() > 1){
+        once = 0;
+        start_force = tau;
+    }
+
+
+    if(hw->get_current_time() < 1.2){
+        out = 0;
+    }
+    else{
+        out = ForceController(hw,tau_ref);
+    }
 
     return out;
 }

@@ -43,9 +43,13 @@ protected:
   float kd = 0.0;
   float ki = 0.0f;
   float offset_x = 0;
+
   float once = 1;
+  
   float once_force = 1;
   float filter_out = 0;
+
+  float start_force = 0;
 
   float err_adm;
   float derr_adm;

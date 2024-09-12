@@ -102,6 +102,11 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
+    if(once == 1 && hw->get_current_time() > 1){
+        once = 0;
+        start_force = tau;
+    }
+
     deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
 
     prev1_ref_x_6 = prev1_ref_x_5;
@@ -111,15 +116,32 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
     prev1_ref_x_2 = prev1_ref_x_1;
     prev1_ref_x_1 = reference;
 
-
-    theta_ref = admittanceTF->process(tau,hw->get_dt());
+    theta_ref = admittanceTF->process((tau - start_force),hw->get_dt());
 
     float ref_adm = (ref[0] + theta_ref) - x;
 
-    float out = PositionController(hw,ref_adm);
+    float out;
+
+    if(hw->get_current_time() < 1.2){
+        out = 0;
+    }
+    else{
+        out = PositionController(hw,ref_adm);
+    }
+
+
+    *(hw->var5) = ref_adm;
+    *(hw->var6) = theta_ref;
 
     *(hw->var7) = deriv_ref;
+    *(hw->var8) = tau - start_force;
     *(hw->var9) = reference;
+
+    if(hw->get_current_time() < 1.2){
+        out = 0;
+    }
+
+    *(hw->var4) = out;
 
     return out;
 }
