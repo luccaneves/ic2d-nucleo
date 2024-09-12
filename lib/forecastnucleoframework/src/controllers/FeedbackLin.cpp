@@ -197,7 +197,6 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     float h1;
 
     float h2;
-
     
     if(dob_formulation == 0){
         Aa = (M_PI*(De2))/4;
@@ -379,8 +378,6 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         disturb = ((disturb)/(g*Kpc));
     }
-
-
 
     float leak_term = Ap*Be*0.000025*(1/Va + alfa/Vb);
     v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref

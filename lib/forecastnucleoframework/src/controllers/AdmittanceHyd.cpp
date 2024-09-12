@@ -54,6 +54,18 @@ AdmittanceHyd::AdmittanceHyd(float kp,float kd,float ki, float Kdes, float Bdes,
     
 
     logs.push_back(&reference);
+
+    if(Mdes > 0){
+        double a_ADM[3] = {Mdes,Bdes,Kdes};
+        double b_ADM[3] = {0.0,0.0,1.0};   
+        admittanceTF = new utility::AnalogFilter(2, a_ADM, b_ADM);
+    }
+
+    else {
+        double a_ADM[2] = {Bdes,Kdes};
+        double b_ADM[2] = {0.0,1.0};   
+        admittanceTF = new utility::AnalogFilter(1, a_ADM, b_ADM); 
+    }
     
 }
 
@@ -78,17 +90,6 @@ float AdmittanceHyd::PositionController(const IHardware *hw, float ref){
 
 float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
 {
-    if(Mdes > 0){
-        double a_ADM[3] = {Mdes,Bdes,Kdes};
-        double b_ADM[3] = {0.0,0.0,1.0};   
-        admittanceTF = new utility::AnalogFilter(2, a_ADM, b_ADM);
-    }
-
-    else {
-        double a_ADM[2] = {Bdes,Kdes};
-        double b_ADM[2] = {0.0,1.0};   
-        admittanceTF = new utility::AnalogFilter(1, a_ADM, b_ADM); 
-    }
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
