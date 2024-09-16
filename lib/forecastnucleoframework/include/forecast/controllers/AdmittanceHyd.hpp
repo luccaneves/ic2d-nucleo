@@ -214,6 +214,7 @@ protected:
   utility::AnalogFilter* lowPassPa;
   utility::AnalogFilter* lowPassPb;
   utility::AnalogFilter *admittanceTF;
+  utility::AnalogFilter *lowPass_DerivRef;
 };
 
 inline ControllerFactory::Builder make_AdmHyd_builder() {

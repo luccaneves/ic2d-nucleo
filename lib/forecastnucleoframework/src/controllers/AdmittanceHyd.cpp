@@ -32,7 +32,7 @@ AdmittanceHyd::AdmittanceHyd(float kp,float kd,float ki, float Kdes, float Bdes,
       Bdes(Bdes),
       Mdes(Mdes)
 {
-    float freq = 40.0;
+    float freq = 20.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -41,6 +41,7 @@ AdmittanceHyd::AdmittanceHyd(float kp,float kd,float ki, float Kdes, float Bdes,
     lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
+    lowPass_DerivRef = utility::AnalogFilter::getLowPassFilterHz(freq);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
@@ -51,6 +52,18 @@ AdmittanceHyd::AdmittanceHyd(float kp,float kd,float ki, float Kdes, float Bdes,
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
+
+    if(Mdes > 0){
+        double a_ADM[3] = {Mdes,Bdes,Kdes};
+        double b_ADM[3] = {0.0,0.0,1.0};   
+        admittanceTF = new utility::AnalogFilter(2, a_ADM, b_ADM);
+    }
+
+    else {
+        double a_ADM[2] = {Bdes,Kdes};
+        double b_ADM[2] = {0.0,1.0};   
+        admittanceTF = new utility::AnalogFilter(1, a_ADM, b_ADM); 
+    }
     
 
     logs.push_back(&reference);
@@ -78,17 +91,7 @@ float AdmittanceHyd::PositionController(const IHardware *hw, float ref){
 
 float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
 {
-    if(Mdes > 0){
-        double a_ADM[3] = {Mdes,Bdes,Kdes};
-        double b_ADM[3] = {0.0,0.0,1.0};   
-        admittanceTF = new utility::AnalogFilter(2, a_ADM, b_ADM);
-    }
 
-    else {
-        double a_ADM[2] = {Bdes,Kdes};
-        double b_ADM[2] = {0.0,1.0};   
-        admittanceTF = new utility::AnalogFilter(1, a_ADM, b_ADM); 
-    }
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -103,6 +106,14 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
 
     deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
 
+    deriv_ref = lowPass_DerivRef->process(deriv_ref,hw->get_dt());
+
+    if(once == 1 && hw->get_current_time() > 2){
+        once = 0;
+        once_force = tau;
+        start_x = x;
+    }
+
     prev1_ref_x_6 = prev1_ref_x_5;
     prev1_ref_x_5 = prev1_ref_x_4;
     prev1_ref_x_4 = prev1_ref_x_3;
@@ -111,13 +122,23 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
     prev1_ref_x_1 = reference;
 
 
-    theta_ref = admittanceTF->process(tau,hw->get_dt());
+    theta_ref = admittanceTF->process(tau - once_force,hw->get_dt());
 
-    float ref_adm = (ref[0] + theta_ref) - x;
+    float ref_adm = (ref[0] + theta_ref) - (x - start_x);
 
-    float out = PositionController(hw,ref_adm);
+    float out;
+
+    if(hw->get_current_time() >= 4){
+        out = PositionController(hw,ref_adm);
+    }
+
+    else{
+        out = 0;
+    }
+
 
     *(hw->var7) = deriv_ref;
+    *(hw->var8) = theta_ref;
     *(hw->var9) = reference;
 
     return out;

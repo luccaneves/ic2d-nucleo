@@ -52,7 +52,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       Bdes(Bdes),
       Mdes(Mdes)
 {
-    float freq = 40.0;
+    float freq = 20.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -61,6 +61,8 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
+    lowPass_DerivRef = utility::AnalogFilter::getLowPassFilterHz(freq); 
+    lowPass_DerivRefForce = utility::AnalogFilter::getLowPassFilterHz(freq); 
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
@@ -85,6 +87,8 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
 
 
     deriv_force_desejada = (ref - prev_ref_1)/(hw->get_dt());
+
+    deriv_force_desejada = lowPass_DerivRefForce->process(deriv_force_desejada,hw->get_dt());
 
 
     prev_ref_6 = prev_ref_5;
@@ -387,6 +391,8 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
     ddx = hw->get_dd_theta(1);
 
     deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
+
+    deriv_ref = lowPass_DerivRef->process(deriv_ref,hw->get_dt());
 
     prev1_ref_x_6 = prev1_ref_x_5;
     prev1_ref_x_5 = prev1_ref_x_4;

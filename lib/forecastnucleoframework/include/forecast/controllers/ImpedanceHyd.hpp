@@ -203,6 +203,8 @@ protected:
   utility::AnalogFilter* lowPassPt;
   utility::AnalogFilter* lowPassPa;
   utility::AnalogFilter* lowPassPb;
+  utility::AnalogFilter* lowPass_DerivRef;
+  utility::AnalogFilter* lowPass_DerivRefForce;
 };
 
 inline ControllerFactory::Builder make_ImpedanceHyd_builder() {
