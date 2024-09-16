@@ -58,7 +58,7 @@ public:
 
     float offset_x = 0;
     float once = 1;
-    float once_force = 1;
+    float once_force = 0;
     float filter_out = 0;
 
     float err_adm;
@@ -228,6 +228,11 @@ public:
     utility::AnalogFilter* lowPassPa;
     utility::AnalogFilter* lowPassPb;
     utility::AnalogFilter *admittanceTF;
+
+    utility::AnalogFilter *lowPass_DerivRef;
+    utility::AnalogFilter *lowPass_DerivRefForce;
+
+
     float switch_method = 0;
 
 

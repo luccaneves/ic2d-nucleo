@@ -98,12 +98,6 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref;
 
-    if (once == 1)
-    {
-        offset_x = x;
-        once = 0;
-    }
-
     float deriv_force = hw->get_d_tau_s(0);
 
     Pa = hw->get_pressure(3)*100000;
@@ -112,34 +106,6 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     //Pt = hw->get_pressure(3)*100000;
     Ps = 16000000;
     Pt = 0; // Sensor de pressão com problema
-
-    /*if(pressure_predict == 1){
-        float De2 = pow(De, 2);
-        float Dh2 = pow(Dh, 2);
-        Aa = (M_PI*(De2))/4;
-        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-        Ap = Aa;                    
-        alfa = Ab/Aa;
-
-        float Fco = 15;
-        float Fso = 15;
-        float Cs = 0.15;
-
-        float fric = 0;
-        float a = 0.001;
-
-
-        if(abs(dx) < 0.1)
-            fric = dx*30/0.1;
-        else 
-            fric = abs(dx)*(Fco + Fso*(exp((-abs(dx)/Cs))) + B_int*dx);
-
-
-        Ps = 10000000;
-        Pt = 0;
-        Pa = -((tau - fric)/Aa)*(1/(1 - (1/alfa)));
-        Pb = -((tau - fric)/Aa)*((1/(alfa*alfa))/(1 - (1/alfa)));
-    }*/
 
     if(Pa == Ps){
         Pa = Ps*0.99;
@@ -367,6 +333,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     *(hw->var3) = out;
     *(hw->var4) = hw->get_tau_m(1);
 
+    *(hw->var6) = tau;
     *(hw->var7) = deriv_ref;
     *(hw->var8) = ref;
     *(hw->var9) = reference;
@@ -382,13 +349,19 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
-    
-    tau = hw->get_tau_s(0);
+
+    tau = hw->get_tau_s(0) - once_force;
     dtau = hw->get_d_tau_s(0);
 
-    x = hw->get_theta(1);
+    x = hw->get_theta(1) - start_x;
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
+
+    if(once == 1 && hw->get_current_time() > 2){
+        once = 0;
+        once_force = tau;
+        start_x = x;
+    }
 
     deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
 
@@ -403,7 +376,17 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
 
     float tau_ref = -Kdes*(x - ref[0]) - Bdes*(dx - deriv_ref) - Mdes*ddx;
 
-    float out = ForceController(hw,tau_ref);
+    float out;
+
+    if(hw->get_current_time() >= 4){
+        out = ForceController(hw,tau_ref);
+    }
+
+    else{
+        out = 0;
+    }
+
+    
 
     return out;
 }
