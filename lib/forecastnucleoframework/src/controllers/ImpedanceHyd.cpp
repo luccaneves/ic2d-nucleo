@@ -78,14 +78,14 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 }
 
 float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
-    float deriv_ref = (2.45*reference - 6*prev1_ref_x_1 + 7.5*prev1_ref_x_2 - 6.66*prev1_ref_x_3 
-    + 3.75*prev1_ref_x_4 - 1.2*prev1_ref_x_5 + 0.16*prev1_ref_x_6)/
-    (hw->get_dt());
-
-
     float deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
+
+
+
+    deriv_force_desejada = (ref - prev_ref_1)/(hw->get_dt());
+
 
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
@@ -364,7 +364,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     *(hw->var4) = hw->get_tau_m(1);
 
     *(hw->var7) = deriv_ref;
-    *(hw->var8) = disturb;
+    *(hw->var8) = ref;
     *(hw->var9) = reference;
 
     last_out = hw->get_tau_m(1);
