@@ -26,31 +26,8 @@ Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd,float Ides
     lowPassDForce = utility::AnalogFilter::getLowPassFilterHz(15.0f);
 }
 
-
-
-float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
-{
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
-    theta = hw->get_theta(0);
-    dtheta = hw->get_d_theta(0);
-    ddtheta = hw->get_dd_theta(0);
-    dtheta_filt = lowPassD->process(dtheta, hw->get_dt());
-    ddtheta_filt = lowPassDD->process(ddtheta, hw->get_dt());
-
-
-    /* Get the equilibrium state */
-    if (once)
-    {
-        theta_eq = theta;
-        once = false;
-        errPast = 0;
-    }
-
-    /* POSITION LOOP */
-    tau_ref = /*k_des*ref[0] - */ - Kdes*((theta - theta_eq) - ref[0]) -  Ddes*dtheta - Ides*ddtheta;
-
-    *(hw->fric1) = (theta - theta_eq);
+float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
+    *(hw->fric1) = (theta);
 
     float x = hw->get_theta(0);
 
@@ -196,7 +173,39 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     float control_output_no_filter = out - DobGain*dob_exit + VC_gain*(compensate_1);
 
     float out_control = lowPass->process(control_output_no_filter, hw->get_dt());
+}
 
+float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
+{
+    tau = hw->get_tau_s(1) - start_force;
+    dtau = hw->get_d_tau_s(1);
+    theta = hw->get_theta(0) - theta_eq;
+    dtheta = hw->get_d_theta(0);
+    ddtheta = hw->get_dd_theta(0);
+    dtheta_filt = lowPassD->process(dtheta, hw->get_dt());
+    ddtheta_filt = lowPassDD->process(ddtheta, hw->get_dt());
+
+
+    /* Get the equilibrium state */
+
+    /* POSITION LOOP */
+
+    if(once == 1 && hw->get_current_time() > 1){
+        once = 0;
+        theta_eq = theta;
+        start_force = tau;
+    }
+
+    tau_ref = /*k_des*ref[0] - */ - Kdes*((theta - theta_eq) - ref[0]) -  Ddes*dtheta - Ides*ddtheta;
+
+    if(hw->get_current_time() < 1.2){
+        out = 0;
+    }
+    else{
+        out = ForceController(hw,tau_ref);
+    }
+
+    
     *(hw->fric2) = out_control;
 
     return (out_control);

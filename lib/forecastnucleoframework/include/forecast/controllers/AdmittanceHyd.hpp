@@ -31,7 +31,7 @@ public:
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
   float PositionController(const IHardware *hw, float ref);
-
+  
 
 protected:
 

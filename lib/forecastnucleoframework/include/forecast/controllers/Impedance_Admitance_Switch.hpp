@@ -236,6 +236,7 @@ public:
     float duty_delta = 0;
     float n_percent = 0;
     float tempo_start = 0;
+    float force_start = 0;
 
     //Variáveis segundo método
     float alpha_max = 0;

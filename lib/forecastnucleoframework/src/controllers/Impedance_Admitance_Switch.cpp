@@ -239,13 +239,6 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref;
-    
-    tau = hw->get_tau_s(0);
-    dtau = hw->get_d_tau_s(0);
-
-    x = hw->get_theta(1);
-    dx = hw->get_d_theta(1);
-    ddx = hw->get_dd_theta(1);
 
     float tau_ref = -Kdes*(x - ref) - Bdes*(dx - deriv_ref) - Mdes*ddx;
 
@@ -270,14 +263,6 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref;
-    
-    tau = hw->get_tau_s(0);
-    dtau = hw->get_d_tau_s(0);
-
-    x = hw->get_theta(1);
-    dx = hw->get_d_theta(1);
-    ddx = hw->get_dd_theta(1);
-
 
     theta_ref = admittanceTF->process(tau,hw->get_dt());
 
@@ -290,9 +275,9 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
 
 float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float> ref)
 {
-    tau = hw->get_tau_s(0);
+    tau = hw->get_tau_s(0) - force_start;
     dtau = hw->get_d_tau_s(0);
-    x = hw->get_theta(1);
+    x = hw->get_theta(1) - theta_eq;
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
@@ -308,9 +293,10 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
 
     reference = ref[0];
     /* Get the equilibrium state */
-    if (once)
+    if (once && hw->get_current_time() > 1)
     {
-        tempo_start =  hw->get_t();
+        force_start = tau;
+        tempo_start = hw->get_t();
         theta_eq = x;
         once = false;
         errPast = 0;
@@ -318,91 +304,97 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
     float time_start_cycle = 0;
     //Colocar código para definir se é impedancia ou admitancia
 
-    if(switch_method == 0 || switch_method == 1){
-        if(switch_method == 0){
-            float time = hw->get_t(); //Tempo em s
-
-            if(((time_start_cycle) <= time) 
-            && 
-            (time < (time_start_cycle + (1 - n_percent)*duty_delta)))
-            {
-                flag_impedance_admitance = 1;
-            }
-
-            else{
-                flag_impedance_admitance = 0;
-            }
-
-            if(time > (time_start_cycle + duty_delta)){
-                time_start_cycle = time;
-                //k_integr +=1;
-            }
-        }
-
-        else if(switch_method == 1){
-            if(abs(ref[0] - x) > alpha_max){
-                flag_impedance_admitance = 0;
-            }
-            else{
-                flag_impedance_admitance = 1;
-            }
-        }
-
-        if(flag_impedance_admitance == 1){
-            out = Impedance_Controller(hw,ref[0]);
-        }
-        else{
-
-            out = Admitance_Controller(hw,ref[0]);
-        }
-
-        out = lowPass->process(out,hw->get_dt());
-
+    if(hw->get_current_time() < 1.2){
+        out = 0;
     }
-
     else{
-        if(switch_method == 2){
-            float tau_low = Switch2_LowPass->process(tau,hw->get_dt());
-            float tau_high = Switch2_HighPass->process(tau,hw->get_dt());
+        if(switch_method == 0 || switch_method == 1){
+            if(switch_method == 0){
+                float time = hw->get_t(); //Tempo em s
 
-            if(tau_low < switch2_threshold_force && tau_high < switch2_threshold_force){
-                switch2_Q = 0;
+                if(((time_start_cycle) <= time) 
+                && 
+                (time < (time_start_cycle + (1 - n_percent)*duty_delta)))
+                {
+                    flag_impedance_admitance = 1;
+                }
+
+                else{
+                    flag_impedance_admitance = 0;
+                }
+
+                if(time > (time_start_cycle + duty_delta)){
+                    time_start_cycle = time;
+                    //k_integr +=1;
+                }
+            }
+
+            else if(switch_method == 1){
+                if(abs(ref[0] - x) > alpha_max){
+                    flag_impedance_admitance = 0;
+                }
+                else{
+                    flag_impedance_admitance = 1;
+                }
+            }
+
+            if(flag_impedance_admitance == 1){
+                out = Impedance_Controller(hw,ref[0]);
             }
             else{
-                switch2_Q = 1;
+
+                out = Admitance_Controller(hw,ref[0]);
             }
 
-            if(switch2_Q == 0){
-                switch2_gamma = switch2_neg_gamma;
-            }
-            else{
-               switch2_gamma = (1 - etta_switch2)*switch2_gamma + etta_switch2*(abs(tau_high) - abs(tau_low));
-            }
-
-            alpha_switch2 = tanh(switch2_delta*(switch2_gamma - switch2_p))/2 + 0.5;
-            float out_adm = 0;
-            float out_imp = 0; 
-
-            if(1){
-                out_imp = Impedance_Controller(hw,ref[0]);
-            }
-            if(1){
-                
-                out_adm = Admitance_Controller(hw,ref[0]);
-            }
-
-            out = lowPass->process(out_imp*alpha_switch2 + out_adm*(1 - alpha_switch2), hw->get_dt());
+            out = lowPass->process(out,hw->get_dt());
 
         }
-        
+
         else{
-         /* POSITION LOOP */
-                out = Impedance_Controller(hw,ref[0] + switch4_new_theta_ref);
+            if(switch_method == 2){
+                float tau_low = Switch2_LowPass->process(tau,hw->get_dt());
+                float tau_high = Switch2_HighPass->process(tau,hw->get_dt());
 
-                out = lowPass->process(out, hw->get_dt());    
-                float tau_ref = -Kdes*(x - reference) - Bdes*(dx - deriv_ref) - Mdes*ddx;
-                switch4_new_theta_ref = admittanceTF->process((-tau + tau_ref),hw->get_dt());
+                if(tau_low < switch2_threshold_force && tau_high < switch2_threshold_force){
+                    switch2_Q = 0;
+                }
+                else{
+                    switch2_Q = 1;
+                }
+
+                if(switch2_Q == 0){
+                    switch2_gamma = switch2_neg_gamma;
+                }
+                else{
+                switch2_gamma = (1 - etta_switch2)*switch2_gamma + etta_switch2*(abs(tau_high) - abs(tau_low));
+                }
+
+                alpha_switch2 = tanh(switch2_delta*(switch2_gamma - switch2_p))/2 + 0.5;
+                float out_adm = 0;
+                float out_imp = 0; 
+
+                if(1){
+                    out_imp = Impedance_Controller(hw,ref[0]);
+                }
+                if(1){
+                    
+                    out_adm = Admitance_Controller(hw,ref[0]);
+                }
+
+                out = lowPass->process(out_imp*alpha_switch2 + out_adm*(1 - alpha_switch2), hw->get_dt());
+
+            }
+            
+            else{
+            /* POSITION LOOP */
+                    out = Impedance_Controller(hw,ref[0] + switch4_new_theta_ref);
+
+                    out = lowPass->process(out, hw->get_dt());    
+                    float tau_ref = -Kdes*(x - reference) - Bdes*(dx - deriv_ref) - Mdes*ddx;
+                    switch4_new_theta_ref = admittanceTF->process((-tau + tau_ref),hw->get_dt());
+            }
         }
+
     }
 
     

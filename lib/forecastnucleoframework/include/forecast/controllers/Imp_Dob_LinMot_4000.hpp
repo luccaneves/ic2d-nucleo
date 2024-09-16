@@ -66,6 +66,7 @@ class Imp_Dob_LinMot_4000 : public Controller {
     bool once = true;
     float tau_ref = 0.0f;
     float theta_eq = 0.0f;
+    float start_force = 0;
 
     float err = 0.0;
     float derr = 0.0;
