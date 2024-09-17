@@ -52,8 +52,9 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
 
     lowPass = utility::AnalogFilter::getLowPassFilterHz(20.0f);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
-    lowPass_DerivRef = utility::AnalogFilter::getLowPassFilterHz(freq); 
-    lowPass_DerivRefForce = utility::AnalogFilter::getLowPassFilterHz(freq); 
+    
+    lowPass_DerivRef = utility::AnalogFilter::getLowPassFilterHz(20); 
+    lowPass_DerivRefForce = utility::AnalogFilter::getLowPassFilterHz(20); 
 
 
     Switch2_LowPass = utility::AnalogFilter::getLowPassFilterHz(freq_cutoff_switch2);
