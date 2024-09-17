@@ -59,6 +59,13 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
 
     Switch2_LowPass = utility::AnalogFilter::getLowPassFilterHz(freq_cutoff_switch2);
 
+    float value = 0.083; // 2hz de corte
+
+    double den_highpass[2] = {value,1};
+    double num_highpass[2] = {value,0};   
+
+    Switch2_HighPass = new utility::AnalogFilter(1, den_highpass, num_highpass);
+
     if(Mdes > 0){
         double a_ADM[3] = {Mdes,Bdes,Kdes};
         double b_ADM[3] = {0.0,0.0,1.0};   
