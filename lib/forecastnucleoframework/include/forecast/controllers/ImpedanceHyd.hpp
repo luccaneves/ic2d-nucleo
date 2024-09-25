@@ -51,6 +51,9 @@ protected:
   float once_force = 0;
   float filter_out = 0;
 
+  float last_erro_imp = 0;
+  float deriv_erro_imp = 0;
+
   float gain_out = 0;
 
   float Kvc = 0.0f;
@@ -205,6 +208,7 @@ protected:
   utility::AnalogFilter* lowPassPb;
   utility::AnalogFilter* lowPass_DerivRef;
   utility::AnalogFilter* lowPass_DerivRefForce;
+  utility::AnalogFilter* lowPass_DerivErroImp;
 };
 
 inline ControllerFactory::Builder make_ImpedanceHyd_builder() {

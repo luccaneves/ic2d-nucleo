@@ -41,9 +41,20 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
 {
     limit = 30;
     limit_dob = 30;
-    lambda = 10;
+    lambda = 5;
     Kvc = 1;
-    Kpc = 1.4;
+    Kpc = 1.2;
+    gain_out = 1;
+
+    Be = 1.31E+9f; // Bulk modulus [Pa]
+    De = 0.016f;  // Piston diameter [m]
+    Dh = 0.01f; //  Rod diameter [m]
+    L_cyl = 0.08f; // Stroke [m]
+    //L_cyl = 0.32f; // Stroke [m]
+    Vpl = 1.21E-3f; // Volume Pipeline [m^3]
+    In = 0.05f; //  Nominal valve input for Moog 24 [A]
+    pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
+    qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
 
 
 
@@ -53,8 +64,10 @@ float etta_switch2, float freq_cutoff_switch2, float switch2_neg_gamma, float sw
     lowPass = utility::AnalogFilter::getLowPassFilterHz(20.0f);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
     
-    lowPass_DerivRef = utility::AnalogFilter::getLowPassFilterHz(20); 
-    lowPass_DerivRefForce = utility::AnalogFilter::getLowPassFilterHz(20); 
+    lowPass_DerivRef = utility::AnalogFilter::getLowPassFilterHz(5); 
+    lowPass_DerivRefForce = utility::AnalogFilter::getLowPassFilterHz(5);
+    lowPass_DerivErroImp = utility::AnalogFilter::getLowPassFilterHz(5); 
+    lowPass_FilterOut = utility::AnalogFilter::getLowPassFilterHz(5); 
 
 
     Switch2_LowPass = utility::AnalogFilter::getLowPassFilterHz(freq_cutoff_switch2);
@@ -96,7 +109,7 @@ float Impedance_Admitance_Switch::ForceController(const IHardware *hw, float ref
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref;
 
-    float deriv_force = hw->get_d_tau_s(0);
+    float deriv_force = hw->get_d_tau_s(1);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
@@ -250,7 +263,7 @@ float Impedance_Admitance_Switch::Impedance_Controller(const IHardware *hw, floa
     //Kpc = Kpc*0.089;
     reference = ref;
 
-    float tau_ref = -Kdes*(x - ref) - Bdes*(dx - deriv_ref) - Mdes*ddx;
+    float tau_ref = Kdes*(erro_imp_adm) + Bdes*(deriv_erro_imp_adm);
 
     float out = ForceController(hw,tau_ref);
 
@@ -262,10 +275,6 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
     //Kpc = Kpc*0.089;
     reference = ref;
 
-    theta_ref = admittanceTF->process(tau,hw->get_dt());
-
-    float ref_adm = (ref + theta_ref) - x;
-
     float out = PositionController(hw,ref_adm);
 
     return out;
@@ -273,15 +282,28 @@ float Impedance_Admitance_Switch::Admitance_Controller(const IHardware *hw, floa
 
 float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float> ref)
 {
-    tau = hw->get_tau_s(0) - once_force;
-    dtau = hw->get_d_tau_s(0);
+    tau = hw->get_tau_s(1) - once_force;
+    dtau = hw->get_d_tau_s(1);
     x = hw->get_theta(1) - theta_eq;
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
-    deriv_ref = (reference - prev1_ref_x_1)/(hw->get_dt());
+    deriv_ref = (ref[0] - prev1_ref_x_1)/(hw->get_dt());
+
+    reference = ref[0];
 
     deriv_ref = lowPass_DerivRef->process(deriv_ref,hw->get_dt());
+
+    erro_imp_adm = reference - x;
+
+    deriv_erro_imp_adm = (erro_imp_adm - last_erro_imp_adm)/(hw->get_dt());
+
+
+    deriv_erro_imp_adm = lowPass_DerivErroImp->process(deriv_erro_imp_adm,hw->get_dt());
+
+    last_erro_imp_adm = erro_imp_adm;
+
+
 
     prev1_ref_x_6 = prev1_ref_x_5;
     prev1_ref_x_5 = prev1_ref_x_4;
@@ -293,7 +315,7 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
 
     reference = ref[0];
     /* Get the equilibrium state */
-    if (once && hw->get_current_time() > 2)
+    if (once && hw->get_current_time() > 0)
     {
         tempo_start =  hw->get_t();
         theta_eq = x;
@@ -301,17 +323,26 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
         once_force = tau;
         errPast = 0;
     }
-    float time_start_cycle = 0;
+    
     //Colocar código para definir se é impedancia ou admitancia
 
-    if(hw->get_current_time() >= 4){
+
+    theta_ref = admittanceTF->process(tau,hw->get_dt());
+
+    ref_adm = (reference - theta_ref) - (x);
+
+    if(hw->get_current_time() >= 0){
         if(switch_method == 0 || switch_method == 1){
             if(switch_method == 0){
                 float time = hw->get_t(); //Tempo em s
 
-                if(((time_start_cycle) <= time) 
+                if(
+                (
+                (time_start_cycle) <= time) 
                 && 
-                (time < (time_start_cycle + (1 - n_percent)*duty_delta)))
+                (time <= (time_start_cycle + (1 - n_percent)*duty_delta)
+                )
+                )
                 {
                     flag_impedance_admitance = 1;
                 }
@@ -320,14 +351,14 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
                     flag_impedance_admitance = 0;
                 }
 
-                if(time > (time_start_cycle + duty_delta)){
+                if(time >= (time_start_cycle + duty_delta)){
                     time_start_cycle = time;
-                    //k_integr +=1;
                 }
             }
 
             else if(switch_method == 1){
-                if(abs(ref[0] - x) > alpha_max){
+                
+                if(abs(ref_adm - x) > alpha_max){
                     flag_impedance_admitance = 0;
                 }
                 else{
@@ -339,11 +370,10 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
                 out = Impedance_Controller(hw,ref[0]);
             }
             else{
-
                 out = Admitance_Controller(hw,ref[0]);
             }
 
-            out = lowPass->process(out,hw->get_dt());
+            //out = lowPass->process(out,hw->get_dt());
 
         }
 
@@ -391,16 +421,24 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
                     switch4_new_theta_ref = admittanceTF->process((-tau + tau_ref),hw->get_dt());
             }
         }
-
-
     }
 
     else{
         out = 0;
     }
 
-    
+    *(hw->var4) = deriv_erro_imp_adm;
+    *(hw->var5) = x;
+    *(hw->var6) = tau;
+    *(hw->var7) = deriv_ref;
+    *(hw->var8) = flag_impedance_admitance;
+    *(hw->var9) = reference;
+
+
+    out = lowPass_FilterOut->process(out,hw->get_dt());
     *(hw->fric2) = out;
+
+
 
     return (out);
 }

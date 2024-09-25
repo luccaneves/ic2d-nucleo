@@ -47,6 +47,9 @@ protected:
   float once_force = 1;
   float filter_out = 0;
 
+  float d_error = 0;
+  float last_error = 0;
+
   float err_adm;
   float derr_adm;
 
@@ -199,6 +202,7 @@ protected:
   float disturb3 = 0.000;
 
   float deriv_ref = 0;
+  float deriv_erro = 0;
 
   float expected_force = 0.0;
   float last_out = 0.0;
@@ -215,6 +219,7 @@ protected:
   utility::AnalogFilter* lowPassPb;
   utility::AnalogFilter *admittanceTF;
   utility::AnalogFilter *lowPass_DerivRef;
+  utility::AnalogFilter *lowPass_DerivErroADM;
 };
 
 inline ControllerFactory::Builder make_AdmHyd_builder() {

@@ -32,7 +32,7 @@ AdmittanceHyd::AdmittanceHyd(float kp,float kd,float ki, float Kdes, float Bdes,
       Bdes(Bdes),
       Mdes(Mdes)
 {
-    float freq = 20.0;
+    float freq = 5.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -42,6 +42,7 @@ AdmittanceHyd::AdmittanceHyd(float kp,float kd,float ki, float Kdes, float Bdes,
     lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPass_DerivRef = utility::AnalogFilter::getLowPassFilterHz(freq);
+    lowPass_DerivErroADM = utility::AnalogFilter::getLowPassFilterHz(freq);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
@@ -91,14 +92,12 @@ float AdmittanceHyd::PositionController(const IHardware *hw, float ref){
 
 float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
 {
-
-
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(0);
-    dtau = hw->get_d_tau_s(0);
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
@@ -108,7 +107,7 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
 
     deriv_ref = lowPass_DerivRef->process(deriv_ref,hw->get_dt());
 
-    if(once == 1 && hw->get_current_time() > 2){
+    if(once == 1 && hw->get_current_time() > 0){
         once = 0;
         once_force = tau;
         start_x = x;
@@ -121,14 +120,23 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
     prev1_ref_x_2 = prev1_ref_x_1;
     prev1_ref_x_1 = reference;
 
-
     theta_ref = admittanceTF->process(tau - once_force,hw->get_dt());
 
-    float ref_adm = (ref[0] + theta_ref) - (x - start_x);
+    float erro = ref[0] - x;
+
+    d_error = (erro - last_error)/(hw->get_dt());
+
+    d_error = lowPass_DerivErroADM->process(d_error,hw->get_dt());
+
+    last_error = erro;
+
+
+
+    float ref_adm = (ref[0] - theta_ref) - (x - start_x);
 
     float out;
 
-    if(hw->get_current_time() >= 4){
+    if(hw->get_current_time() >= 0){
         out = PositionController(hw,ref_adm);
     }
 
@@ -136,7 +144,9 @@ float AdmittanceHyd::process(const IHardware *hw, std::vector<float> ref)
         out = 0;
     }
 
-
+    *(hw->var4) = d_error;
+    *(hw->var5) = x - start_x;
+    *(hw->var6) = tau - once_force;
     *(hw->var7) = deriv_ref;
     *(hw->var8) = theta_ref;
     *(hw->var9) = reference;

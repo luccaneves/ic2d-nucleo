@@ -52,7 +52,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       Bdes(Bdes),
       Mdes(Mdes)
 {
-    float freq = 20.0;
+    float freq = 5.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -63,6 +63,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPass_DerivRef = utility::AnalogFilter::getLowPassFilterHz(freq); 
     lowPass_DerivRefForce = utility::AnalogFilter::getLowPassFilterHz(freq); 
+    lowPass_DerivErroImp = utility::AnalogFilter::getLowPassFilterHz(freq);  
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
@@ -98,7 +99,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref;
 
-    float deriv_force = hw->get_d_tau_s(0);
+    float deriv_force = hw->get_d_tau_s(1);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
@@ -331,9 +332,11 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     *(hw->var1) = d_force;
     *(hw->var2) = deriv_force;
     *(hw->var3) = out;
-    *(hw->var4) = hw->get_tau_m(1);
 
+    *(hw->var4) = deriv_erro_imp;
+    *(hw->var5) = x;
     *(hw->var6) = tau;
+    
     *(hw->var7) = deriv_ref;
     *(hw->var8) = ref;
     *(hw->var9) = reference;
@@ -350,14 +353,14 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
 
-    tau = hw->get_tau_s(0) - once_force;
-    dtau = hw->get_d_tau_s(0);
+    tau = hw->get_tau_s(1) - once_force;
+    dtau = hw->get_d_tau_s(1);
 
     x = hw->get_theta(1) - start_x;
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
-    if(once == 1 && hw->get_current_time() > 2){
+    if(once == 1 && hw->get_current_time() > 0){
         once = 0;
         once_force = tau;
         start_x = x;
@@ -374,11 +377,18 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
     prev1_ref_x_2 = prev1_ref_x_1;
     prev1_ref_x_1 = reference;
 
-    float tau_ref = -Kdes*(x - ref[0]) - Bdes*(dx - deriv_ref) - Mdes*ddx;
+    float erro_imp = ref[0] - x;
+
+    deriv_erro_imp = (erro_imp - last_erro_imp)/(hw->get_dt());
+    last_erro_imp = erro_imp;
+
+    deriv_erro_imp = lowPass_DerivErroImp->process(deriv_erro_imp,hw->get_dt());
+
+    float tau_ref = Kdes*(erro_imp) + Bdes*(deriv_erro_imp);
 
     float out;
 
-    if(hw->get_current_time() >= 4){
+    if(hw->get_current_time() >= 0){
         out = ForceController(hw,tau_ref);
     }
 

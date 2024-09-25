@@ -78,8 +78,8 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(0);
-    dtau = hw->get_d_tau_s(0);
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
@@ -90,7 +90,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(0);
+    float deriv_force = hw->get_d_tau_s(1);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
@@ -170,7 +170,10 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
-    //deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
+    deriv_force_desejada = (ref[0] - prev_ref_1)/
+    (hw->get_dt());
+
+    deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
 
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;

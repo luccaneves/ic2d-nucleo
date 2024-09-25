@@ -67,6 +67,7 @@ public:
     float ierr_adm;
 
     float theta_ref = 0;
+    float ref_adm = 0;
 
     float gain_out = 0;
 
@@ -92,6 +93,11 @@ public:
     float aux2 = 0;
 
     float deriv_ref = 0;
+
+    float last_erro_imp_adm = 0;
+
+    float erro_imp_adm = 0;
+    float deriv_erro_imp_adm = 0;
 
     float prev_ref_1 = 0.0;
     float prev_ref_2 = 0.0;
@@ -231,9 +237,12 @@ public:
 
     utility::AnalogFilter *lowPass_DerivRef;
     utility::AnalogFilter *lowPass_DerivRefForce;
+    utility::AnalogFilter* lowPass_DerivErroImp;
+    utility::AnalogFilter* lowPass_FilterOut;
 
 
     float switch_method = 0;
+    float time_start_cycle = 0;
 
 
     //Variáveis primeiro método
@@ -258,6 +267,8 @@ public:
     float switch2_delta = 0;
     float switch2_p = 0;
 
+    float flag_filter_out = 0;
+    
     //Variáveis quarto método 
     float switch4_new_theta_ref = 0;
 
