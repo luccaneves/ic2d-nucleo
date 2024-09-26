@@ -51,6 +51,7 @@ public:
     float kp = 0.0;
     float kd = 0.0;
     float ki = 0.0f;
+    float K_env = 0;
 
     float Kp_pos = 0;
     float Kd_pos = 0;
@@ -98,6 +99,7 @@ public:
 
     float erro_imp_adm = 0;
     float deriv_erro_imp_adm = 0;
+    float int_erro_imp_adm = 0;
 
     float prev_ref_1 = 0.0;
     float prev_ref_2 = 0.0;

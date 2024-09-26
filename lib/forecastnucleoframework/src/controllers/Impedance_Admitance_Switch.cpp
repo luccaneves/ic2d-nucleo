@@ -253,7 +253,7 @@ float Impedance_Admitance_Switch::PositionController(const IHardware *hw, float 
     last_erro_2 = last_erro_1;
     last_erro_1 = err_adm;
 
-    float out = kp*err_adm + kd*derr_adm + ki*ierr_adm;
+    float out = Kp_pos*err_adm + Kd_pos*derr_adm + Ki_pos*ierr_adm;
 
     return out;
 }
@@ -298,8 +298,9 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
 
     deriv_erro_imp_adm = (erro_imp_adm - last_erro_imp_adm)/(hw->get_dt());
 
-
     deriv_erro_imp_adm = lowPass_DerivErroImp->process(deriv_erro_imp_adm,hw->get_dt());
+
+    int_erro_imp_adm = int_erro_imp_adm +  erro_imp_adm*hw->get_dt();
 
     last_erro_imp_adm = erro_imp_adm;
 
@@ -348,7 +349,11 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
                 }
 
                 else{
+                    if (flag_impedance_admitance == 1){
+                        ref_adm = (erro_imp_adm)*(1 - Kdes/Kp_pos) + deriv_erro_imp_adm*(-Bdes/Kp_pos) + int_erro_imp_adm*(Ki_pos/Kp_pos);
+                    }
                     flag_impedance_admitance = 0;
+
                 }
 
                 if(time >= (time_start_cycle + duty_delta)){
