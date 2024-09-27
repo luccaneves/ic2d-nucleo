@@ -1,9 +1,8 @@
-#include <forecast/controllers/SlidingMode.hpp>
+#include <forecast/controllers/Adaptative.hpp>
 
 using namespace forecast;
 
-SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
-,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd)
+Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear_rate_ap, float gain_out, float limit, float start_h, float start_disturb, float start_ap)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -27,23 +26,15 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       f(0.0f),
       g(0.0f),
       v(0.0f),
-      limit(limit),
-      gain_out(gain_out),
-      max_f(max_f),
-      max_g(max_g),
-      min_f(min_f),
-      min_g(min_g),
-      psi(psi),
-      etta(eta),
-      gain_dob(gain_dob),
-      limit_dob(limit_dob),
-      lambda(lambda),
-      max_disturb_current(max_disturb_current),
-      min_disturb_current(min_disturb_current),
-      disturb_model_gain(disturb_model_gain),
+      learn_rate(learn_rate),
+      learn_rate_ap(lear_rate_ap),
+      learn_rate_h(learn_rate_h),
       kp(kp),
-      ki(ki),
-      kd(kd)
+      gain_out(gain_out),
+      limit(limit),
+      hat_ap(start_ap),
+      hat_h(start_h),
+      hat_disturb(start_disturb)
 
 {
     float freq = 40.0;
@@ -71,9 +62,8 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
     
 }
 
-float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
+float Adaptative::process(const IHardware *hw, std::vector<float> ref)
 {
-
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
@@ -95,7 +85,6 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
     Ps = 16000000;
-    Pt = 0;
     Pt = 0; // Sensor de pressão com problema
 
     if(Pa == Ps){
@@ -106,7 +95,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         Pb = Ps*0.99;
     }
 
-    ixv = last_out - 0.0250*0;
+    ixv = last_out;
     //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
@@ -126,12 +115,6 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_erro_3 = prev_erro_2;
     prev_erro_2 = prev_erro_1;
     prev_erro_1 = err;
-
-    float dist_gain_max = max_g*max_disturb_current;
-    float dist_gain_min = min_g*min_disturb_current;
-
-    float dist_gain_med = dist_gain_max/2 + dist_gain_min/2;
-
 
 
     ierr += err * hw->get_dt();
@@ -162,16 +145,8 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 
     f = -Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-    beta = sqrt(max_g/min_g);
-    gain_g_med = sqrt(max_g*min_g);
-    gain_f_med = (max_f + min_f)/2;
-
-    deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
-    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
+    deriv_force_desejada = (ref[0] - prev_ref_1)/
     (hw->get_dt());
-
-
-    deriv_force_desejada = (reference - prev_ref_1)/ (hw->get_dt());
 
     deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
 
@@ -182,28 +157,17 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref[0];
 
-    float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
+    hat_h = hat_h + d_h*hw->get_dt();
+    hat_disturb = hat_disturb + d_disturb*hw->get_dt();
+    hat_ap = hat_ap + d_ap*hw->get_dt();
 
-    float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + (beta - 1)*abs(u) + beta*(abs(dist_gain_max - dist_gain_med)*(g)));
+    out = (deriv_force_desejada*hat_h*1000)/g - kp*1000*(tau - reference)/g - 1000*hat_disturb + (1000*hat_ap*(-f))/g;
 
-    float sat_ = 0;
-    float s = tau - ref[0];
+    //out = 0;
 
-    if(abs(s/psi) <= 1){
-        sat_ = s/psi;
-        }
-    else{
-        if(s >= 0){
-           sat_ = 1; 
-        }
-        else if(s < 0){
-            sat_ = -1; 
-        }
-    }
-    
-
-    //current = 1/(0.86*g)*(u - k*sign(s));
-    out = ((u - k*sat_)*1000)/(gain_g_med*g);
+    d_h = -(learn_rate_h*(hat_h/abs(hat_h))*(tau - reference)*deriv_force_desejada)/g;
+    d_ap = -((learn_rate_ap*(hat_h/abs(hat_h))*(tau - reference))*(-f))/g;
+    d_disturb = -learn_rate*(hat_h/abs(hat_h))*(tau - reference)*(-1);
 
     if(out > limit){
         out = limit;
@@ -212,16 +176,14 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         out = -limit;
     }
 
-    //*(hw->var4) = out;
-    //out = lowPass->process(out,hw->get_dt());
+    *(hw->var1) = out;
+    *(hw->var2) = hat_disturb;
+    *(hw->var3) = ref[0];
+    *(hw->var4) = hat_ap;
+    *(hw->var5) = hat_h;
+
 
     last_out = out;
-
-    *(hw->var1) = out;
-    *(hw->var2) = tau - ref[0];
-    *(hw->var3) = ref[0];
-    *(hw->var4) = k;
-    *(hw->var5) = sat_;
 
     return out*gain_out;
 }

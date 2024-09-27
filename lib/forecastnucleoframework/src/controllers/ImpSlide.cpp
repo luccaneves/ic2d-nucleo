@@ -1,9 +1,9 @@
-#include <forecast/controllers/SlidingMode.hpp>
+#include <forecast/controllers/ImpSlide.hpp>
 
 using namespace forecast;
 
-SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
-,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd)
+ImpSlide::ImpSlide(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
+,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd, float Kdes, float Bdes,float Mdes)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -27,7 +27,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       f(0.0f),
       g(0.0f),
       v(0.0f),
-      limit(limit),
+     limit(limit),
       gain_out(gain_out),
       max_f(max_f),
       max_g(max_g),
@@ -43,8 +43,10 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       disturb_model_gain(disturb_model_gain),
       kp(kp),
       ki(ki),
-      kd(kd)
-
+      kd(kd),
+      Kdes(Kdes),
+      Bdes(Bdes),
+      Mdes(Mdes)
 {
     float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -55,6 +57,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
     lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
+    lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
@@ -64,31 +67,24 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
-    qn = 0.000166666f; // Nominal flow for Moog 24 [m^3/s]
+    qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
     
 
     logs.push_back(&reference);
     
 }
 
-float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
-{
+float ImpSlide::ForceController(const IHardware *hw, float ref){
+    float deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
+    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
+    (hw->get_dt());
 
-    //Kvc = Kvc*0.089;
-    //Kpc = Kpc*0.089;
-    reference = ref[0];
-    
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
-
-    x = hw->get_theta(1);
-    dx = hw->get_d_theta(1);
-
-    if (once == 1)
-    {
-        offset_x = x;
-        once = 0;
-    }
+    prev_ref_6 = prev_ref_5;
+    prev_ref_5 = prev_ref_4;
+    prev_ref_4 = prev_ref_3;
+    prev_ref_3 = prev_ref_2;
+    prev_ref_2 = prev_ref_1;
+    prev_ref_1 = ref;
 
     float deriv_force = hw->get_d_tau_s(1);
 
@@ -110,7 +106,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
-    err = ref[0] - tau;
+    err = ref - tau;
     derr = (err - errPast) / hw->get_dt();
 
     derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
@@ -166,12 +162,12 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     gain_g_med = sqrt(max_g*min_g);
     gain_f_med = (max_f + min_f)/2;
 
-    deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
+    deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
 
-    deriv_force_desejada = (reference - prev_ref_1)/ (hw->get_dt());
+    deriv_force_desejada = (ref - prev_ref_1)/ (hw->get_dt());
 
     deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
 
@@ -180,14 +176,14 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_4 = prev_ref_3;
     prev_ref_3 = prev_ref_2;
     prev_ref_2 = prev_ref_1;
-    prev_ref_1 = ref[0];
+    prev_ref_1 = ref;
 
-    float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
+    float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref - tau) + ki*ierr + kd*derr);
 
     float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + (beta - 1)*abs(u) + beta*(abs(dist_gain_max - dist_gain_med)*(g)));
 
     float sat_ = 0;
-    float s = tau - ref[0];
+    float s = tau - ref;
 
     if(abs(s/psi) <= 1){
         sat_ = s/psi;
@@ -217,11 +213,41 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 
     last_out = out;
 
-    *(hw->var1) = out;
-    *(hw->var2) = tau - ref[0];
-    *(hw->var3) = ref[0];
-    *(hw->var4) = k;
+    *(hw->var1) = erro_imp;
+    *(hw->var2) = deriv_erro_imp;
+    *(hw->var3) = ref;
+    *(hw->var4) = reference;
     *(hw->var5) = sat_;
 
+
     return out*gain_out;
+
+}
+
+float ImpSlide::process(const IHardware *hw, std::vector<float> ref)
+{
+    //Kvc = Kvc*0.089;
+    //Kpc = Kpc*0.089;
+    reference = ref[0];
+    
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
+
+    x = hw->get_theta(1);
+    dx = hw->get_d_theta(1);
+    ddx = hw->get_dd_theta(1);
+
+    erro_imp = x - ref[0];
+
+    deriv_erro_imp = (erro_imp - last_erro_imp)/hw->get_dt();
+
+    last_erro_imp = erro_imp;
+
+    deriv_erro_imp = lowPassD_ErroImp->process(deriv_erro_imp,hw->get_dt());
+
+    float tau_ref = - Kdes*(erro_imp) -  Bdes*deriv_erro_imp - Mdes*ddx;
+
+    float out = ForceController(hw,tau_ref);
+
+    return out;
 }

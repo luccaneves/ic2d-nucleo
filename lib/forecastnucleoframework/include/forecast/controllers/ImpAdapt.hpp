@@ -1,5 +1,5 @@
-#ifndef IMP_HYD_H
-#define IMP_HYD_H
+#ifndef IMP_ADAPT_H
+#define IMP_ADAPT_H
 
 #include <utility/filters/AnalogFilter.hpp>
 
@@ -10,7 +10,7 @@ namespace forecast {
 /**
  * @brief Feedback Linearization Control class
  **/
-class ImpedanceHyd : public Controller {
+class ImpAdapt : public Controller {
 public:
   /**
    * @brief Construct a new Feedback Linearization object. This constructor
@@ -26,11 +26,9 @@ public:
   * @param limit
 
   **/
-  ImpedanceHyd(float kp = 0, float kd = 0, float ki = 0, float Kvc = 0,
-                   float Kpc = 0, float B_int = 0, float leak_fix = 0,float limit = 0, 
-                   float lambda = 0, float gain_dob = 0, float limit_dob = 0, 
-                   float gain_vc = 0, float vc_limit = 0, float start_x = 0,float fl = 0,float gain_out = 0,
-                   float filter_out = 0, float dob_formulation = 0, float pressure_predict = 0, float Ml = 0, float Kl = 0,
+  ImpAdapt(float kp = 0, float learn_rate = 0, float learn_rate_h = 0, 
+  float learn_rate_ap = 0, float gain_out = 0, float limit = 0,
+   float start_h = 0, float start_disturb = 0, float start_ap = 0,
                    float Kdes = 0, float Bdes = 0, float Mdes = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
@@ -42,6 +40,30 @@ protected:
   float Kdes = 0;
   float Bdes = 0;
   float Mdes = 0;
+  
+  float learn_rate = 0;
+  float learn_rate_h = 0;
+  float learn_rate_ap = 0;
+  float hat_ap = 1;
+  float hat_h = 1;
+  float hat_disturb = 0;
+  float d_ap = 0;
+  float d_h = 0;
+  float d_disturb = 0;  
+
+  float max_f = 0;
+  float min_f = 0;
+  float max_g = 0;
+  float min_g = 0;
+  float etta = 0;
+  float psi = 0;
+  float gain_out = 0;
+  float beta = 0;
+  float gain_g_med = 0;
+  float gain_f_med = 0;
+  float max_disturb_current = 0;
+  float min_disturb_current = 0;
+  float disturb_model_gain = 0;
 
   float kp = 0.0;
   float kd = 0.0;
@@ -50,8 +72,6 @@ protected:
   float once = 1;
   float once_force = 1;
   float filter_out = 0;
-
-  float gain_out = 0;
 
   float Kvc = 0.0f;
   float Kpc = 0.0f;
@@ -186,7 +206,7 @@ protected:
 
   float last_erro_imp = 0;
 
-  float erro_imp = 0;
+    float erro_imp = 0;
 
   float deriv_erro_imp = 0;
 
@@ -201,23 +221,21 @@ protected:
   utility::AnalogFilter* lowPassD_ErroImp;
 };
 
-inline ControllerFactory::Builder make_ImpedanceHyd_builder() {
+inline ControllerFactory::Builder make_ImpAdapt_builder() {
 
   auto fn = [](std::vector<float> params) -> Controller * {
     if (params.size() < 1)
       return nullptr; // not enough parameters
 
-    return new ImpedanceHyd(params[0], params[1], params[2], params[3],
+    return new ImpAdapt(params[0], params[1], params[2], params[3],
                                 params[4],params[5],params[6],params[7],params[8],params[9],params[10],
-                                params[11],params[12],params[13],params[14],params[15],params[16],params[17], params[18]
-                                , params[19], params[20]
-                                , params[21], params[22], params[23]);
+                                params[11]);
   };
 
   return {
       fn,
-      {"Kp", "Kd", "Ki", "gainF", "gainG","B", "Fix_Leak","limit","lambda","gain dob","limit dob","gain_vc","limit_vc",
-      "start_x","use_fl","gain_out","filter_out","dob_formulation", "pressure_predict","Ml","Kl","Kdes","Bdes","Mdes"},
+      {"kp", "learn_rate_d","learn_rate_h","learn_rate_ap","gain_out","limit","start_h","start_disturb",
+      "start_ap","Kdes","Bdes","Mdes"},
       {"reference"}};
 }
 

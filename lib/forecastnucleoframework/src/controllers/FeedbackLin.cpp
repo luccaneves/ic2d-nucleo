@@ -80,8 +80,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(0);
-    dtau = hw->get_d_tau_s(0);
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
@@ -90,6 +90,10 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     float deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
+
+    deriv_force_desejada = (reference - prev_ref_1)/(hw->get_dt());
+
+    deriv_force_desejada = lowPassx->process(deriv_force_desejada,hw->get_dt());
 
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
@@ -104,7 +108,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(0);
+    float deriv_force = hw->get_d_tau_s(1);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
