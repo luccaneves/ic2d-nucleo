@@ -33,6 +33,7 @@
 #include <forecast/controllers/ImpedanceHyd.hpp>
 #include <forecast/controllers/Impedance_Admitance_Switch.hpp>
 #include <forecast/controllers/AdmittanceHyd.hpp>
+#include <forecast/controllers/Adaptative.hpp>
 
 /** Refgen Headers */
 #include <forecast/reference_generators/ConstantRefGen.hpp>
@@ -85,6 +86,7 @@ int main()
     app.get_controller_factory().add("DOB HYD LIN (5000Hz)", make_Force_PID_DOB_hyd_lin_builder());
     app.get_controller_factory().add("Imp_linmot_dob_5000", make_Imp_Dob_LinMot_4000_builder());
     app.get_controller_factory().add("SlidingMode", make_SlidingMode_builder());
+    app.get_controller_factory().add("Adapt", make_Adaptative_builder());
     app.get_controller_factory().add("Imp_Hyd", make_ImpedanceHyd_builder()); 
     app.get_controller_factory().add("IMP_ADM_SWITCH", make_impedance_admitance_control_builder()); 
     app.get_controller_factory().add("ADM HYD", make_AdmHyd_builder()); 
