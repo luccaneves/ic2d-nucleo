@@ -31,7 +31,7 @@ public:
   float switch_method = 0,
   float duty_delta = 0, float n_percent = 0,
   float alpha_max = 0,
-  float etta_switch2 = 0, float freq_cutoff_switch2 = 0, float switch2_neg_gamma = 0, float switch2_threshold_force = 0, float switch2_delta = 0, float switch2_p = 0);
+  float freq_cutoff_switch2 = 0, float switch2_threshold_force = 0, float etta_switch2 = 0, float switch2_neg_gamma = 0, float switch2_delta = 0, float switch2_p = 0);
 
    virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
