@@ -1,9 +1,8 @@
-#include <forecast/controllers/SlidingMode.hpp>
+#include <forecast/controllers/Adaptative.hpp>
 
 using namespace forecast;
 
-SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
-,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd)
+Adaptative::Adaptative(float kp, float learn_rate, float gain_out)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -27,23 +26,9 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       f(0.0f),
       g(0.0f),
       v(0.0f),
-      limit(limit),
-      gain_out(gain_out),
-      max_f(max_f),
-      max_g(max_g),
-      min_f(min_f),
-      min_g(min_g),
-      psi(psi),
-      etta(eta),
-      gain_dob(gain_dob),
-      limit_dob(limit_dob),
-      lambda(lambda),
-      max_disturb_current(max_disturb_current),
-      min_disturb_current(min_disturb_current),
-      disturb_model_gain(disturb_model_gain),
+      learn_rate(learn_rate),
       kp(kp),
-      ki(ki),
-      kd(kd)
+      gain_out(gain_out)
 
 {
     float freq = 40.0;
@@ -71,15 +56,15 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
     
 }
 
-float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
+float Adaptive::process(const IHardware *hw, std::vector<float> ref)
 {
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(0);
-    dtau = hw->get_d_tau_s(0);
+    tau = hw->get_tau_s(1);
+    dtau = hw->get_d_tau_s(1);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
@@ -90,7 +75,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(0);
+    float deriv_force = hw->get_d_tau_s(1);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
@@ -170,8 +155,8 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
-
-    deriv_force_desejada = (reference - prev_ref_1)/ (hw->get_dt());
+    deriv_force_desejada = (ref[0] - prev_ref_1)/
+    (hw->get_dt());
 
     deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
 
@@ -182,46 +167,23 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref[0];
 
-    float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
+    hat_h = hat_h + d_h*hw->get_dt();
+    hat_disturb = hat_disturb + d_disturb*hw->get_dt();
+    hat_ap = hat_ap + d_ap*hw->get_dt();
 
-    float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + (beta - 1)*abs(u) + beta*(abs(dist_gain_max - dist_gain_med)*(g)));
+    out = (deriv_force_desejada*hat_h*1000)/g - kp*1000*(tau - reference)/g - 1000*hat_disturb + (1000*hat_ap*(-f))/g;
 
-    float sat_ = 0;
-    float s = tau - ref[0];
 
-    if(abs(s/psi) <= 1){
-        sat_ = s/psi;
-        }
-    else{
-        if(s >= 0){
-           sat_ = 1; 
-        }
-        else if(s < 0){
-            sat_ = -1; 
-        }
-    }
-    
+    d_h = -1000000*learn_rate*sign(hat_h)*(tau - reference)*deriv_force_desejada/g;
+    d_ap = -1000000*learn_rate*sign(hat_h)(tau - reference)(-f/g);
+    d_disturb = -learn_rate*sign(hat_h)(tau - reference)(-1);
 
-    //current = 1/(0.86*g)*(u - k*sign(s));
-    out = ((u - k*sat_)*1000)/(gain_g_med*g);
-
-    if(out > limit){
-        out = limit;
-    }
-    else if(out < -limit){
-        out = -limit;
-    }
-
-    //*(hw->var4) = out;
-    //out = lowPass->process(out,hw->get_dt());
-
-    last_out = out;
 
     *(hw->var1) = out;
-    *(hw->var2) = tau - ref[0];
+    *(hw->var2) = d_h;
     *(hw->var3) = ref[0];
-    *(hw->var4) = k;
-    *(hw->var5) = sat_;
+    *(hw->var4) = d_disturb;
+    *(hw->var5) = d_ap;
 
     return out*gain_out;
 }

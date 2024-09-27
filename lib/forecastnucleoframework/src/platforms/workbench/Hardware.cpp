@@ -301,14 +301,20 @@ void forecast::Hardware::update(float dt) {
   if(counter == FINITE_DIF_SAMPLING_COUNTER){
     float dthetaM_NoFilt = (2.45*thetaM - 6*prev1_thetaM + 7.5*prev2_thetaM - 6.666666*prev3_thetaM + 3.75*prev4_thetaM - 1.2*prev5_thetaM + 0.1666666*prev6_thetaM)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
+    dthetaM_NoFilt = (thetaM - prev1_thetaM)/dt;
+
     dthetaM = lowPassDX1->process(dthetaM_NoFilt, (FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
     float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.666666*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.1666666*prev6_dthetaM)/dt;
     
+    ddthetaM_NoFilt = (dthetaM - prev1_dthetaM)/dt;
+
     //double ddthetaM_NoFilt = (double)(4.511111*((double)thetaM) - 17.4*((double)prev1_thetaM) + 29.25*((double)prev2_thetaM) -28.22222*((double)prev3_thetaM) + 16.5*((double)prev4_thetaM)  -5.4*((double)prev5_thetaM) + 0.761111*((double)prev6_thetaM))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
     
     float dthetaE_NoFilt = (2.45*thetaE - 6*prev1_thetaE + 7.5*prev2_thetaE - 6.66*prev3_thetaE + 3.75*prev4_thetaE - 1.2*prev5_thetaE + 0.16*prev6_thetaE)/((FINITE_DIF_SAMPLING_COUNTER + 1)*dt);
     
+    dthetaE_NoFilt = (thetaE - prev1_thetaE)/dt;
+
     //float ddthetaM_NoFilt = (2.45*dthetaM - 6*prev1_dthetaM + 7.5*prev2_dthetaM - 6.66*prev3_dthetaM + 3.75*prev4_dthetaM - 1.2*prev5_dthetaM + 0.16*prev6_dthetaM)/dt;
     
     //double ddthetaE_NoFilt = (double)(2*((double)thetaE) - 5*((double)prev1_thetaE) + 4*((double)prev2_thetaE) - 1*((double)prev3_thetaE) + 0*((double)prev4_thetaE))/((double) ((FINITE_DIF_SAMPLING_COUNTER + 1)*(FINITE_DIF_SAMPLING_COUNTER + 1)*((double)dt)*((double)dt)));
@@ -493,6 +499,9 @@ void forecast::Hardware::update(float dt) {
   //float dtauSensor_NoFilt = (tauSensor - prev_tauSensor) / dt;
   //dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
   float dtauSensor_NoFilt  = (2.45*tauSensor - 6*prev1_tauSensor + 7.5*prev2_tauSensor - 6.66*prev3_tauSensor + 3.75*prev4_tauSensor - 1.2*prev5_tauSensor + 0.16*prev6_tauSensor)/dt;
+  
+  dtauSensor_NoFilt = (tauSensor - prev1_tauSensor)/dt;
+  
   dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
   //dtauSensor = dtauSensor_NoFilt;
 
@@ -543,6 +552,8 @@ void forecast::Hardware::update(float dt) {
   float dTauS_no_filt = 0;
 
   dTauS_no_filt = (2.45*tauS - 6*prev1_tauS+ 7.5*prev2_tauS- 6.66*prev3_tauS+ 3.75*prev4_tauS- 1.2*prev5_tauS + 0.16*prev6_tauS)/dt;
+
+  dTauS_no_filt = (tauS - prev1_tauS)/dt;
 
   //dTauS_no_filt = (tauS - prev1_tauS)/(hw->get_dt());
 

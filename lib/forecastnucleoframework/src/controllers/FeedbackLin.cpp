@@ -91,6 +91,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
+    deriv_force_desejada = (reference - prev_ref_1)/(hw->get_dt());
+
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
     prev_ref_4 = prev_ref_3;
