@@ -2,7 +2,7 @@
 
 using namespace forecast;
 
-Adaptative::Adaptative(float kp, float learn_rate, float gain_out)
+Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear_rate_ap, float gain_out, float limit, float start_h, float start_disturb, float start_ap)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -27,8 +27,14 @@ Adaptative::Adaptative(float kp, float learn_rate, float gain_out)
       g(0.0f),
       v(0.0f),
       learn_rate(learn_rate),
+      learn_rate_ap(lear_rate_ap),
+      learn_rate_h(learn_rate_h),
       kp(kp),
-      gain_out(gain_out)
+      gain_out(gain_out),
+      limit(limit),
+      hat_ap(start_ap),
+      hat_h(start_h),
+      hat_disturb(start_disturb)
 
 {
     float freq = 40.0;
@@ -56,9 +62,8 @@ Adaptative::Adaptative(float kp, float learn_rate, float gain_out)
     
 }
 
-float Adaptive::process(const IHardware *hw, std::vector<float> ref)
+float Adaptative::process(const IHardware *hw, std::vector<float> ref)
 {
-
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
@@ -80,7 +85,6 @@ float Adaptive::process(const IHardware *hw, std::vector<float> ref)
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
     Ps = 16000000;
-    Pt = 0;
     Pt = 0; // Sensor de pressão com problema
 
     if(Pa == Ps){
@@ -91,7 +95,7 @@ float Adaptive::process(const IHardware *hw, std::vector<float> ref)
         Pb = Ps*0.99;
     }
 
-    ixv = last_out - 0.0250*0;
+    ixv = last_out;
     //ixv = last_out;
     //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
@@ -111,12 +115,6 @@ float Adaptive::process(const IHardware *hw, std::vector<float> ref)
     prev_erro_3 = prev_erro_2;
     prev_erro_2 = prev_erro_1;
     prev_erro_1 = err;
-
-    float dist_gain_max = max_g*max_disturb_current;
-    float dist_gain_min = min_g*min_disturb_current;
-
-    float dist_gain_med = dist_gain_max/2 + dist_gain_min/2;
-
 
 
     ierr += err * hw->get_dt();
@@ -147,14 +145,6 @@ float Adaptive::process(const IHardware *hw, std::vector<float> ref)
 
     f = -Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-    beta = sqrt(max_g/min_g);
-    gain_g_med = sqrt(max_g*min_g);
-    gain_f_med = (max_f + min_f)/2;
-
-    deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
-    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
-    (hw->get_dt());
-
     deriv_force_desejada = (ref[0] - prev_ref_1)/
     (hw->get_dt());
 
@@ -173,17 +163,27 @@ float Adaptive::process(const IHardware *hw, std::vector<float> ref)
 
     out = (deriv_force_desejada*hat_h*1000)/g - kp*1000*(tau - reference)/g - 1000*hat_disturb + (1000*hat_ap*(-f))/g;
 
+    //out = 0;
 
-    d_h = -1000000*learn_rate*sign(hat_h)*(tau - reference)*deriv_force_desejada/g;
-    d_ap = -1000000*learn_rate*sign(hat_h)(tau - reference)(-f/g);
-    d_disturb = -learn_rate*sign(hat_h)(tau - reference)(-1);
+    d_h = -(learn_rate_h*(hat_h/abs(hat_h))*(tau - reference)*deriv_force_desejada)/g;
+    d_ap = -((learn_rate_ap*(hat_h/abs(hat_h))*(tau - reference))*(-f))/g;
+    d_disturb = -learn_rate*(hat_h/abs(hat_h))*(tau - reference)*(-1);
 
+    if(out > limit){
+        out = limit;
+    }
+    else if(out < -limit){
+        out = -limit;
+    }
 
     *(hw->var1) = out;
-    *(hw->var2) = d_h;
+    *(hw->var2) = hat_disturb;
     *(hw->var3) = ref[0];
-    *(hw->var4) = d_disturb;
-    *(hw->var5) = d_ap;
+    *(hw->var4) = hat_ap;
+    *(hw->var5) = hat_h;
+
+
+    last_out = out;
 
     return out*gain_out;
 }
