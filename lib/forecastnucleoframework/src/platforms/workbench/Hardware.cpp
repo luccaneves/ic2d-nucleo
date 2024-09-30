@@ -458,16 +458,19 @@ void forecast::Hardware::update(float dt) {
 
   // Read Load Cell 2 
 
-  float center_voltage2(LOADCELL_5K_OFFSET);
+  float center_voltage2(LOADCELL_250_OFFSET);
+
+
+  
   
   float lc2_signed_voltage = 0;
   lc2_signed_voltage = pressure_sensor_a->read_average_float() * 3.324f - center_voltage2;
   if (lc2_signed_voltage >= 0.00f) {
     amplitude_voltage = 3.324 -center_voltage2;
-    tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
+    tauS = lc2_signed_voltage/amplitude_voltage  * LOADCELL_250_RANGE;
   } else{
     amplitude_voltage = center_voltage2 - 0.00;
-   tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
+   tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_250_RANGE;
   }
   float tauS_filt = lowPassLoacCell2->process(tauS, dt);
   tauS = tauS_filt; // Bias in Newton, hydraulic tests 2023-09-11

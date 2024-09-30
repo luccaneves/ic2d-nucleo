@@ -604,7 +604,7 @@ float Impedance_Admitance_Switch::process(const IHardware *hw, std::vector<float
 
 
     //out = lowPass_FilterOut->process(out,hw->get_dt());
-    *(hw->fric2) = switch2_Q;
+    //*(hw->fric2) = switch2_Q;
 
 
 

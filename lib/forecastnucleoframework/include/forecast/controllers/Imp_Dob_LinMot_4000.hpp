@@ -112,12 +112,17 @@ class Imp_Dob_LinMot_4000 : public Controller {
     float prev5_err = 0;
     float prev6_err = 0;
 
+    float erro_imp = 0;
+    float d_error_imp = 0;
+    float last_erro_imp = 0;
+
     
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
     utility::AnalogFilter* lowPassDD;
     utility::AnalogFilter* lowPassDForce;
+    utility::AnalogFilter* lowPassDErroImp;
 
 };
 

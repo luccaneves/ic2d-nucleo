@@ -24,6 +24,7 @@ Imp_Dob_LinMot_4000::Imp_Dob_LinMot_4000(float kp, float ki, float kd,float Ides
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
     lowPassDD = utility::AnalogFilter::getLowPassFilterHz(15.0f);
     lowPassDForce = utility::AnalogFilter::getLowPassFilterHz(15.0f);
+    lowPassDErroImp = utility::AnalogFilter::getLowPassFilterHz(15.0f);
 }
 
 
@@ -47,10 +48,16 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
         errPast = 0;
     }
 
-    /* POSITION LOOP */
-    tau_ref = /*k_des*ref[0] - */ - Kdes*((theta - theta_eq) - ref[0]) -  Ddes*dtheta - Ides*ddtheta;
+    float erro_imp = (theta - theta_eq) - ref[0];
+    float d_error_imp = (erro_imp - last_erro_imp)/hw->get_dt();
+    last_erro_imp = erro_imp;
 
-    *(hw->fric1) = (theta - theta_eq);
+    d_error_imp = lowPassDErroImp->process(d_error_imp, hw->get_dt());
+
+    /* POSITION LOOP */
+    tau_ref = /*k_des*ref[0] - */ - Kdes*(erro_imp) -  Ddes*d_error_imp - Ides*ddtheta;
+
+    *(hw->fric1) = (tau_ref);
 
     float x = hw->get_theta(0);
 
@@ -80,7 +87,7 @@ float Imp_Dob_LinMot_4000::process(const IHardware *hw, std::vector<float> ref)
     double filter_exit = 0;
 
     if(hw->get_current_time() > 0){
-        float value = hw->get_tau_s(1);
+        float value = hw->get_tau_s(0);
         value = dtheta;
 
         inv_model_exit = 
