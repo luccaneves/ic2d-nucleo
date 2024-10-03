@@ -34,6 +34,9 @@
 #include <forecast/controllers/Impedance_Admitance_Switch.hpp>
 #include <forecast/controllers/Adaptative.hpp>
 
+#include <forecast/controllers/CompliantHelio.hpp>
+#include <forecast/controllers/CompliantHelioFL.hpp>
+#include <forecast/controllers/CompliantHelioAdapt.hpp>
 #include <forecast/controllers/ImpAdapt.hpp>
 #include <forecast/controllers/ImpSlide.hpp>
 
@@ -94,6 +97,11 @@ int main()
     app.get_controller_factory().add("IMP_ADM_SWITCH", make_impedance_admitance_control_builder()); 
     app.get_controller_factory().add("ImpAdapt", make_ImpAdapt_builder()); 
     app.get_controller_factory().add("ImpSLide", make_ImpedanceSlide_builder()); 
+
+
+    app.get_controller_factory().add("HelioCompliantSlide", make_CompliantHelio_builder()); 
+    app.get_controller_factory().add("HelioCompliantFL", make_CompliantHelioFL_builder()); 
+    app.get_controller_factory().add("HelioCompliantAdapt", make_CompliantHelioAdapt_builder()); 
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 
