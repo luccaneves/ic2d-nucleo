@@ -76,7 +76,7 @@ protected:
   float x = 0.0f;
   float dx = 0.0f;
   float ddx = 0;
-  float z = 0;
+  
   float aux1 = 0;
   float aux2 = 0;
 
@@ -203,10 +203,15 @@ protected:
 
   float last_erro_imp = 0;
 
-  float z = 0;
+  float Z = 0;
+
+
+
+
+  
   float last_z = 0;
   float dz = 0;
-
+  float z = 0;
 
   float x_hat = 0;
   float last_x_hat = 0;

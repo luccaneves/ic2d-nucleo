@@ -85,7 +85,7 @@ protected:
   float x = 0.0f;
   float dx = 0.0f;
   float ddx = 0;
-  float z = 0;
+  
   float aux1 = 0;
   float aux2 = 0;
 

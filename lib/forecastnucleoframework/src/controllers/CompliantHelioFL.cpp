@@ -274,62 +274,12 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
 
         f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-        dz = -lambda*z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(last_out/1000));
+        dz = -lambda*Z - (lambda/((g)*Kpc))*((lambda*tau)/(Kpc*(g))- f*Kvc + (g)*Kpc*(last_out/1000));
 
-        z = z + dz*hw->get_dt();
+        Z = Z + dz*hw->get_dt();
 
-        disturb = z + lambda*tau/(Kpc*(g));
+        disturb = Z + lambda*tau/(Kpc*(g));
     }
-    else if(dob_formulation == 2){
-        Aa = (M_PI*(De2))/4;
-        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-        Ap = Aa;                    
-        alfa = Ab/Aa;
-        Kv = qn/(In*sqrt(pn/2));
-        
-        Va = Vpl + Aa*((x - offset_x));
-        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
-
-        if(ixv >= 0.00000f){
-            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
-            }
-            
-        else{
-            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
-            }
-
-        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
-
-
-        f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
-
-        h1 = Ap*Be*(Pb - Pa)*(1/Va + alfa/Vb);
-
-        h2 =  Ap*Be*(1/Va + alfa/Vb)*(sqrt(Ps - Pa) - sqrt(Pa - Pt) + sqrt(Pb - Pt) - sqrt(Ps - Pb));
-
-        d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
-
-        //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
-
-        disturb1 = disturb1 + d_disturb1*(hw->get_dt());
-
-        d_disturb2 = (lambda/((h2)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
-
-        //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
-
-        disturb2 = disturb2 + d_disturb2*(hw->get_dt());
-
-        d_disturb3 = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
-
-        //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
-
-        disturb3 = disturb3 + d_disturb3*(hw->get_dt());
-
-        disturb = disturb3 + ((disturb1*h1)/(g*Kpc)) + ((disturb2*h2)/(g*Kpc));
-
-    }
-
-
 
 
     v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
