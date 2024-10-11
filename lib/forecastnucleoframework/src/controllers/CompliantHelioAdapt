@@ -91,13 +91,16 @@ CompliantHelioAdapt::CompliantHelioAdapt(float kp, float learn_rate,float learn_
 }
 
 float CompliantHelioAdapt::ForceController(const IHardware *hw, float ref){
+
+    float tau = hw->get_tau_s(0);
+
     if (once == 1)
     {
         offset_x = x;
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(1);
+    float deriv_force = hw->get_d_tau_s(0);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;

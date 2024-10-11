@@ -103,6 +103,8 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 }
 
 float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
+    float tau = hw->get_tau_s(0);
+    
     float deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
@@ -126,7 +128,7 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(1);
+    float deriv_force = hw->get_d_tau_s(0);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
