@@ -58,7 +58,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       psi_compliant(psi_compliant),
       F_fric(F_fric)
 {
-    float freq = 40.0;
+    float freq = 20.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -103,7 +103,8 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 }
 
 float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
-    float tau = hw->get_tau_s(0);
+    
+    float tau = hw->get_tau_s(0) - once_force_imp;
     
     float deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
@@ -259,8 +260,8 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
         alfa = Ab/Aa;
         Kv = qn/(In*sqrt(pn/2));
         
-        Va = Vpl + Aa*((x - offset_x));
-        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+        Va = Vpl + Aa*((x));
+        Vb = Vpl + (L_cyl - (x))*Ab;
 
         if(ixv >= 0.00000f){
             g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -343,7 +344,8 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
     *(hw->var5) = x_hat;
     *(hw->var6) = dx_hat;
     *(hw->var7) = ddx_hat;
-
+    *(hw->var8) = tau;
+    
     last_out = out;
 
     return out*gain_out;
@@ -351,80 +353,94 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
 
 float CompliantHelioFL::process(const IHardware *hw, std::vector<float> ref)
 {
+    float start_time = 1.5;
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(1);
+    tau = hw->get_tau_s(1) - once_force;
     dtau = hw->get_d_tau_s(1);
 
-    x = hw->get_theta(1);
+    x = hw->get_theta(1) - offset_x;
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
-    
+    if(once == 1 && hw->get_current_time() > start_time/2){
+        once = 0;
+        offset_x = x;
+        once_force = hw->get_tau_s(1);
+        once_force_imp = hw->get_tau_s(0);
 
-    x_hat = (transferFunction->process(tau,hw->get_dt()) + ref[0]);
-
-    dx_hat = (x_hat - last_x_hat)/(hw->get_dt());
-
-    dx_hat = lowPassD_Xhat->process(dx_hat,hw->get_dt());
-
-    last_x_hat = x_hat;
-
-    ddx_hat = (dx_hat - last_dx_hat)/hw->get_dt();
-
-    ddx_hat = lowPassDD_Xhat->process(ddx_hat,hw->get_dt());
-
-    last_dx_hat = dx_hat;
-
-
-
-
-
-
-    z = x - x_hat;  
-
-    dz = (z - last_z)/(hw->get_dt());
-
-    dz = lowPassD_z->process(dz,hw->get_dt());
-
-    last_z = z;
-
-
-
-    float sat_ = 0;
-    float s = dz;
-
-    if(abs(s/psi_compliant) <= 1){
-        sat_ = s/psi_compliant;
-        }
-    else{
-        if(s >= 0){
-           sat_ = 1; 
-        }
-        else if(s < 0){
-            sat_ = -1; 
-        }
     }
 
+    
+    if(hw->get_current_time() > start_time){
 
-    new_forca_desejada = -K1*z - K2*dz - tau - F_fric*sat_ + massa_total*ddx_hat;
+        x_hat = (transferFunction->process(tau,hw->get_dt()) + ref[0]);
+
+        dx_hat = (x_hat - last_x_hat)/(hw->get_dt());
+
+        dx_hat = lowPassD_Xhat->process(dx_hat,hw->get_dt());
+
+        last_x_hat = x_hat;
+
+        ddx_hat = (dx_hat - last_dx_hat)/hw->get_dt();
+
+        ddx_hat = lowPassDD_Xhat->process(ddx_hat,hw->get_dt());
+
+        last_dx_hat = dx_hat;
 
 
-    erro_imp = x - ref[0];
-
-    deriv_erro_imp = (erro_imp - last_erro_imp)/hw->get_dt();
-
-    last_erro_imp = erro_imp;
-
-    deriv_erro_imp = lowPassD_ErroImp->process(deriv_erro_imp,hw->get_dt());
-
-    float tau_ref = - Kdes*(erro_imp) -  Bdes*deriv_erro_imp - Mdes*ddx;
 
 
 
-    float out = ForceController(hw,new_forca_desejada);
+
+        z = x - x_hat;  
+
+        dz = (z - last_z)/(hw->get_dt());
+
+        dz = lowPassD_z->process(dz,hw->get_dt());
+
+        last_z = z;
+
+
+
+        float sat_ = 0;
+        float s = dz;
+
+        if(abs(s/psi_compliant) <= 1){
+            sat_ = s/psi_compliant;
+            }
+        else{
+            if(s >= 0){
+            sat_ = 1; 
+            }
+            else if(s < 0){
+                sat_ = -1; 
+            }
+        }
+
+
+        new_forca_desejada = -K1*z - K2*dz - tau - F_fric*sat_ + massa_total*ddx_hat;
+
+
+        erro_imp = x - ref[0];
+
+        deriv_erro_imp = (erro_imp - last_erro_imp)/hw->get_dt();
+
+        last_erro_imp = erro_imp;
+
+        deriv_erro_imp = lowPassD_ErroImp->process(deriv_erro_imp,hw->get_dt());
+
+        float tau_ref = - Kdes*(erro_imp) -  Bdes*deriv_erro_imp - Mdes*ddx;
+
+
+
+        out = ForceController(hw,new_forca_desejada);
+    }
+    else{
+        out = 0;
+    }
 
     return out;
 }

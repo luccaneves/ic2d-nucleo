@@ -50,6 +50,7 @@ protected:
   float d_ap = 0;
   float d_h = 0;
   float d_disturb = 0;  
+  uint32_t force_sensor_id = 1;
 
   float max_f = 0;
   float min_f = 0;
@@ -70,7 +71,7 @@ protected:
   float ki = 0.0f;
   float offset_x = 0;
   float once = 1;
-  float once_force = 1;
+  float once_force = 0;
   float filter_out = 0;
 
   float Kvc = 0.0f;

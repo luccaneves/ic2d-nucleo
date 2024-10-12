@@ -46,7 +46,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       kd(kd)
 
 {
-    float freq = 40.0;
+    float freq = 20.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -73,155 +73,166 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
 
 float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 {
+    float start_time = 1.5;
+    uint32_t force_sensor_number = 0;
+
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
+    tau = hw->get_tau_s(force_sensor_number) - once_force;
+    dtau = hw->get_d_tau_s(force_sensor_number);
 
-    x = hw->get_theta(1);
+    x = hw->get_theta(1) - offset_x;
     dx = hw->get_d_theta(1);
 
-    if (once == 1)
+    if (once == 1 && hw->get_current_time() > start_time/2)
     {
+        once_force = hw->get_tau_s(force_sensor_number);
         offset_x = x;
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(1);
+    if(hw->get_current_time() > start_time){
+        float deriv_force = hw->get_d_tau_s(force_sensor_number);
 
-    Pa = hw->get_pressure(3)*100000;
-    Pb = hw->get_pressure(2)*100000;
-    Ps = 16000000;
-    Pt = 0;
-    Pt = 0; // Sensor de pressão com problema
+        Pa = hw->get_pressure(3)*100000;
+        Pb = hw->get_pressure(2)*100000;
+        Ps = 16000000;
+        Pt = 0;
+        Pt = 0; // Sensor de pressão com problema
 
-    if(Pa == Ps){
-        Pa = Ps*0.99;
-    }
+        if(Pa == Ps){
+            Pa = Ps*0.99;
+        }
 
-    if(Pb == Ps){
-        Pb = Ps*0.99;
-    }
+        if(Pb == Ps){
+            Pb = Ps*0.99;
+        }
 
-    ixv = last_out - 0.0250*0;
-    //ixv = last_out;
-    //Corrigir a leitura da corrente para checar qual equação de g utilizar
+        ixv = last_out - 0.0250*0;
+        //ixv = last_out;
+        //Corrigir a leitura da corrente para checar qual equação de g utilizar
 
-    err = ref[0] - tau;
-    derr = (err - errPast) / hw->get_dt();
+        err = ref[0] - tau;
+        derr = (err - errPast) / hw->get_dt();
 
-    derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
-    + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
-    (hw->get_dt());
+        derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
+        + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
+        (hw->get_dt());
 
-    derr = lowPass->process(derr,hw->get_dt());
+        derr = lowPass->process(derr,hw->get_dt());
 
-    prev_erro_7 = prev_erro_6;
-    prev_erro_6 = prev_erro_5;
-    prev_erro_5 = prev_erro_4;
-    prev_erro_4 = prev_erro_3;
-    prev_erro_3 = prev_erro_2;
-    prev_erro_2 = prev_erro_1;
-    prev_erro_1 = err;
+        prev_erro_7 = prev_erro_6;
+        prev_erro_6 = prev_erro_5;
+        prev_erro_5 = prev_erro_4;
+        prev_erro_4 = prev_erro_3;
+        prev_erro_3 = prev_erro_2;
+        prev_erro_2 = prev_erro_1;
+        prev_erro_1 = err;
 
-    float dist_gain_max = max_g*max_disturb_current;
-    float dist_gain_min = min_g*min_disturb_current;
+        float dist_gain_max = max_g*max_disturb_current;
+        float dist_gain_min = min_g*min_disturb_current;
 
-    float dist_gain_med = dist_gain_max/2 + dist_gain_min/2;
+        float dist_gain_med = dist_gain_max/2 + dist_gain_min/2;
 
 
 
-    ierr += err * hw->get_dt();
-    errPast = err;
+        ierr += err * hw->get_dt();
+        errPast = err;
 
-    float De2 = pow(De, 2);
-    float Dh2 = pow(Dh, 2);
+        float De2 = pow(De, 2);
+        float Dh2 = pow(Dh, 2);
 
-    Aa = (M_PI*(De2))/4;
-    Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-    Ap = Aa;                    
-    alfa = Ab/Aa;
-    Kv = qn/(In*sqrt(pn/2));
+        Aa = (M_PI*(De2))/4;
+        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+        Ap = Aa;                    
+        alfa = Ab/Aa;
+        Kv = qn/(In*sqrt(pn/2));
 
-    Va = Vpl + Aa*(x);
-    Vb = Vpl + (L_cyl - x)*Ab;
+        Va = Vpl + Aa*(x);
+        Vb = Vpl + (L_cyl - x)*Ab;
 
-    if(ixv >= 0.00000f){
-        g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+        if(ixv >= 0.00000f){
+            g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+            }
+            
+        else{
+            g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+            }
+
+        //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+
+
+        f = -Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
+        beta = sqrt(max_g/min_g);
+        gain_g_med = sqrt(max_g*min_g);
+        gain_f_med = (max_f + min_f)/2;
+
+        deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
+        + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
+        (hw->get_dt());
+
+
+        deriv_force_desejada = (reference - prev_ref_1)/ (hw->get_dt());
+
+        deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
+
+        prev_ref_6 = prev_ref_5;
+        prev_ref_5 = prev_ref_4;
+        prev_ref_4 = prev_ref_3;
+        prev_ref_3 = prev_ref_2;
+        prev_ref_2 = prev_ref_1;
+        prev_ref_1 = ref[0];
+
+        float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
+
+        float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + (beta - 1)*abs(u) + beta*(abs(dist_gain_max - dist_gain_med)*(g)));
+
+        float sat_ = 0;
+        float s = tau - ref[0];
+
+        if(abs(s/psi) <= 1){
+            sat_ = s/psi;
+            }
+        else{
+            if(s >= 0){
+            sat_ = 1; 
+            }
+            else if(s < 0){
+                sat_ = -1; 
+            }
         }
         
-    else{
-        g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+
+        //current = 1/(0.86*g)*(u - k*sign(s));
+        out = ((u - k*sat_)*1000)/(gain_g_med*g);
+
+        if(out > limit){
+            out = limit;
+        }
+        else if(out < -limit){
+            out = -limit;
         }
 
-    //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+        last_out = out;
 
-
-    f = -Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
-
-    beta = sqrt(max_g/min_g);
-    gain_g_med = sqrt(max_g*min_g);
-    gain_f_med = (max_f + min_f)/2;
-
-    deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
-    + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
-    (hw->get_dt());
-
-
-    deriv_force_desejada = (reference - prev_ref_1)/ (hw->get_dt());
-
-    deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
-
-    prev_ref_6 = prev_ref_5;
-    prev_ref_5 = prev_ref_4;
-    prev_ref_4 = prev_ref_3;
-    prev_ref_3 = prev_ref_2;
-    prev_ref_2 = prev_ref_1;
-    prev_ref_1 = ref[0];
-
-    float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
-
-    float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + (beta - 1)*abs(u) + beta*(abs(dist_gain_max - dist_gain_med)*(g)));
-
-    float sat_ = 0;
-    float s = tau - ref[0];
-
-    if(abs(s/psi) <= 1){
-        sat_ = s/psi;
-        }
-    else{
-        if(s >= 0){
-           sat_ = 1; 
-        }
-        else if(s < 0){
-            sat_ = -1; 
-        }
+        *(hw->var1) = out;
+        *(hw->var2) = tau - ref[0];
+        *(hw->var3) = ref[0];
+        *(hw->var4) = tau;
+        *(hw->var5) = sat_;
     }
-    
-
-    //current = 1/(0.86*g)*(u - k*sign(s));
-    out = ((u - k*sat_)*1000)/(gain_g_med*g);
-
-    if(out > limit){
-        out = limit;
-    }
-    else if(out < -limit){
-        out = -limit;
+    else{
+        out = 0;
     }
 
     //*(hw->var4) = out;
     //out = lowPass->process(out,hw->get_dt());
 
-    last_out = out;
 
-    *(hw->var1) = out;
-    *(hw->var2) = tau - ref[0];
-    *(hw->var3) = ref[0];
-    *(hw->var4) = k;
-    *(hw->var5) = sat_;
 
     return out*gain_out;
 }

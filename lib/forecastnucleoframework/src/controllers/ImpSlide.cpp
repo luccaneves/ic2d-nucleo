@@ -86,7 +86,7 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref;
 
-    float deriv_force = hw->get_d_tau_s(1);
+    float deriv_force = hw->get_d_tau_s(force_sensor_id);
 
     Pa = hw->get_pressure(3)*100000;
     Pb = hw->get_pressure(2)*100000;
@@ -217,7 +217,7 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
     *(hw->var2) = deriv_erro_imp;
     *(hw->var3) = ref;
     *(hw->var4) = reference;
-    *(hw->var5) = sat_;
+    *(hw->var5) = tau;
 
 
     return out*gain_out;
@@ -226,28 +226,41 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
 
 float ImpSlide::process(const IHardware *hw, std::vector<float> ref)
 {
-    //Kvc = Kvc*0.089;
-    //Kpc = Kpc*0.089;
-    reference = ref[0];
-    
-    tau = hw->get_tau_s(1);
-    dtau = hw->get_d_tau_s(1);
+    float start_time = 1.5;
+    force_sensor_id = 1;
 
-    x = hw->get_theta(1);
-    dx = hw->get_d_theta(1);
-    ddx = hw->get_dd_theta(1);
+    if(once == 1 && hw->get_current_time() > start_time/2){
+        once = 0;
+        offset_x = x;
+        once_force = hw->get_tau_s(force_sensor_id);
+    }
 
-    erro_imp = x - ref[0];
+    if(hw->get_current_time() > start_time){
+        //Kvc = Kvc*0.089;
+        //Kpc = Kpc*0.089;
+        reference = ref[0];
+        
+        tau = hw->get_tau_s(force_sensor_id) - once_force;
+        dtau = hw->get_d_tau_s(force_sensor_id);
 
-    deriv_erro_imp = (erro_imp - last_erro_imp)/hw->get_dt();
+        x = hw->get_theta(1) - offset_x;
+        dx = hw->get_d_theta(1);
+        ddx = hw->get_dd_theta(1);
 
-    last_erro_imp = erro_imp;
+        erro_imp = x - ref[0];
 
-    deriv_erro_imp = lowPassD_ErroImp->process(deriv_erro_imp,hw->get_dt());
+        deriv_erro_imp = (erro_imp - last_erro_imp)/hw->get_dt();
 
-    float tau_ref = - Kdes*(erro_imp) -  Bdes*deriv_erro_imp - Mdes*ddx;
+        last_erro_imp = erro_imp;
 
-    float out = ForceController(hw,tau_ref);
+        deriv_erro_imp = lowPassD_ErroImp->process(deriv_erro_imp,hw->get_dt());
 
+        float tau_ref = - Kdes*(erro_imp) -  Bdes*deriv_erro_imp - Mdes*ddx;
+
+        out = ForceController(hw,tau_ref);
+    }
+    else{
+        out = 0;
+    }
     return out;
 }

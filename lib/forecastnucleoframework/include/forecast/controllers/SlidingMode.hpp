@@ -39,7 +39,7 @@ protected:
   float ki = 0.0f;
   float offset_x = 0;
   float once = 1;
-  float once_force = 1;
+  float once_force = 0;
 
   float Kvc = 0.0f;
   float Kpc = 0.0f;
