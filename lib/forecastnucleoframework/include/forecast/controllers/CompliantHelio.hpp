@@ -62,9 +62,13 @@ protected:
   float ki = 0.0f;
   float offset_x = 0;
   float once = 1;
+  float last_tau = 0;
+
+  float once_2 = 1;
   
   float once_force = 0;
   float once_force_imp = 0;
+  float slide_term = 0;
 
   float filter_out = 0;
 

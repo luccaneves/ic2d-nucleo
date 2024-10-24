@@ -14,7 +14,7 @@ if (time > 5.0f && time < duration - 5.0f){
         return {output};
     } 
 else {
-        return {0.0};
+        return {0.00};
     }
     //return {output};
 }

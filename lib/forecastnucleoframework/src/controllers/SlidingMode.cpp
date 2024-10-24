@@ -73,7 +73,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
 
 float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 1.5;
+    float start_time = 1;
     uint32_t force_sensor_number = 0;
 
 

@@ -70,7 +70,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq);
 
     lowPassD_z = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
+    lowPassD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassDD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassd_new_forca_desejada = utility::AnalogFilter::getLowPassFilterHz(freq);
     
@@ -345,7 +345,7 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
     *(hw->var6) = dx_hat;
     *(hw->var7) = ddx_hat;
     *(hw->var8) = tau;
-    
+
     last_out = out;
 
     return out*gain_out;

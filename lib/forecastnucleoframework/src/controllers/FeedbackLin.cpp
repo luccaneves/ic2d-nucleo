@@ -76,7 +76,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 
 float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 1.5;
+    float start_time = 1;
     uint32_t force_sensor_number = 0;
 
     //Kvc = Kvc*0.089;

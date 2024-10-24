@@ -58,7 +58,7 @@ CompliantHelioAdapt::CompliantHelioAdapt(float kp, float learn_rate,float learn_
     lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq);
 
     lowPassD_z = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
+    lowPassD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassDD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassd_new_forca_desejada = utility::AnalogFilter::getLowPassFilterHz(freq);
     
