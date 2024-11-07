@@ -31,7 +31,8 @@ public:
         float lambda = 0, float max_disturb_current = 0,float min_disturb_current = 0, float disturb_model_gain = 0, 
         float kp = 0, float ki = 0, float kd = 0,
                    float Kdes = 0, float Bdes = 0, float Mdes = 0,
-                   float K1 = 0, float K2 = 0, float massa_total = 0, float F_fric = 0, float psi_compliant = 0);
+                   float K1 = 0, float K2 = 0, float massa_total = 0, float F_fric = 0, float psi_compliant = 0,
+                   float a_max = 0, float a_min = 0, float m_max = 0, float m_min = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -207,6 +208,9 @@ protected:
 
   float deriv_erro_imp = 0;
 
+  float deriv_posicao_desejada = 0;
+  float last_posicao_desejada = 0;
+
   float last_erro_imp = 0;
 
   float z = 0;
@@ -223,6 +227,15 @@ protected:
   float new_forca_desejada = 0;
   float last_new_forca_desejada = 0;
   float d_new_forca_desejada = 0;
+
+  float alpha = 0;
+  float a_med = 0;
+  float a_max = 0;
+  float a_min = 0;
+
+  float m_med = 0;
+  float m_max = 0;
+  float m_min = 0;
 
 
   //Novos parametros
@@ -248,6 +261,7 @@ protected:
   utility::AnalogFilter* lowPassD_Xhat;
   utility::AnalogFilter* lowPassDD_Xhat;
   utility::AnalogFilter* lowPassd_new_forca_desejada;
+  utility::AnalogFilter* lowPassd_Dposicao_desejada;
   utility::AnalogFilter* transferFunction;
 };
 
@@ -261,14 +275,15 @@ inline ControllerFactory::Builder make_CompliantHelio_builder() {
                                 params[4],params[5],params[6],params[7],params[8],params[9],params[10],
                                 params[11],params[12],params[13],params[14],params[15],params[16],params[17], params[18]
                                 , params[19]
-                                , params[20], params[21], params[22], params[23], params[24]);
+                                , params[20], params[21], params[22], params[23], params[24]
+                                , params[25], params[26] , params[27], params[28]);
   };
 
   return {
       fn,
       {"max_f", "min_f", "max_g", "min_g", "eta","psi", "limit","gain_out","gain_dob","limit_dob","lambda",
       "max_disturb_current","min_disturb_current","disturb_model_gain","kp","ki","Kd","Kdes","Bdes","Mdes",
-      "K1","K2","M","F_FRIC","psi_comp"},
+      "K1","K2","M","F_FRIC","psi_comp","a_max","a_min","m_max","m_min"},
       {"reference"}};
 }
 

@@ -4,7 +4,7 @@ using namespace forecast;
 
 CompliantHelio::CompliantHelio(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
 ,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd, float Kdes, float Bdes,float Mdes
-,float K1, float K2, float massa_total, float F_fric, float psi_compliant)
+,float K1, float K2, float massa_total, float F_fric, float psi_compliant, float a_max, float a_min, float m_max, float m_min)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -52,9 +52,13 @@ CompliantHelio::CompliantHelio(float max_f, float min_f, float max_g, float min_
       K2(K2),
       massa_total(massa_total),
       psi_compliant(psi_compliant),
-      F_fric(F_fric)
+      F_fric(F_fric),
+      a_max(a_max),
+      a_min(a_min),
+      m_max(m_max),
+      m_min(m_min)
 {
-    float freq = 40.0;
+    float freq = 20.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -64,6 +68,7 @@ CompliantHelio::CompliantHelio(float max_f, float min_f, float max_g, float min_
     lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq);
+    lowPassd_Dposicao_desejada = utility::AnalogFilter::getLowPassFilterHz(freq);
 
     lowPassD_z = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -193,7 +198,7 @@ float CompliantHelio::ForceController(const IHardware *hw, float ref){
     (hw->get_dt());
 
 
-    deriv_force_desejada = ((ref + slide_term) - prev_ref_1)/ (hw->get_dt());
+    deriv_force_desejada = ((ref) - prev_ref_1)/ (hw->get_dt());
 
     deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
 
@@ -202,7 +207,7 @@ float CompliantHelio::ForceController(const IHardware *hw, float ref){
     prev_ref_4 = prev_ref_3;
     prev_ref_3 = prev_ref_2;
     prev_ref_2 = prev_ref_1;
-    prev_ref_1 = ref + slide_term;
+    prev_ref_1 = ref;
 
     float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref - tau) + ki*ierr + kd*derr);
 
@@ -245,7 +250,7 @@ float CompliantHelio::ForceController(const IHardware *hw, float ref){
     *(hw->var4) = reference;
     *(hw->var5) = x_hat;
     *(hw->var6) = dx_hat;
-    *(hw->var7) = z;
+    *(hw->var7) = x;
     *(hw->var8) = tau;
 
 
@@ -255,7 +260,7 @@ float CompliantHelio::ForceController(const IHardware *hw, float ref){
 
 float CompliantHelio::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 4;
+    float start_time = 1;
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
@@ -266,6 +271,11 @@ float CompliantHelio::process(const IHardware *hw, std::vector<float> ref)
     x = hw->get_theta(1) - offset_x;
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
+
+    a_med = sqrt((a_max/Bdes)*(a_min/Bdes));
+    alpha = sqrt(a_max/a_min);
+
+    m_med = (m_max + m_min)/2;
 
 
 
@@ -316,22 +326,34 @@ float CompliantHelio::process(const IHardware *hw, std::vector<float> ref)
         last_dx_hat = dx_hat;
 
 
-        z = x - x_hat;  
+        //z = x - x_hat;  
 
-        dz = (z - last_z)/(hw->get_dt());
+        //dz = (z - last_z)/(hw->get_dt());
 
-        dz = lowPassD_z->process(dz,hw->get_dt());
+        //dz = lowPassD_z->process(dz,hw->get_dt());
 
-        last_z = z;
+        //last_z = z;
+
+        deriv_posicao_desejada = (ref[0] - last_posicao_desejada)/(hw->get_dt());
+
+        last_posicao_desejada = ref[0];
+
+        deriv_posicao_desejada = lowPassd_Dposicao_desejada->process(deriv_posicao_desejada,hw->get_dt());
+
+        float eta_2 = 3;
+
+        float u_barra = ((m_med*ddx)/Bdes + (F_fric - F_fric)/Bdes - deriv_posicao_desejada + (Kdes/Bdes)*x_hat - (Kdes/Bdes)*ref[0] + dx);
+
+        float k = eta_2*alpha + (m_max - m_med)*(alpha/Bdes) + F_fric*(alpha/Bdes) + (alpha - 1)*abs(u_barra);
 
 
 
         float sat_ = 0;
-        float s = dz;
+        float s = (x_hat - x);
 
         if(abs(s/psi_compliant) <= 1){
             sat_ = s/psi_compliant;
-            }
+        }
         else{
             if(s >= 0){
                 sat_ = 1; 
@@ -342,9 +364,11 @@ float CompliantHelio::process(const IHardware *hw, std::vector<float> ref)
         }
 
 
-        new_forca_desejada = -K1*z - K2*dz - tau - F_fric*sat_ + massa_total*ddx_hat;
+        //new_forca_desejada = -K1*z - K2*dz - tau - F_fric*sat_ + massa_total*ddx_hat;
 
-        slide_term =  F_fric*sat_;
+        //slide_term =  F_fric*sat_;
+
+        new_forca_desejada = (u_barra - k*sat_)/a_med;
 
 
         erro_imp = x - ref[0];
@@ -362,7 +386,7 @@ float CompliantHelio::process(const IHardware *hw, std::vector<float> ref)
         *(hw->var9) = tau;
     }
     else{
-        out = -0.2;
+        out = -0.0;
     }
 
     return out;

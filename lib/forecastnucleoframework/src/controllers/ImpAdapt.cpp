@@ -173,8 +173,8 @@ float ImpAdapt::ForceController(const IHardware *hw, float ref){
     *(hw->var2) = deriv_erro_imp;
     *(hw->var3) = ref;
     *(hw->var4) = reference;
-    *(hw->var5) = hat_h;
-    *(hw->var6) = tau;
+    *(hw->var5) = tau;
+    *(hw->var6) = hat_h;
 
 
     last_out = out;
@@ -188,8 +188,6 @@ float ImpAdapt::process(const IHardware *hw, std::vector<float> ref)
     float start_time = 1.5;
     force_sensor_id = 1;
 
-    //Kvc = Kvc*0.089;
-    //Kpc = Kpc*0.089;
     reference = ref[0];
 
     if(once == 1 && hw->get_current_time() > start_time/2){
