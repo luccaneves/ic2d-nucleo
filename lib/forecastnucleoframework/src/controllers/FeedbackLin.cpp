@@ -76,12 +76,19 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 
 float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 1;
+    float start_time = 0;
     uint32_t force_sensor_number = 0;
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
+
+    //if (once == 1 && hw->get_current_time() > start_time/2)
+    //{
+       // once_force = hw->get_tau_s(force_sensor_number);
+       // offset_x = x;
+       // once = 0;
+   // }
     
     tau = hw->get_tau_s(force_sensor_number) - once_force;
     dtau = hw->get_d_tau_s(force_sensor_number);
@@ -105,12 +112,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref[0];
 
-    if (once == 1 && hw->get_current_time() > start_time/2)
-    {
-        once_force = hw->get_tau_s(force_sensor_number);
-        offset_x = x;
-        once = 0;
-    }
+   
 
 
     if(hw->get_current_time() > start_time){
