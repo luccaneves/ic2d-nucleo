@@ -450,6 +450,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         *(hw->var1) = tau;
         *(hw->var2) = disturb;
+        *(hw->var3) = ref[0];
         *(hw->var7) = expected_force - tau;
         *(hw->var8) = ref[0]  - tau;
         *(hw->var9) = reference;
