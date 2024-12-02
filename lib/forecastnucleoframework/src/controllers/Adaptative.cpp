@@ -64,7 +64,7 @@ Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear
 
 float Adaptative::process(const IHardware *hw, std::vector<float> ref)
 {
-    uint32_t force_sensor_number = 0;
+    uint32_t force_sensor_number = 1;
     float start_time = 1;
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;

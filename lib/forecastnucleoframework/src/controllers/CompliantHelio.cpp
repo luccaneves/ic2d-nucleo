@@ -52,13 +52,13 @@ CompliantHelio::CompliantHelio(float max_f, float min_f, float max_g, float min_
       K2(K2),
       massa_total(massa_total),
       psi_compliant(psi_compliant),
-      F_fric(F_fric).
+      F_fric(F_fric),
       a_max(a_max),
       a_min(a_min),
       m_max(m_max),
       m_min(m_min)
 {
-    float freq = 40.0;
+    float freq = 20.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -250,7 +250,7 @@ float CompliantHelio::ForceController(const IHardware *hw, float ref){
     *(hw->var4) = reference;
     *(hw->var5) = x_hat;
     *(hw->var6) = dx_hat;
-    *(hw->var7) = z;
+    *(hw->var7) = x;
     *(hw->var8) = tau;
 
 
@@ -260,7 +260,7 @@ float CompliantHelio::ForceController(const IHardware *hw, float ref){
 
 float CompliantHelio::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 4;
+    float start_time = 1;
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
@@ -386,7 +386,7 @@ float CompliantHelio::process(const IHardware *hw, std::vector<float> ref)
         *(hw->var9) = tau;
     }
     else{
-        out = -0.2;
+        out = -0.0;
     }
 
     return out;

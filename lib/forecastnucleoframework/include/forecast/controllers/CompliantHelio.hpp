@@ -31,7 +31,8 @@ public:
         float lambda = 0, float max_disturb_current = 0,float min_disturb_current = 0, float disturb_model_gain = 0, 
         float kp = 0, float ki = 0, float kd = 0,
                    float Kdes = 0, float Bdes = 0, float Mdes = 0,
-                   float K1 = 0, float K2 = 0, float massa_total = 0, float F_fric = 0, float psi_compliant = 0);
+                   float K1 = 0, float K2 = 0, float massa_total = 0, float F_fric = 0, float psi_compliant = 0,
+                   float a_max = 0, float a_min = 0, float m_max = 0, float m_min = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 

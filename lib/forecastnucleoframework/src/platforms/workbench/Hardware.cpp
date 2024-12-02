@@ -64,7 +64,7 @@ forecast::Status forecast::Hardware::init() {
 
   auto enabled = torque_sensor->enable();
   
-  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassTauSensor = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassTauSensor->clean();
 
   lowPassLoacCell2 = utility::AnalogFilter::getLowPassFilterHz(5.0f);
@@ -73,22 +73,22 @@ forecast::Status forecast::Hardware::init() {
   lowPassLoacCell2_D = utility::AnalogFilter::getLowPassFilterHz(5.0f);
   lowPassLoacCell2_D->clean();
 
-  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassDX1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDX1->clean();
 
-  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassDX1_E = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDX1_E->clean();
 
-  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassDDX1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDDX1->clean();
   
-  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassDDDX1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDDDX1->clean();
 
-  lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassDDX1_E = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDDX1_E->clean();
 
-  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+  lowPassDF1 = utility::AnalogFilter::getLowPassFilterHz(10.0f);
   lowPassDF1->clean();
 
   return Status::NO_ERROR;

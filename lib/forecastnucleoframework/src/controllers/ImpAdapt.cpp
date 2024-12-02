@@ -174,7 +174,7 @@ float ImpAdapt::ForceController(const IHardware *hw, float ref){
     *(hw->var3) = ref;
     *(hw->var4) = reference;
     *(hw->var5) = tau;
-    *(hw->var6) = hat_h
+    *(hw->var6) = hat_h;
 
 
     last_out = out;
