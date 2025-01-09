@@ -33,6 +33,11 @@ class ForcePID : public Controller {
     float tau = 0.0f;
     float dtau = 0.0f;
 
+    float once_2_rise_time_flag = 0;
+    float once_rise_time_flag = 0;
+    float rise_time_start = 0;
+    float rise_time_end = 0;
+
     float err = 0.0;
     float derr = 0.0;
     float ierr = 0.0;

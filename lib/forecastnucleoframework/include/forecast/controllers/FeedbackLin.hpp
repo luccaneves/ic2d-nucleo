@@ -43,6 +43,11 @@ protected:
   float once_force = 0;
   float filter_out = 0;
 
+  float once_2_rise_time_flag = 0;
+  float once_rise_time_flag = 0;
+  float rise_time_start = 0;
+  float rise_time_end = 0;
+
   float gain_out = 0;
 
   float Kvc = 0.0f;

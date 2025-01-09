@@ -31,8 +31,8 @@ public:
     logs["Fric1"] = fric1;
     logs["Fric2"] = fric2;
 
-    logs["Var1"] = var1;
-    logs["Var2"] = var2;
+    logs["Valve Current [mA]"] = var1;
+    logs["Rise Time (s)"] = var2;
     logs["Var3"] = var3;
     logs["Var4"] = var4;
     logs["Var5"] = var5;
@@ -40,7 +40,7 @@ public:
     logs["Var6"] = var6;
     logs["Var7"] = var7;
     logs["Var8"] = var8;
-    logs["Var9"] = var9;
+    logs["Ref"] = var9;
     logs["Var10"] = var10;
 
     logs["f"] = control_signal_teste;

@@ -52,7 +52,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       Bdes(Bdes),
       Mdes(Mdes)
 {
-    float freq = 40.0;
+    float freq = 10.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -313,6 +313,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     if(disturb > limit_dob/1000){
         disturb = limit_dob/1000;
     }
+
     else if(disturb < -limit_dob/1000){
         disturb = -limit_dob/1000;
     }
@@ -321,7 +322,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
         out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
     }
     else{
-        out = v;
+        out = v - disturb*1000;
     }
     
     float d_expected_force = 0;
@@ -349,6 +350,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     if(out > limit){
         out = limit;
     }
+
     else if(out < -limit){
         out = -limit;
     }
@@ -369,48 +371,36 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     last_out = out;
 
     return out*gain_out;
-
 }
 
 float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 1.5;
+    float start_time = 0;
     force_sensor_id = 1;
 
-    if(once == 1 && hw->get_current_time() > start_time/2){
-        once = 0;
-        offset_x = x;
-        once_force = hw->get_tau_s(force_sensor_id);
-    }
+    //Kvc = Kvc*0.089;
+    //Kpc = Kpc*0.089;
+    reference = ref[0];
+    
+    tau = hw->get_tau_s(force_sensor_id);
+    dtau = hw->get_d_tau_s(force_sensor_id);
 
-    if(hw->get_current_time() > start_time){
+    x = hw->get_theta(1);
+    dx = hw->get_d_theta(1);
+    ddx = hw->get_dd_theta(1);
 
-        //Kvc = Kvc*0.089;
-        //Kpc = Kpc*0.089;
-        reference = ref[0];
-        
-        tau = hw->get_tau_s(force_sensor_id) - once_force;
-        dtau = hw->get_d_tau_s(force_sensor_id);
+    erro_imp = x - ref[0];
 
-        x = hw->get_theta(1) - offset_x;
-        dx = hw->get_d_theta(1);
-        ddx = hw->get_dd_theta(1);
+    deriv_erro_imp = (erro_imp - last_erro_imp)/hw->get_dt();
 
-        erro_imp = x - ref[0];
+    deriv_erro_imp = lowPassD_ErroImp->process(deriv_erro_imp,hw->get_dt());
 
-        deriv_erro_imp = (erro_imp - last_erro_imp)/hw->get_dt();
+    last_erro_imp = erro_imp;
 
-        deriv_erro_imp = lowPassD_ErroImp->process(deriv_erro_imp,hw->get_dt());
+    float tau_ref = - Kdes*(erro_imp) -  Bdes*deriv_erro_imp - Mdes*ddx;
 
-        last_erro_imp = erro_imp;
-
-        float tau_ref = - Kdes*(erro_imp) -  Bdes*deriv_erro_imp - Mdes*ddx;
-
-        out = ForceController(hw,tau_ref);
-    }
-    else{
-        out = 0;
-    }
+    out = ForceController(hw,tau_ref);
+    
 
     return out;
 }

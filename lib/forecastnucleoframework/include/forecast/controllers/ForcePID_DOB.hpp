@@ -38,6 +38,11 @@ class ForcePID_DOB : public Controller {
     float GainDOB;
     float GainVC;
 
+    float once_2_rise_time_flag = 0;
+    float once_rise_time_flag = 0;
+    float rise_time_start = 0;
+    float rise_time_end = 0;
+
     float K_motor;
     float K_e = 9;
     float Resist = 3;

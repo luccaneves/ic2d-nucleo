@@ -77,7 +77,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 {
     float start_time = 0;
-    uint32_t force_sensor_number = 0;
+    uint32_t force_sensor_number = 1;
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -90,7 +90,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
        // once = 0;
    // }
     
-    tau = hw->get_tau_s(force_sensor_number) - once_force;
+    tau = hw->get_tau_s(force_sensor_number);
     dtau = hw->get_d_tau_s(force_sensor_number);
 
     x = hw->get_theta(1);
@@ -411,7 +411,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
         }
         else{
-            out = v;
+            out = v - disturb*1000;
         }
         
         float d_expected_force = 0;
@@ -443,6 +443,18 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             out = -limit;
         }
 
+        if(hw->get_current_time() > 5 && once_rise_time_flag == 0 && tau > ref[0]*0.1){
+            once_rise_time_flag = 1;
+            rise_time_start = hw->get_current_time();
+        }
+
+        else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 5 && tau > ref[0]*0.9){
+            rise_time_end = hw->get_current_time();
+            once_2_rise_time_flag = 1;
+        }
+
+
+
         //*(hw->var4) = out;
 
         //Lucca: Adicionado filtro na saída. Vai dar merda?
@@ -450,17 +462,21 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             out = lowPass->process(out,hw->get_dt());
         }
 
-        *(hw->var1) = tau;
-        *(hw->var2) = disturb;
-        *(hw->var7) = expected_force - tau;
-        *(hw->var8) = ref[0]  - tau;
-        *(hw->var9) = reference;
+        *(hw->var1) = last_out;
+        *(hw->var2) = rise_time_end - rise_time_start;
+        *(hw->var9) = ref[0];
+
+        if(fl == 2){
+            out = 50 * sin(2*M_PI*0.1*hw->get_current_time());
+        }
 
         last_out = out;
     }
     else{
         out = 0;
     }
+
+
 
     return out*gain_out;
 }

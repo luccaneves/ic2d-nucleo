@@ -170,11 +170,23 @@ float ForcePID_DOB::process(const IHardware *hw, std::vector<float> ref)
     prev2_err = prev1_err;
     prev1_err = err;
 
+    if(hw->get_current_time() > 4.5 && once_rise_time_flag == 0 && tau > ref[0]*0.1){
+        once_rise_time_flag = 1;
+        rise_time_start = hw->get_current_time();
+    }
+
+    else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 4.5 && tau > ref[0]*0.9){
+        rise_time_end = hw->get_current_time();
+        once_2_rise_time_flag = 1;
+    }
+
     float control_output_no_filter = (out - GainDOB*dob_exit + GainVC*(compensate_2  + compensate_1));
 
     float out_control = lowPassControl->process(control_output_no_filter, hw->get_dt());
 
     *(hw->fric2) = out_control;
+
+    *(hw->var2) = rise_time_end - rise_time_start;
 
     return (out_control);
 }
