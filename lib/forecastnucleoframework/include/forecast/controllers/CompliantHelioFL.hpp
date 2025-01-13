@@ -32,7 +32,8 @@ public:
                    float gain_vc = 0, float vc_limit = 0, float start_x = 0,float fl = 0,float gain_out = 0,
                    float filter_out = 0, float dob_formulation = 0, float pressure_predict = 0, float Ml = 0, float Kl = 0,
                    float Kdes = 0, float Bdes = 0, float Mdes = 0,
-                   float K1 = 0, float K2 = 0, float massa_total = 0, float F_fric = 0, float psi_compliant = 0);
+                   float K1 = 0, float K2 = 0, float massa_total = 0, float F_fric = 0, float psi_compliant = 0,
+                   float a_max = 0, float a_min = 0, float m_max = 0, float m_min = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -206,7 +207,20 @@ protected:
 
   float Z = 0;
 
+  float alpha = 0;
+  float a_med = 0;
+  float a_max = 0;
+  float a_min = 0;
 
+  float m_med = 0;
+  float m_max = 0;
+  float m_min = 0;
+
+
+  float integral_g_in_f = 0;
+  float last_integral_g_in_f = 0;
+  float last_g = 0;
+  float last_f = 0;
 
 
 
@@ -232,6 +246,11 @@ protected:
   float psi_compliant = 0;
   float massa_total = 0;
 
+  float once_2 = 1;
+  float last_tau = 0;
+  float deriv_posicao_desejada = 0;
+  float last_posicao_desejada = 0;
+
 
 
   utility::AnalogFilter* lowPass;
@@ -248,6 +267,7 @@ protected:
   utility::AnalogFilter* lowPassD_Xhat;
   utility::AnalogFilter* lowPassDD_Xhat;
   utility::AnalogFilter* lowPassd_new_forca_desejada;
+  utility::AnalogFilter* lowPassd_Dposicao_desejada;
   utility::AnalogFilter* transferFunction;
 };
 
@@ -262,14 +282,16 @@ inline ControllerFactory::Builder make_CompliantHelioFL_builder() {
                                 params[11],params[12],params[13],params[14],params[15],params[16],params[17], params[18]
                                 , params[19], params[20]
                                 , params[21], params[22], params[23]
-                                , params[24], params[25], params[26], params[27], params[28]);
+                                , params[24], params[25], params[26], params[27], params[28]
+                                , params[29], params[30], params[31], params[32]);
   };
 
   return {
       fn,
       {"Kp", "Kd", "Ki", "gainF", "gainG","B", "Fix_Leak","limit","lambda","gain dob","limit dob","gain_vc","limit_vc",
       "start_x","use_fl","gain_out","filter_out","dob_formulation", "pressure_predict","Ml","Kl","Kdes","Bdes","Mdes",
-      "K1","K2","M","F_FRIC","psi_comp"},
+      "K1","K2","M","F_FRIC","psi_comp",
+      "a_max","a_min","m_max","m_min"},
       {"reference"}};
 }
 

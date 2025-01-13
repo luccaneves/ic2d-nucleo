@@ -4,7 +4,7 @@ using namespace forecast;
 
 FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
-float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl)
+float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl, float sensor_select)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -47,7 +47,8 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       dob_formulation(dob_formulation),
       pressure_predict(pressure_predict),
       Ml(Ml),
-      Kl(Kl)
+      Kl(Kl),
+      sensor_select(sensor_select)
 {
     float freq = 20.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -77,7 +78,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 {
     float start_time = 1;
-    uint32_t force_sensor_number = 1;
+    uint32_t force_sensor_number = sensor_select;
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -389,6 +390,44 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
             disturb = ((disturb)/(g*Kpc));
+        }else if(dob_formulation == 5){
+            Aa = (M_PI*(De2))/4;
+            Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
+            Ap = Aa;                    
+            alfa = Ab/Aa;
+            Kv = qn/(In*sqrt(pn/2));
+            
+            Va = Vpl + Aa*((x - offset_x));
+            Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+
+            if(ixv >= 0.00000f){
+                g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
+                }
+                
+            else{
+                g = Be*Aa*Kv*(round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb);
+                }
+
+            //g = Be*Aa*Kv*( round((Pa-Pt)/abs(Pa-Pt))*sqrt(abs(Pa-Pt))/Va + alfa*round((Ps-Pb)/abs(Ps-Pb))*sqrt(abs(Ps-Pb))/Vb );
+
+
+            f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
+
+            dz = -(lambda*z/(Kpc*g))*(Kpc*g) - (lambda/(Kpc*g))*(integral_g_in_f*Kpc*g - Kvc*f + Kpc*g*last_out/1000);
+
+            z = z + dz*hw->get_dt();
+
+            integral_g_in_f = integral_g_in_f + last_integral_g_in_f*(tau - last_f) + (lambda*(1/(g*Kpc)) - last_g)*(tau - last_f);
+
+            last_f = tau;
+
+            last_integral_g_in_f = lambda*(1/(g*Kpc));
+
+            disturb = z + integral_g_in_f;
+
+            //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
+
+            //disturb = ((disturb)/(g*Kpc));
         }
 
 
@@ -415,7 +454,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         float d_expected_force = 0;
         //expected_force = tau;
 
-        if(dob_formulation == 0 || dob_formulation == 1 || dob_formulation == 2 || dob_formulation == 3){
+        if(dob_formulation == 0 || dob_formulation == 1 || dob_formulation == 2 || dob_formulation == 3 || dob_formulation == 5){
             if(hw->get_current_time() > 3){
                 if(once_force == 1){
                     once_force = 0;
@@ -460,6 +499,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     else{
         out = 0;
     }
+
+
 
     return out*gain_out;
 }

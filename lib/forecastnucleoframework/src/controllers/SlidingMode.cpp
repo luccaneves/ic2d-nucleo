@@ -3,7 +3,7 @@
 using namespace forecast;
 
 SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
-,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd)
+,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd, float sensor_select)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -43,7 +43,8 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       disturb_model_gain(disturb_model_gain),
       kp(kp),
       ki(ki),
-      kd(kd)
+      kd(kd),
+      sensor_select(sensor_select)
 
 {
     float freq = 20.0;
@@ -74,7 +75,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
 float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 {
     float start_time = 1;
-    uint32_t force_sensor_number = 1;
+    uint32_t force_sensor_number = sensor_select;
 
 
     //Kvc = Kvc*0.089;

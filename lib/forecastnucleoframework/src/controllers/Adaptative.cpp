@@ -2,7 +2,8 @@
 
 using namespace forecast;
 
-Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear_rate_ap, float gain_out, float limit, float start_h, float start_disturb, float start_ap)
+Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear_rate_ap, float gain_out, float limit, 
+float start_h, float start_disturb, float start_ap, float sensor_select)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -34,7 +35,8 @@ Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear
       limit(limit),
       hat_ap(start_ap),
       hat_h(start_h),
-      hat_disturb(start_disturb)
+      hat_disturb(start_disturb),
+      sensor_select(sensor_select)
 
 {
     float freq = 20.0;
@@ -64,7 +66,7 @@ Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear
 
 float Adaptative::process(const IHardware *hw, std::vector<float> ref)
 {
-    uint32_t force_sensor_number = 1;
+    uint32_t force_sensor_number = sensor_select;
     float start_time = 1;
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -170,9 +172,9 @@ float Adaptative::process(const IHardware *hw, std::vector<float> ref)
 
         //out = 0;
 
-        d_h = -(learn_rate_h*(hat_h/abs(hat_h))*(tau - reference)*deriv_force_desejada)/g;
-        d_ap = -((learn_rate_ap*(hat_h/abs(hat_h))*(tau - reference))*(-f))/g;
-        d_disturb = -learn_rate*(hat_h/abs(hat_h))*(tau - reference)*(-1);
+        d_h = -(learn_rate_h*(hat_h/abs(hat_h))*(tau - reference)*deriv_force_desejada);
+        d_ap = -((learn_rate_ap*(hat_h/abs(hat_h))*(tau - reference))*(-f));
+        d_disturb = -learn_rate*(hat_h/abs(hat_h))*(tau - reference)*(-g);
 
         if(out > limit){
             out = limit;

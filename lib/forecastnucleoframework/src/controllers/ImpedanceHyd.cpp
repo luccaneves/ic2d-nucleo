@@ -4,7 +4,8 @@ using namespace forecast;
 
 ImpedanceHyd::ImpedanceHyd(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
-float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl, float Kdes, float Bdes,float Mdes)
+float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl, float Kdes, float Bdes,
+float Mdes, float sensor_select)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -50,7 +51,8 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       Kl(Kl),
       Kdes(Kdes),
       Bdes(Bdes),
-      Mdes(Mdes)
+      Mdes(Mdes),
+      sensor_select(sensor_select)
 {
     float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -101,7 +103,7 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
         offset_x = x;
         once = 0;
     }
-
+    force_sensor_id = sensor_select;
     float deriv_force = hw->get_d_tau_s(force_sensor_id);
 
     Pa = hw->get_pressure(3)*100000;
