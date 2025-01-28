@@ -14,6 +14,8 @@ ForcePID::ForcePID(float kp, float ki, float kd)
     logs.push_back(&reference);
     lowPass = utility::AnalogFilter::getLowPassFilterHz(40.0f);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(40.0f);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(10.0f);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(10.0f);
 }
 
 float ForcePID::process(const IHardware *hw, std::vector<float> ref)
@@ -25,10 +27,10 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
     //tau = lowPass->process(hw->get_tau_s(1), hw->get_dt());
     //dtau = lowPassD->process(hw->get_d_tau_s(1), hw->get_dt());
 
-    float Pa = hw->get_pressure(3)*100000;
-    float Pb = hw->get_pressure(2)*100000;
+    float Pa =  lowPassPa->process(hw->get_pressure(2)*100000,hw->get_dt());
+    float Pb = lowPassPb->process(hw->get_pressure(3)*100000,hw->get_dt());
  
-
+    Pl = Pa - Pb*0.609375;
 
     tau = hw->get_tau_s(0);
     dtau = hw->get_d_tau_s(0);
@@ -43,8 +45,9 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
             once_2_rise_time_flag = 1;
     }
     
-    *(hw->var2) = rise_time_end - rise_time_start;
-    *(hw->var9) = ref[0];
+    if(tau > Mv && hw->get_current_time() > 5){
+        Mv = tau;
+    }
 
     err = ref[0] - tau;
     //Lucca TO DO: Corrigir essa derivada. Fazer inf dif com mais pontos
@@ -57,6 +60,10 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
     out = kp * err + kd * derr + ki * ierr;
 
     *(hw->var1) = out;
+    *(hw->var2) = rise_time_end - rise_time_start;
+    *(hw->var6) = Mv;
+    *(hw->var7) = Pl;
+    *(hw->var9) = ref[0]; //Forca desejada
 
     return out;
 }

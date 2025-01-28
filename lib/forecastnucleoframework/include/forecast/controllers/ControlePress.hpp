@@ -1,5 +1,5 @@
-#ifndef FORCE_PID_H
-#define FORCE_PID_H
+#ifndef Cont_press
+#define Cont_press
 
 #include <utility/filters/AnalogFilter.hpp>
 #include "../Controller.hpp"
@@ -10,7 +10,7 @@ namespace forecast {
  * @brief ForcePID control class
  **/
 
-class ForcePID : public Controller {
+class ControlePress : public Controller {
    public:
 
     /**
@@ -21,7 +21,8 @@ class ForcePID : public Controller {
      * @param ki
      * @param kd
      */
-    ForcePID(float kp = 0, float ki = 0, float kd = 0);
+
+    ControlePress(float kp = 0, float ki = 0, float kd = 0, float fix_leak = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -30,26 +31,41 @@ class ForcePID : public Controller {
     float ki = 0.0;
     float kd = 0.0;
 
-    float tau = 0.0f;
-    float dtau = 0.0f;
-
     float once_2_rise_time_flag = 0;
     float once_rise_time_flag = 0;
     float rise_time_start = 0;
     float rise_time_end = 0;
 
+    float tau = 0.0f;
+    float dtau = 0.0f;
+
+    float Fb = 0.0;
+    float Fc = 0.0;
+
     float err = 0.0;
     float derr = 0.0;
     float ierr = 0.0;
 
+    float errPast = 0.0;
+
+    float Pa = 0.0;
+    float Pb = 0.0;
     float Pl = 0.0;
+    float dPl = 0.0;
+    float PlPast = 0.0;
+
+    float fix_leak = 0;
 
     float Mv = 0.0;
 
-    float errPast = 0.0;
+    float dx = 0;
 
     float out;
     float reference = 0.0;
+
+    float last_Pl_filter_1 = 0;
+
+    float last_Pl_1 = 0;
 
     utility::AnalogFilter* lowPass;
     utility::AnalogFilter* lowPassD;
@@ -57,15 +73,15 @@ class ForcePID : public Controller {
     utility::AnalogFilter* lowPassPb;
 };
 
-inline ControllerFactory::Builder make_Force_PID_builder() {
+inline ControllerFactory::Builder make_ControlePress_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 2)
+        if (params.size() < 3)
             return nullptr;
-        return new ForcePID(params[0], params[1], params[2]);
+        return new ControlePress(params[0], params[1], params[2], params[3]);
     };
 
-    return {fn, {"KP", "KI", "KD"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","fix_leak"}, {"reference"}};
 }
 
 }  // namespace forecast

@@ -42,6 +42,7 @@ protected:
   float once = 1;
   float once_force = 0;
   float filter_out = 0;
+  float Mv = 0;
 
   float once_2_rise_time_flag = 0;
   float once_rise_time_flag = 0;

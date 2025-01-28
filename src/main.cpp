@@ -41,6 +41,10 @@
 #include <forecast/controllers/ImpSlide.hpp>
 
 
+#include <forecast/controllers/ControlePress.hpp>
+#include <forecast/controllers/ControlForceByPress.hpp>
+
+
 /** Refgen Headers */
 #include <forecast/reference_generators/ConstantRefGen.hpp>
 #include <forecast/reference_generators/SmoothStep.hpp>
@@ -102,6 +106,9 @@ int main()
     app.get_controller_factory().add("HelioCompliantSlide", make_CompliantHelio_builder()); 
     app.get_controller_factory().add("HelioCompliantFL", make_CompliantHelioFL_builder()); 
     app.get_controller_factory().add("HelioCompliantAdapt", make_CompliantHelioAdapt_builder()); 
+
+    app.get_controller_factory().add("ControlePress", make_ControlePress_builder()); 
+    app.get_controller_factory().add("ControleForcePress", make_ControlForceByPress_builder()); 
 
     //app.get_operator_factory().add("Sum", make_sum_op_builder());
 

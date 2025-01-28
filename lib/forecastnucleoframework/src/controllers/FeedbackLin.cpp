@@ -63,10 +63,9 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     De = 0.016f;  // Piston diameter [m]
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
-    //L_cyl = 0.32f; // Stroke [m]
     Vpl = 1.21E-3f; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
-    pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
+    pn = 35.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
     
 
@@ -77,7 +76,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 {
     float start_time = 0;
-    uint32_t force_sensor_number = 1;
+    uint32_t force_sensor_number = 1; // 0 -> F2 e 1 -> F1
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
@@ -119,8 +118,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         float deriv_force = hw->get_d_tau_s(force_sensor_number);
 
-        Pa = hw->get_pressure(3)*100000;
-        Pb = hw->get_pressure(2)*100000;
+        Pa = lowPassPa->process(hw->get_pressure(2)*100000,hw->get_dt());
+        Pb = lowPassPb->process(hw->get_pressure(3)*100000,hw->get_dt());
 
         //Pt = hw->get_pressure(3)*100000;
         Ps = 16000000;
@@ -178,11 +177,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         err = ref[0] - tau;
         derr = (err - errPast) / hw->get_dt();
 
-        derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
-        + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
-        (hw->get_dt());
-
-        derr = lowPassD->process(derr,hw->get_dt());
+        //derr = lowPassD->process(derr,hw->get_dt());
 
         prev_erro_7 = prev_erro_6;
         prev_erro_6 = prev_erro_5;
@@ -217,7 +212,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
             Ap = Aa;                    
             alfa = Ab/Aa;
-            Kv = qn/(In*sqrt(pn/2));
+            Kv = qn/(In*sqrt(pn));
             
             Va = Vpl + Aa*((x - offset_x));
             Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
@@ -241,7 +236,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
             disturb = disturb + d_disturb*(hw->get_dt());
         }
-        else if(dob_formulation == 1){
+        else if(dob_formulation == 1){ leak_fix;
             Aa = (M_PI*(De2))/4;
             Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
             Ap = Aa;                    
@@ -392,13 +387,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
             disturb = ((disturb)/(g*Kpc));
         }
-
+        disturb = gain_dob*disturb;
 
 
         float leak_term = Ap*Be*0.000025*(1/Va + alfa/Vb);
+        
+        // Saída PID de Força
+        
         v = /*ref[0] +*/ kp * err + kd * derr + ki * ierr; //Sinal trocado, derivada da ref
 
-        disturb = gain_dob*disturb;
+        
 
         if(disturb > limit_dob/1000){
             disturb = limit_dob/1000;
@@ -407,8 +405,11 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             disturb = -limit_dob/1000;
         }
 
+        // Se o FL estiver ativado
+
         if(fl == 1){
-            out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
+            out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000; //+ leak_fix;
+            
         }
         else{
             out = v - disturb*1000;
@@ -443,15 +444,15 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             out = -limit;
         }
 
-        if(hw->get_current_time() > 5 && once_rise_time_flag == 0 && tau > ref[0]*0.1){
+    if(hw->get_current_time() > 5 && once_rise_time_flag == 0 && tau > ref[0]*0.1){
             once_rise_time_flag = 1;
             rise_time_start = hw->get_current_time();
-        }
+    }
 
-        else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 5 && tau > ref[0]*0.9){
+    else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 5 && tau > ref[0]*0.9){
             rise_time_end = hw->get_current_time();
             once_2_rise_time_flag = 1;
-        }
+    }
 
 
 
@@ -462,8 +463,17 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             out = lowPass->process(out,hw->get_dt());
         }
 
+        if(tau > Mv && hw->get_current_time() > 5){
+            Mv = tau;
+        }
+
+        float tr = rise_time_end - rise_time_start;
+
         *(hw->var1) = last_out;
-        *(hw->var2) = rise_time_end - rise_time_start;
+        *(hw->var3) = Pa;
+        *(hw->var4) = Pb;
+        *(hw->var7) = tr;
+        *(hw->var8) = Mv;
         *(hw->var9) = ref[0];
 
         if(fl == 2){

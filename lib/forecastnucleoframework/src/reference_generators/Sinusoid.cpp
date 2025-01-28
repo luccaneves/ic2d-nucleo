@@ -5,12 +5,13 @@ forecast::SinusoidRefGen::SinusoidRefGen(float frequency, float amplitude) : fre
 }
 
 std::vector<float> forecast::SinusoidRefGen::process(const IHardware* hw) {
-float output = (amplitude * -cos(2 * M_PI * frequency * hw->get_current_time() )) + amplitude;
+
 
 float time = hw->get_current_time();
 float duration = hw->get_duration_time();
 
 if (time > 5.0f && time < duration - 5.0f){
+    float output = (amplitude * -cos(2 * M_PI * frequency * (hw->get_current_time() -5.0 ))) + amplitude;
         return {output};
     } 
 else {
