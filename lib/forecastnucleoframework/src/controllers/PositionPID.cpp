@@ -28,9 +28,9 @@ float PositionPID::process(const IHardware *hw, std::vector<float> ref) {
 
     tau = hw->get_tau_s(1);
     dtau = hw->get_d_tau_s(1);
-    theta = hw->get_theta(0);
-    dtheta = hw->get_d_theta(0);
-    ddtheta = hw->get_dd_theta(0);
+    theta = hw->get_theta(1);
+    dtheta = hw->get_d_theta(1);
+    ddtheta = hw->get_dd_theta(1);
 
     reference = ref[0];
 
@@ -136,7 +136,7 @@ float PositionPID::process(const IHardware *hw, std::vector<float> ref) {
     }
     
     *(hw->var1) = out;
-    *(hw->var2) = ref[0];
+    *(hw->var9) = ref[0];
     *(hw->var3) = dtheta;
     *(hw->var4) = dob_exit;
 
@@ -145,6 +145,7 @@ float PositionPID::process(const IHardware *hw, std::vector<float> ref) {
     out = lowPassExit->process(out,hw->get_dt());
 
     *(hw->fric2) = out;
+    
 
 
   return out;

@@ -21,7 +21,7 @@ class ForcePID : public Controller {
      * @param ki
      * @param kd
      */
-    ForcePID(float kp = 0, float ki = 0, float kd = 0);
+    ForcePID(float kp = 0, float ki = 0, float kd = 0, float leak_comp = 0);
 
     virtual float process(const IHardware* hw, std::vector<float> ref) override;
 
@@ -29,6 +29,7 @@ class ForcePID : public Controller {
     float kp = 0.0;
     float ki = 0.0;
     float kd = 0.0;
+    float leak_comp = 0;
 
     float tau = 0.0f;
     float dtau = 0.0f;
@@ -60,12 +61,12 @@ class ForcePID : public Controller {
 inline ControllerFactory::Builder make_Force_PID_builder() {
 
     auto fn = [](std::vector<float> params) -> Controller * {
-        if (params.size() < 2)
+        if (params.size() < 3)
             return nullptr;
-        return new ForcePID(params[0], params[1], params[2]);
+        return new ForcePID(params[0], params[1], params[2], params[3]);
     };
 
-    return {fn, {"KP", "KI", "KD"}, {"reference"}};
+    return {fn, {"KP", "KI", "KD","leak_comp"}, {"reference"}};
 }
 
 }  // namespace forecast

@@ -2,11 +2,12 @@
 
 using namespace forecast;
 
-ForcePID::ForcePID(float kp, float ki, float kd)
+ForcePID::ForcePID(float kp, float ki, float kd, float leak_comp)
     : kp(kp),
       ki(ki),
       kd(kd),
       errPast(0.f),
+      leak_comp(leak_comp),
       err(0.f),
       derr(0.f),
       ierr(0.f)
@@ -65,5 +66,5 @@ float ForcePID::process(const IHardware *hw, std::vector<float> ref)
     *(hw->var7) = Pl;
     *(hw->var9) = ref[0]; //Forca desejada
 
-    return out;
+    return out + leak_comp;
 }
