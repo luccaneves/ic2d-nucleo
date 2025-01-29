@@ -50,7 +50,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       Kl(Kl),
       sensor_select(sensor_select)
 {
-    float freq = 20.0;
+    float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -97,8 +97,6 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
     deriv_force_desejada = (reference - prev_ref_1)/(hw->get_dt());
 
-    deriv_force_desejada = lowPassx->process(deriv_force_desejada,hw->get_dt());
-
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
     prev_ref_4 = prev_ref_3;
@@ -118,8 +116,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         float deriv_force = hw->get_d_tau_s(force_sensor_number);
 
-        Pa = hw->get_pressure(3)*100000;
-        Pb = hw->get_pressure(2)*100000;
+        Pa = hw->get_pressure(2)*100000;
+        Pb = hw->get_pressure(3)*100000;
 
         //Pt = hw->get_pressure(3)*100000;
         Ps = 16000000;
@@ -176,12 +174,6 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
         err = ref[0] - tau;
         derr = (err - errPast) / hw->get_dt();
-
-        derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
-        + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
-        (hw->get_dt());
-
-        derr = lowPassD->process(derr,hw->get_dt());
 
         prev_erro_7 = prev_erro_6;
         prev_erro_6 = prev_erro_5;

@@ -63,7 +63,7 @@ float a_max, float a_min, float m_max, float m_min)
       m_max(m_max),
       m_min(m_min)
 {
-    float freq = 20.0;
+    float freq = 40.0;
     lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
     lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
@@ -118,8 +118,6 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
 
     deriv_force_desejada = (ref - prev_ref_1)/hw->get_dt();
 
-    deriv_force_desejada = lowPassx->process(deriv_force_desejada,hw->get_dt());
-
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
     prev_ref_4 = prev_ref_3;
@@ -135,8 +133,8 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
 
     float deriv_force = hw->get_d_tau_s(0);
 
-    Pa = hw->get_pressure(3)*100000;
-    Pb = hw->get_pressure(2)*100000;
+    Pa = hw->get_pressure(2)*100000;
+    Pb = hw->get_pressure(3)*100000;
 
     //Pt = hw->get_pressure(3)*100000;
     Ps = 16000000;
@@ -193,12 +191,6 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
 
     err = ref - tau;
     derr = (err - errPast) / hw->get_dt();
-
-    derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
-    + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
-    (hw->get_dt());
-
-    derr = lowPassD->process(derr,hw->get_dt());
 
     prev_erro_7 = prev_erro_6;
     prev_erro_6 = prev_erro_5;
@@ -454,13 +446,9 @@ float CompliantHelioFL::process(const IHardware *hw, std::vector<float> ref)
 
         dx_hat = (x_hat - last_x_hat)/(hw->get_dt());
 
-        dx_hat = lowPassD_Xhat->process(dx_hat,hw->get_dt());
-
         last_x_hat = x_hat;
 
         ddx_hat = (dx_hat - last_dx_hat)/hw->get_dt();
-
-        ddx_hat = lowPassDD_Xhat->process(ddx_hat,hw->get_dt());
 
         last_dx_hat = dx_hat;
 
@@ -476,8 +464,6 @@ float CompliantHelioFL::process(const IHardware *hw, std::vector<float> ref)
         deriv_posicao_desejada = (ref[0] - last_posicao_desejada)/(hw->get_dt());
 
         last_posicao_desejada = ref[0];
-
-        deriv_posicao_desejada = lowPassd_Dposicao_desejada->process(deriv_posicao_desejada,hw->get_dt());
 
         float eta_2 = 0.01;
 
@@ -519,15 +505,12 @@ float CompliantHelioFL::process(const IHardware *hw, std::vector<float> ref)
         erro_imp = x - ref[0];
 
         deriv_erro_imp = (erro_imp - last_erro_imp)/hw->get_dt();
-
+        
         last_erro_imp = erro_imp;
 
         deriv_erro_imp = lowPassD_ErroImp->process(deriv_erro_imp,hw->get_dt());
 
         float tau_ref = - Kdes*(erro_imp) -  Bdes*deriv_erro_imp - Mdes*ddx;
-
-
-        
 
         if(K1 == 1){
             out = ForceController(hw,ref[0]);

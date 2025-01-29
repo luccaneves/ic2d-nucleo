@@ -79,6 +79,7 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
+
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
     prev_ref_4 = prev_ref_3;
@@ -88,8 +89,8 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
 
     float deriv_force = hw->get_d_tau_s(force_sensor_id);
 
-    Pa = hw->get_pressure(3)*100000;
-    Pb = hw->get_pressure(2)*100000;
+    Pa = hw->get_pressure(2)*100000;
+    Pb = hw->get_pressure(3)*100000;
     Ps = 16000000;
     Pt = 0;
     Pt = 0; // Sensor de pressão com problema
@@ -108,12 +109,6 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
 
     err = ref - tau;
     derr = (err - errPast) / hw->get_dt();
-
-    derr = (2.45*err - 6*prev_erro_1 + 7.5*prev_erro_2 - 6.66*prev_erro_3 
-    + 3.75*prev_erro_4 - 1.2*prev_erro_5 + 0.16*prev_erro_6)/
-    (hw->get_dt());
-
-    derr = lowPass->process(derr,hw->get_dt());
 
     prev_erro_7 = prev_erro_6;
     prev_erro_6 = prev_erro_5;
@@ -169,7 +164,6 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
 
     deriv_force_desejada = (ref - prev_ref_1)/ (hw->get_dt());
 
-    deriv_force_desejada = lowPassD->process(deriv_force_desejada, hw->get_dt());
 
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
