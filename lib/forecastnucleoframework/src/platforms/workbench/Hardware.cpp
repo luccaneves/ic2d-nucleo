@@ -527,10 +527,16 @@ void forecast::Hardware::update(float dt) {
   
 
   // Chambers pressure reading
-  pressureSensorA = pressure_sensor_a->read_average_float() * PRESSURE_RANGE;
-  pressureSensorB = pressure_sensor_b->read_average_float() * PRESSURE_RANGE;
-  pressureSensorS = pressure_sensor_s->read_average_float() * PRESSURE_RANGE;
-  pressureSensorT = pressure_sensor_t->read_average_float() * PRESSURE_RANGE;
+  //pressureSensorA = torque_sensor->read_average_float() * PRESSURE_RANGE;
+  //pressureSensorB = pressure_sensor_b->read_average_float() * PRESSURE_RANGE;
+  //pressureSensorS = pressure_sensor_s->read_average_float() * PRESSURE_RANGE;
+  //pressureSensorT = pressure_sensor_t->read_average_float() * PRESSURE_RANGE;
+
+
+  pressureSensorT = torque_sensor->read_average_float() * PRESSURE_RANGE;
+  pressureSensorS = pressure_sensor_b->read_average_float() * PRESSURE_RANGE;
+  pressureSensorA = pressure_sensor_s->read_average_float() * PRESSURE_RANGE;
+  pressureSensorB = pressure_sensor_t->read_average_float() * PRESSURE_RANGE;
 
 
   // Read Load Cell 2 

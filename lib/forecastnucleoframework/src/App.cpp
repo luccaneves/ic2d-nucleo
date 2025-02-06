@@ -651,8 +651,8 @@ bool App::exec_control_loop(unsigned long freq, float duration) {
 
     
 
-    //if(send_counter == ((freq/LOG_FREQ) - 1)){
-    if(send_counter == (((freq/LOG_FREQ) >= 1 ? freq/LOG_FREQ : 1) - 1)){
+    if(send_counter == ((freq/LOG_FREQ) - 1)){
+    //if(send_counter == (((freq/LOG_FREQ) >= 1 ? freq/LOG_FREQ : 1) - 1)){
       const auto hw_log_size = hw_logs.size();
       for (size_t i = 0; i < hw_log_size; ++i)
         logs[i] = *hw_logs[i];
