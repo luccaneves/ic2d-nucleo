@@ -28,7 +28,7 @@ public:
   **/
   Adaptative(float kp = 0, float learn_rate = 0, float learn_rate_h = 0, 
   float learn_rate_ap = 0, float gain_out = 0, float limit = 0,
-   float start_h = 0, float start_disturb = 0, float start_ap = 0, float sensor_select = 0);
+   float start_h = 0, float start_disturb = 0, float start_ap = 0, float sensor_select = 0, float start_x = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -50,6 +50,7 @@ protected:
   float d_ap = 0;
   float d_h = 0;
   float d_disturb = 0;
+  float start_x = 0;
 
   float Kvc = 0.0f;
   float Kpc = 0.0f;
@@ -96,7 +97,6 @@ protected:
   float B_int = 0;
   float leak_fix = 0;
   float limit = 0;
-  float start_x = 0;
 
   float max_f = 0;
   float min_f = 0;
@@ -158,12 +158,14 @@ inline ControllerFactory::Builder make_Adaptative_builder() {
     if (params.size() < 1)
       return nullptr; // not enough parameters
 
-    return new Adaptative(params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8], params[9]);
+    return new Adaptative(params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], 
+    params[8], params[9], params[10]);
   };
 
   return {
       fn,
-      {"kp", "learn_rate_d","learn_rate_h","learn_rate_ap","gain_out","limit","start_h","start_disturb","start_ap","sensor_select"},
+      {"kp", "learn_rate_d","learn_rate_h","learn_rate_ap","gain_out","limit","start_h","start_disturb",
+      "start_ap","sensor_select","start_x"},
       {"reference"}};
 }
 

@@ -3,7 +3,7 @@
 using namespace forecast;
 
 Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear_rate_ap, float gain_out, float limit, 
-float start_h, float start_disturb, float start_ap, float sensor_select)
+float start_h, float start_disturb, float start_ap, float sensor_select, float start_x)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -36,7 +36,8 @@ float start_h, float start_disturb, float start_ap, float sensor_select)
       hat_ap(start_ap),
       hat_h(start_h),
       hat_disturb(start_disturb),
-      sensor_select(sensor_select)
+      sensor_select(sensor_select),
+      start_x(start_x)
 
 {
     float freq = 40.0;
@@ -54,7 +55,7 @@ float start_h, float start_disturb, float start_ap, float sensor_select)
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 1.21E-3f; // Volume Pipeline [m^3]
+    Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.000166666f; // Nominal flow for Moog 24 [m^3/s]
@@ -67,12 +68,12 @@ float start_h, float start_disturb, float start_ap, float sensor_select)
 float Adaptative::process(const IHardware *hw, std::vector<float> ref)
 {
     uint32_t force_sensor_number = sensor_select;
-    float start_time = 1;
+    float start_time = 0.5;
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(force_sensor_number) - once_force;
+    tau = hw->get_tau_s(force_sensor_number);
     dtau = hw->get_d_tau_s(force_sensor_number);
 
     x = hw->get_theta(1);
@@ -89,8 +90,8 @@ float Adaptative::process(const IHardware *hw, std::vector<float> ref)
 
         float deriv_force = hw->get_d_tau_s(force_sensor_number);
 
-        Pa = hw->get_pressure(3)*100000;
-        Pb = hw->get_pressure(2)*100000;
+        Pa = hw->get_pressure(2)*100000;
+        Pb = hw->get_pressure(3)*100000;
         Ps = 16000000;
         Pt = 0; // Sensor de pressão com problema
 
@@ -131,8 +132,8 @@ float Adaptative::process(const IHardware *hw, std::vector<float> ref)
         alfa = Ab/Aa;
         Kv = qn/(In*sqrt(pn/2));
 
-        Va = Vpl + Aa*(x);
-        Vb = Vpl + (L_cyl - x)*Ab;
+        Va = Vpl + Aa*(x + start_x);
+        Vb = Vpl + (L_cyl - (x + start_x))*Ab;
 
         if(ixv >= 0.00000f){
             g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);

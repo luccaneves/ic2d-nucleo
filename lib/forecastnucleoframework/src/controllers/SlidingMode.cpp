@@ -3,7 +3,8 @@
 using namespace forecast;
 
 SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
-,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd, float sensor_select)
+,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd, 
+float sensor_select, float start_x)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -44,7 +45,8 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
       kp(kp),
       ki(ki),
       kd(kd),
-      sensor_select(sensor_select)
+      sensor_select(sensor_select),
+      start_x(start_x)
 
 {
     float freq = 40.0;
@@ -62,7 +64,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 1.21E-3f; // Volume Pipeline [m^3]
+    Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.000166666f; // Nominal flow for Moog 24 [m^3/s]
@@ -74,7 +76,7 @@ SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, flo
 
 float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 1;
+    float start_time = 0;
     uint32_t force_sensor_number = sensor_select;
 
 
@@ -82,10 +84,10 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(force_sensor_number) - once_force;
+    tau = hw->get_tau_s(force_sensor_number);
     dtau = hw->get_d_tau_s(force_sensor_number);
 
-    x = hw->get_theta(1) - offset_x;
+    x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
 
     if (once == 1 && hw->get_current_time() > start_time/2)
@@ -146,8 +148,8 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         alfa = Ab/Aa;
         Kv = qn/(In*sqrt(pn/2));
 
-        Va = Vpl + Aa*(x);
-        Vb = Vpl + (L_cyl - x)*Ab;
+        Va = Vpl + Aa*(x + start_x);
+        Vb = Vpl + (L_cyl - (x + start_x))*Ab;
 
         if(ixv >= 0.00000f){
             g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);

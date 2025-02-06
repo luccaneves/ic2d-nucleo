@@ -85,7 +85,7 @@ float a_max, float a_min, float m_max, float m_min)
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 1.21E-3f; // Volume Pipeline [m^3]
+    Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
@@ -227,8 +227,8 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
         alfa = Ab/Aa;
         Kv = qn/(In*sqrt(pn/2));
         
-        Va = Vpl + Aa*((x - offset_x));
-        Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+        Va = Vpl + Aa*((x + start_x));
+        Vb = Vpl + (L_cyl - (x + start_x))*Ab;
 
         if(ixv >= 0.00000f){
             g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -256,8 +256,8 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
         alfa = Ab/Aa;
         Kv = qn/(In*sqrt(pn/2));
         
-        Va = Vpl + Aa*((x));
-        Vb = Vpl + (L_cyl - (x))*Ab;
+        Va = Vpl + Aa*((x + start_x));
+        Vb = Vpl + (L_cyl - (x + start_x))*Ab;
 
         if(ixv >= 0.00000f){
             g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -284,8 +284,8 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
             alfa = Ab/Aa;
             Kv = qn/(In*sqrt(pn/2));
             
-            Va = Vpl + Aa*((x - offset_x));
-            Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+            Va = Vpl + Aa*((x+ start_x));
+            Vb = Vpl + (L_cyl - (x + start_x))*Ab;
 
             if(ixv >= 0.00000f){
                 g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);

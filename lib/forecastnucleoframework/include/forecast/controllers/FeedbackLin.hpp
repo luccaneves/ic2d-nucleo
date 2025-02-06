@@ -52,6 +52,14 @@ protected:
   float Ml = 0;
   float Kl = 0;
 
+
+
+  float rise_time_end = 0;
+  float once_rise_time_flag = 0;
+  float once_2_rise_time_flag = 0;
+  float rise_time_start = 0;
+  float Mv = 0;
+  
   float tau = 0.0f;
   float dtau = 0.0f;
   float x = 0.0f;

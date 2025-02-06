@@ -65,7 +65,7 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 1.21E-3f; // Volume Pipeline [m^3]
+    Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
@@ -77,14 +77,14 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
 
 float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 1;
+    float start_time = 0;
     uint32_t force_sensor_number = sensor_select;
 
     //Kvc = Kvc*0.089;
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(force_sensor_number) - once_force;
+    tau = hw->get_tau_s(force_sensor_number);
     dtau = hw->get_d_tau_s(force_sensor_number);
 
     x = hw->get_theta(1);
@@ -210,8 +210,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             alfa = Ab/Aa;
             Kv = qn/(In*sqrt(pn/2));
             
-            Va = Vpl + Aa*((x - offset_x));
-            Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+            Va = Vpl + Aa*((x + start_x));
+            Vb = Vpl + (L_cyl - (x + start_x))*Ab;
+
+            if(Va < 0){
+                Va = Vpl;
+            }
+
+            if(Vb < 0){
+                Vb = Vpl;
+            }
 
             if(ixv >= 0.00000f){
                 g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -239,8 +247,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             alfa = Ab/Aa;
             Kv = qn/(In*sqrt(pn/2));
             
-            Va = Vpl + Aa*((x - offset_x));
-            Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+            Va = Vpl + Aa*((x + start_x));
+            Vb = Vpl + (L_cyl - (x + start_x))*Ab;
+
+            if(Va < 0){
+                Va = Vpl;
+            }
+
+            if(Vb < 0){
+                Vb = Vpl;
+            }
 
             if(ixv >= 0.00000f){
                 g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -267,8 +283,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             alfa = Ab/Aa;
             Kv = qn/(In*sqrt(pn/2));
             
-            Va = Vpl + Aa*((x - offset_x));
-            Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+            Va = Vpl + Aa*((x + start_x));
+            Vb = Vpl + (L_cyl - (x + start_x))*Ab;
+
+            if(Va < 0){
+                Va = Vpl;
+            }
+
+            if(Vb < 0){
+                Vb = Vpl;
+            }
 
             if(ixv >= 0.00000f){
                 g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -314,8 +338,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             alfa = Ab/Aa;
             Kv = qn/(In*sqrt(pn/2));
             
-            Va = Vpl + Aa*((x - offset_x));
-            Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+            Va = Vpl + Aa*((x + start_x));
+            Vb = Vpl + (L_cyl - (x + start_x))*Ab;
+
+            if(Va < 0){
+                Va = Vpl;
+            }
+
+            if(Vb < 0){
+                Vb = Vpl;
+            }
 
             if(ixv >= 0.00000f){
                 g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -352,8 +384,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             alfa = Ab/Aa;
             Kv = qn/(In*sqrt(pn/2));
             
-            Va = Vpl + Aa*((x - offset_x));
-            Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+            Va = Vpl + Aa*((x + start_x));
+            Vb = Vpl + (L_cyl - (x + start_x))*Ab;
+
+            if(Va < 0){
+                Va = Vpl;
+            }
+
+            if(Vb < 0){
+                Vb = Vpl;
+            }
 
             if(ixv >= 0.00000f){
                 g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -389,8 +429,16 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             alfa = Ab/Aa;
             Kv = qn/(In*sqrt(pn/2));
             
-            Va = Vpl + Aa*((x - offset_x));
-            Vb = Vpl + (L_cyl - (x - offset_x))*Ab;
+            Va = Vpl + Aa*((x + start_x));
+            Vb = Vpl + (L_cyl - (x + start_x))*Ab;
+
+            if(Va < 0){
+                Va = Vpl;
+            }
+
+            if(Vb < 0){
+                Vb = Vpl;
+            }
 
             if(ixv >= 0.00000f){
                 g = Be*Aa*Kv*(round((Ps-Pa)/abs(Ps-Pa))*sqrt(abs(Ps-Pa))/Va + alfa*round((Pb-Pt)/abs(Pb-Pt))*sqrt(abs(Pb-Pt))/Vb);
@@ -475,15 +523,35 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         //*(hw->var4) = out;
 
         //Lucca: Adicionado filtro na saída. Vai dar merda?
+        if(hw->get_current_time() > 5 && once_rise_time_flag == 0 && tau > ref[0]*0.1){
+                once_rise_time_flag = 1;
+                rise_time_start = hw->get_current_time();
+        }
+
+        else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 5 && tau > ref[0]*0.9){
+                rise_time_end = hw->get_current_time();
+                once_2_rise_time_flag = 1;
+        }
+
+
+
+        //*(hw->var4) = out;
+
+        //Lucca: Adicionado filtro na saída. Vai dar merda?
         if(filter_out == 1){
             out = lowPass->process(out,hw->get_dt());
+        }
+
+        if(tau > Mv && hw->get_current_time() > 5){
+            Mv = tau;
         }
 
         *(hw->var1) = tau;
         *(hw->var2) = disturb;
         *(hw->var3) = ref[0];
         *(hw->var7) = expected_force - tau;
-        *(hw->var8) = ref[0]  - tau;
+        *(hw->var6) = Mv;
+        *(hw->var8) = -rise_time_start + rise_time_end;
         *(hw->var9) = reference;
 
         last_out = out;
