@@ -5,7 +5,7 @@ using namespace forecast;
 ImpedanceHyd::ImpedanceHyd(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
 float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl, float Kdes, float Bdes,
-float Mdes, float sensor_select)
+float Mdes, float sensor_select, float freq)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -52,25 +52,26 @@ float Mdes, float sensor_select)
       Kdes(Kdes),
       Bdes(Bdes),
       Mdes(Mdes),
-      sensor_select(sensor_select)
+      sensor_select(sensor_select),
+      freq(freq)
 {
-    float freq = 40.0;
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq);
+    float freq_corte = freq;
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 1.21E-3f; // Volume Pipeline [m^3]
+    Vpl = 0.00121; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
@@ -106,40 +107,12 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
     force_sensor_id = sensor_select;
     float deriv_force = hw->get_d_tau_s(force_sensor_id);
 
-    Pa = hw->get_pressure(2)*100000;
-    Pb = hw->get_pressure(3)*100000;
+    Pa = lowPassPa->process(hw->get_pressure(2)*100000,hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(3)*100000,hw->get_dt());
 
     //Pt = hw->get_pressure(3)*100000;
     Ps = 16000000;
     Pt = 0; // Sensor de pressão com problema
-
-    /*if(pressure_predict == 1){
-        float De2 = pow(De, 2);
-        float Dh2 = pow(Dh, 2);
-        Aa = (M_PI*(De2))/4;
-        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-        Ap = Aa;                    
-        alfa = Ab/Aa;
-
-        float Fco = 15;
-        float Fso = 15;
-        float Cs = 0.15;
-
-        float fric = 0;
-        float a = 0.001;
-
-
-        if(abs(dx) < 0.1)
-            fric = dx*30/0.1;
-        else 
-            fric = abs(dx)*(Fco + Fso*(exp((-abs(dx)/Cs))) + B_int*dx);
-
-
-        Ps = 10000000;
-        Pt = 0;
-        Pa = -((tau - fric)/Aa)*(1/(1 - (1/alfa)));
-        Pb = -((tau - fric)/Aa)*((1/(alfa*alfa))/(1 - (1/alfa)));
-    }*/
 
     if(Pa == Ps){
         Pa = Ps*0.99;
@@ -297,7 +270,6 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
         disturb3 = disturb3 + d_disturb3*(hw->get_dt());
 
         disturb = disturb3 + ((disturb1*h1)/(g*Kpc)) + ((disturb2*h2)/(g*Kpc));
-
     }
 
 
@@ -335,12 +307,6 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
         d_force = -f*Kvc + (g*Kpc*(last_out/1000 + disturb)) - B_int*hw->get_dd_theta(0);
     }
 
-    //expected_force = expected_force + deriv_force*hw->get_dt();
-    //expected_force = tau;
-
-
-
-    //*(hw->var10) = Ap*(Pa - alfa*Pb);
     out = out;
 
     if(out > limit){
@@ -371,8 +337,8 @@ float ImpedanceHyd::ForceController(const IHardware *hw, float ref){
 
 float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 1.5;
-    force_sensor_id = 1;
+    float start_time = 0;
+    force_sensor_id = sensor_select;
 
     if(once == 1 && hw->get_current_time() > start_time/2){
         once = 0;
@@ -386,8 +352,8 @@ float ImpedanceHyd::process(const IHardware *hw, std::vector<float> ref)
         //Kpc = Kpc*0.089;
         reference = ref[0];
         
-        tau = hw->get_tau_s(force_sensor_id) - once_force;
-        dtau = hw->get_d_tau_s(force_sensor_id);
+        tau = lowPass->process(hw->get_tau_s(force_sensor_id),hw->get_dt());
+        dtau = lowPassD->process(hw->get_d_tau_s(force_sensor_id),hw->get_dt());
 
         x = hw->get_theta(1) - offset_x;
         dx = hw->get_d_theta(1);

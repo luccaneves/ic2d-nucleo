@@ -4,7 +4,7 @@ using namespace forecast;
 
 SlidingMode::SlidingMode(float max_f, float min_f, float max_g, float min_g, float eta, float psi, float limit, float gain_out, float gain_dob, float limit_dob, float lambda
 ,float max_disturb_current, float min_disturb_current, float disturb_model_gain, float kp, float ki, float kd, 
-float sensor_select, float start_x)
+float sensor_select, float start_x, float freq)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -46,25 +46,26 @@ float sensor_select, float start_x)
       ki(ki),
       kd(kd),
       sensor_select(sensor_select),
-      start_x(start_x)
+      start_x(start_x),
+      freq(freq)
 
 {
-    float freq = 40.0;
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
+    float freq_filtro = freq;
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq_filtro);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq_filtro);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq_filtro);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq_filtro);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq_filtro);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq_filtro);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq_filtro);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq_filtro);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
+    Vpl = 0.00121; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.000166666f; // Nominal flow for Moog 24 [m^3/s]
@@ -84,8 +85,9 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(force_sensor_number);
-    dtau = hw->get_d_tau_s(force_sensor_number);
+    tau = lowPass->process(hw->get_tau_s(force_sensor_number),hw->get_dt());
+    dtau = lowPassD->process(hw->get_d_tau_s(force_sensor_number),hw->get_dt());
+    float tau_no_filt = hw->get_tau_s(force_sensor_number);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
@@ -98,10 +100,9 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
     }
 
     if(hw->get_current_time() > start_time){
-        float deriv_force = hw->get_d_tau_s(force_sensor_number);
 
-        Pa = hw->get_pressure(2)*100000;
-        Pb = hw->get_pressure(3)*100000;
+        Pa = lowPassPa->process(hw->get_pressure(2)*100000,hw->get_dt());
+        Pb = lowPassPb->process(hw->get_pressure(3)*100000,hw->get_dt());
         Ps = 16000000;
         Pt = 0;
         Pt = 0; // Sensor de pressão com problema
@@ -168,12 +169,12 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         gain_g_med = sqrt(max_g*min_g);
         gain_f_med = (max_f + min_f)/2;
 
-        deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
+        dtau_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
         + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
         (hw->get_dt());
 
 
-        deriv_force_desejada = (reference - prev_ref_1)/ (hw->get_dt());
+        dtau_desejada = (reference - prev_ref_1)/ (hw->get_dt());
 
         prev_ref_6 = prev_ref_5;
         prev_ref_5 = prev_ref_4;
@@ -182,7 +183,7 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         prev_ref_2 = prev_ref_1;
         prev_ref_1 = ref[0];
 
-        float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
+        float u = (dtau_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref[0] - tau) + ki*ierr + kd*derr);
 
         float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + (beta - 1)*abs(u) + beta*(abs(dist_gain_max - dist_gain_med)*(g)));
 
@@ -224,6 +225,28 @@ float SlidingMode::process(const IHardware *hw, std::vector<float> ref)
         out = 0;
     }
 
+
+    if(hw->get_current_time() > 5 && once_rise_time_flag == 0 && tau_no_filt > ref[0]*0.1){
+            once_rise_time_flag = 1;
+            rise_time_start = hw->get_current_time();
+    }
+
+    else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 5 && tau_no_filt > ref[0]*0.9){
+            rise_time_end = hw->get_current_time();
+            once_2_rise_time_flag = 1;
+    }
+
+    *(hw->var6) = Mv;
+    *(hw->var8) = -rise_time_start + rise_time_end;
+
+    //*(hw->var4) = out;
+
+    //Lucca: Adicionado filtro na saída. Vai dar merda?
+
+
+    if(tau > Mv && hw->get_current_time() > 5){
+        Mv = tau;
+    }
     //*(hw->var4) = out;
     //out = lowPass->process(out,hw->get_dt());
 

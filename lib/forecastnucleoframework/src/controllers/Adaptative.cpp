@@ -3,7 +3,7 @@
 using namespace forecast;
 
 Adaptative::Adaptative(float kp, float learn_rate,float learn_rate_h, float lear_rate_ap, float gain_out, float limit, 
-float start_h, float start_disturb, float start_ap, float sensor_select, float start_x)
+float start_h, float start_disturb, float start_ap, float sensor_select, float start_x, float freq)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -37,25 +37,26 @@ float start_h, float start_disturb, float start_ap, float sensor_select, float s
       hat_h(start_h),
       hat_disturb(start_disturb),
       sensor_select(sensor_select),
-      start_x(start_x)
+      start_x(start_x),
+      freq(freq)
 
 {
-    float freq = 40.0;
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
+    float freq_corte = freq;
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
+    Vpl = 0.00121; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.000166666f; // Nominal flow for Moog 24 [m^3/s]
@@ -73,8 +74,9 @@ float Adaptative::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(force_sensor_number);
-    dtau = hw->get_d_tau_s(force_sensor_number);
+    tau = lowPass->process(hw->get_tau_s(force_sensor_number),hw->get_dt());
+    dtau = lowPassD->process(hw->get_d_tau_s(force_sensor_number),hw->get_dt());
+    float tau_no_filt = hw->get_tau_s(force_sensor_number);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
@@ -90,8 +92,8 @@ float Adaptative::process(const IHardware *hw, std::vector<float> ref)
 
         float deriv_force = hw->get_d_tau_s(force_sensor_number);
 
-        Pa = hw->get_pressure(2)*100000;
-        Pb = hw->get_pressure(3)*100000;
+        Pa = lowPassPa->process(hw->get_pressure(2)*100000,hw->get_dt());
+        Pb = lowPassPb->process(hw->get_pressure(3)*100000,hw->get_dt());
         Ps = 16000000;
         Pt = 0; // Sensor de pressão com problema
 
@@ -190,6 +192,20 @@ float Adaptative::process(const IHardware *hw, std::vector<float> ref)
     else{
         out = 0;
     }
+
+
+    if(hw->get_current_time() > 5 && once_rise_time_flag == 0 && tau_no_filt > ref[0]*0.1){
+            once_rise_time_flag = 1;
+            rise_time_start = hw->get_current_time();
+    }
+
+    else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 5 && tau_no_filt > ref[0]*0.9){
+            rise_time_end = hw->get_current_time();
+            once_2_rise_time_flag = 1;
+    }
+
+    *(hw->var6) = Mv;
+    *(hw->var8) = -rise_time_start + rise_time_end;
 
     return out*gain_out;
 }

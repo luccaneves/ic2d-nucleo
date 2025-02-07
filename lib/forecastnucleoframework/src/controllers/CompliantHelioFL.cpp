@@ -5,7 +5,7 @@ using namespace forecast;
 CompliantHelioFL::CompliantHelioFL(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
 float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl, float Kdes, float Bdes,float Mdes,float K1, float K2, float massa_total, float F_fric, float psi_compliant,
-float a_max, float a_min, float m_max, float m_min)
+float a_max, float a_min, float m_max, float m_min,float freq)
     : 
       kp(kp),
       kd(kd),
@@ -61,31 +61,32 @@ float a_max, float a_min, float m_max, float m_min)
       a_max(a_max),
       a_min(a_min),
       m_max(m_max),
-      m_min(m_min)
+      m_min(m_min),
+      freq(freq)
 {
-    float freq = 40.0;
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassd_Dposicao_desejada = utility::AnalogFilter::getLowPassFilterHz(freq);
+    float freq_corte = freq;
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassd_Dposicao_desejada = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
 
-    lowPassD_z = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassd_new_forca_desejada = utility::AnalogFilter::getLowPassFilterHz(freq);
+    lowPassD_z = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassDD_Xhat = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassd_new_forca_desejada = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
+    Vpl = 0.00121; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
@@ -110,7 +111,7 @@ float a_max, float a_min, float m_max, float m_min)
 
 float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
     
-    float tau = hw->get_tau_s(0) - once_force_imp;
+    float tau = lowPass->process(hw->get_tau_s(0) - once_force_imp,hw->get_dt());
     
     float deriv_force_desejada = (2.45*ref - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
@@ -131,42 +132,14 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
         once = 0;
     }
 
-    float deriv_force = hw->get_d_tau_s(0);
+    float deriv_force = lowPassD->process(hw->get_d_tau_s(0),hw->get_dt());
 
-    Pa = hw->get_pressure(2)*100000;
-    Pb = hw->get_pressure(3)*100000;
+    Pa = lowPassPa->process(hw->get_pressure(2)*100000,hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(3)*100000,hw->get_dt());
 
     //Pt = hw->get_pressure(3)*100000;
     Ps = 16000000;
     Pt = 0; // Sensor de pressão com problema
-
-    /*if(pressure_predict == 1){
-        float De2 = pow(De, 2);
-        float Dh2 = pow(Dh, 2);
-        Aa = (M_PI*(De2))/4;
-        Ab = ((M_PI*(De2))/4) - ((M_PI*(Dh2))/4);
-        Ap = Aa;                    
-        alfa = Ab/Aa;
-
-        float Fco = 15;
-        float Fso = 15;
-        float Cs = 0.15;
-
-        float fric = 0;
-        float a = 0.001;
-
-
-        if(abs(dx) < 0.1)
-            fric = dx*30/0.1;
-        else 
-            fric = abs(dx)*(Fco + Fso*(exp((-abs(dx)/Cs))) + B_int*dx);
-
-
-        Ps = 10000000;
-        Pt = 0;
-        Pa = -((tau - fric)/Aa)*(1/(1 - (1/alfa)));
-        Pb = -((tau - fric)/Aa)*((1/(alfa*alfa))/(1 - (1/alfa)));
-    }*/
 
     if(Pa == Ps){
         Pa = Ps*0.99;
@@ -368,9 +341,6 @@ float CompliantHelioFL::ForceController(const IHardware *hw, float ref){
     //*(hw->var4) = out;
 
     //Lucca: Adicionado filtro na saída. Vai dar merda?
-    if(filter_out == 1){
-        out = lowPass->process(out,hw->get_dt());
-    }
 
     *(hw->var1) = erro_imp;
     *(hw->var2) = deriv_erro_imp;
@@ -393,8 +363,9 @@ float CompliantHelioFL::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(1) - once_force;
-    dtau = hw->get_d_tau_s(1);
+    tau = lowPassx->process(hw->get_tau_s(1) - once_force,hw->get_dt());
+    dtau = lowPassDx->process(hw->get_d_tau_s(1) - once_force,hw->get_dt());
+
 
     x = hw->get_theta(1) - offset_x;
     dx = hw->get_d_theta(1);
@@ -424,8 +395,8 @@ float CompliantHelioFL::process(const IHardware *hw, std::vector<float> ref)
             once_2 = 0;
 
 
-            tau = hw->get_tau_s(1) - once_force;
-            dtau = hw->get_d_tau_s(1);
+            tau = lowPassx->process(hw->get_tau_s(1) - once_force,hw->get_dt());
+            dtau = lowPassDx->process(hw->get_d_tau_s(1) - once_force,hw->get_dt());
 
             x = hw->get_theta(1) - offset_x;
             dx = hw->get_d_theta(1);

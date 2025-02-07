@@ -489,7 +489,7 @@ void forecast::Hardware::update(float dt) {
   tau_sensors_nofilt = tau_sensors_nofilt; 
   
   tauSensor = lowPassTauSensor->process(tau_sensors_nofilt, dt);
-  //tauSensor = tau_sensors_nofilt;
+  tauSensor = tau_sensors_nofilt;
 
   //tauSensor = tau_sensors_nofilt; //TODO: Voltar
   //float dtauSensor_NoFilt = (tauSensor - prev_tauSensor) / dt;
@@ -503,7 +503,7 @@ void forecast::Hardware::update(float dt) {
   dtauSensor_NoFilt = (tauSensor - prev1_tauSensor)/dt;
   
   dtauSensor = lowPassDF1->process(dtauSensor_NoFilt, dt);
-  //dtauSensor = dtauSensor_NoFilt;
+  dtauSensor = dtauSensor_NoFilt;
 
   //ddtauSensor = (2.28*dtauSensor - 5*prev1_dtauSensor + 5*prev2_dtauSensor - 3.33*prev3_dtauSensor + 1.25*prev4_dtauSensor - 0.2*prev5_dtauSensor)/dt;
 
@@ -547,7 +547,7 @@ void forecast::Hardware::update(float dt) {
    tauS = lc2_signed_voltage/amplitude_voltage * LOADCELL_5K_RANGE;
   }
   float tauS_filt = lowPassLoacCell2->process(tauS, dt);
-  tauS = tauS_filt; // Bias in Newton, hydraulic tests 2023-09-11
+  //tauS = tauS_filt; // Bias in Newton, hydraulic tests 2023-09-11
 
   float dTauS_no_filt = 0;
 
@@ -558,6 +558,7 @@ void forecast::Hardware::update(float dt) {
   //dTauS_no_filt = (tauS - prev1_tauS)/(hw->get_dt());
 
   dtauS = lowPassLoacCell2_D->process(dTauS_no_filt,dt);
+  dtauS = dTauS_no_filt;
 
   prev6_tauS = prev5_tauS;
   prev5_tauS = prev4_tauS;

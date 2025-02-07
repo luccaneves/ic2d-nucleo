@@ -31,7 +31,7 @@ public:
                    float lambda = 0, float gain_dob = 0, float limit_dob = 0, 
                    float gain_vc = 0, float vc_limit = 0, float start_x = 0,float fl = 0,float gain_out = 0,
                    float filter_out = 0, float dob_formulation = 0, float pressure_predict = 0, float Ml = 0, float Kl = 0, 
-                   float sensor_select = 0);
+                   float sensor_select = 0, float freq = 0, float Vpl = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -44,6 +44,7 @@ protected:
   float once_force = 0;
   float filter_out = 0;
   float sensor_select = 0;
+  
 
   float gain_out = 0;
 
@@ -51,6 +52,7 @@ protected:
   float Kpc = 0.0f;
   float Ml = 0;
   float Kl = 0;
+  float freq = 0;
 
 
 
@@ -210,13 +212,13 @@ inline ControllerFactory::Builder make_feedback_lin_builder() {
     return new FeedbackLin(params[0], params[1], params[2], params[3],
                                 params[4],params[5],params[6],params[7],params[8],params[9],params[10],
                                 params[11],params[12],params[13],params[14],params[15],params[16],params[17], params[18]
-                                , params[19], params[20], params[21]);
+                                , params[19], params[20], params[21], params[22], params[23]);
   };
 
   return {
       fn,
       {"Kp", "Kd", "Ki", "gainF", "gainG","B", "Fix_Leak","limit","lambda","gain dob","limit dob","gain_vc","limit_vc",
-      "start_x","use_fl","gain_out","filter_out","dob_formulation", "pressure_predict","Ml","Kl","sensor_select"},
+      "start_x","use_fl","gain_out","filter_out","dob_formulation", "pressure_predict","Ml","Kl","sensor_select","freq","Vpl"},
       {"reference"}};
 }
 

@@ -30,7 +30,7 @@ public:
         , float psi = 0, float limit = 0, float gain_out = 0, float gain_dob = 0, float limit_dob = 0, 
         float lambda = 0, float max_disturb_current = 0,float min_disturb_current = 0, float disturb_model_gain = 0, 
         float kp = 0, float ki = 0, float kd = 0,
-                   float Kdes = 0, float Bdes = 0, float Mdes = 0);
+                   float Kdes = 0, float Bdes = 0, float Mdes = 0, float sensor_select = 0, float freq = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -41,6 +41,8 @@ protected:
   float Kdes = 0;
   float Bdes = 0;
   float Mdes = 0;
+  float sensor_select = 0;
+  float freq = 0;
   
   float max_f = 0;
   float min_f = 0;
@@ -222,13 +224,14 @@ inline ControllerFactory::Builder make_ImpedanceSlide_builder() {
     return new ImpSlide(params[0], params[1], params[2], params[3],
                                 params[4],params[5],params[6],params[7],params[8],params[9],params[10],
                                 params[11],params[12],params[13],params[14],params[15],params[16],params[17], params[18]
-                                , params[19]);
+                                , params[19], params[20], params[21]);
   };
 
   return {
       fn,
       {"max_f", "min_f", "max_g", "min_g", "eta","psi", "limit","gain_out","gain_dob","limit_dob","lambda",
-      "max_disturb_current","min_disturb_current","disturb_model_gain","kp","ki","Kd","Kdes","Bdes","Mdes"},
+      "max_disturb_current","min_disturb_current","disturb_model_gain","kp","ki","Kd","Kdes","Bdes","Mdes","sensor_select",
+      "freq"},
       {"reference"}};
 }
 

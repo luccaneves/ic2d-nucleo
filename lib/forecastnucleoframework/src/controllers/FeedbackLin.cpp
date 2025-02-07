@@ -4,7 +4,8 @@ using namespace forecast;
 
 FeedbackLin::FeedbackLin(float kp,float kd,float ki,float Kvc,float Kpc, float B_int, 
 float leak_fix, float limit, float lambda,float gain_dob,float limit_dob, float gain_vc, float vc_limit, float start_x, float fl,
-float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl, float sensor_select)
+float gain_out, float filter_out, float dob_formulation, float pressure_predict, float Ml, float Kl, 
+float sensor_select, float freq, float Vpl)
     : kp(kp),
       kd(kd),
       ki(ki),
@@ -48,24 +49,28 @@ float gain_out, float filter_out, float dob_formulation, float pressure_predict,
       pressure_predict(pressure_predict),
       Ml(Ml),
       Kl(Kl),
-      sensor_select(sensor_select)
+      sensor_select(sensor_select), 
+      freq(freq),
+      Vpl(Vpl)
 {
-    float freq = 40.0;
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
+    float freq_corte = freq;
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
+    //Vpl = 1.21e-3;
+    //Vpl = 0.95*(0.004*0.004)*3.1415*0.25; // Volume Pipeline [m^3]
+
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
@@ -84,18 +89,19 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
     //Kpc = Kpc*0.089;
     reference = ref[0];
     
-    tau = hw->get_tau_s(force_sensor_number);
-    dtau = hw->get_d_tau_s(force_sensor_number);
+    tau = lowPass->process(hw->get_tau_s(force_sensor_number),hw->get_dt());
+    dtau = lowPassD->process(hw->get_d_tau_s(force_sensor_number),hw->get_dt());
+    float tau_no_filt = hw->get_tau_s(force_sensor_number);
 
     x = hw->get_theta(1);
     dx = hw->get_d_theta(1);
     ddx = hw->get_dd_theta(1);
 
-    float deriv_force_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
+    float dtau_desejada = (2.45*ref[0] - 6*prev_ref_1 + 7.5*prev_ref_2 - 6.66*prev_ref_3 
     + 3.75*prev_ref_4 - 1.2*prev_ref_5 + 0.16*prev_ref_6)/
     (hw->get_dt());
 
-    deriv_force_desejada = (reference - prev_ref_1)/(hw->get_dt());
+    dtau_desejada = (reference - prev_ref_1)/(hw->get_dt());
 
     prev_ref_6 = prev_ref_5;
     prev_ref_5 = prev_ref_4;
@@ -113,11 +119,8 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
 
     if(hw->get_current_time() > start_time){
-
-        float deriv_force = hw->get_d_tau_s(force_sensor_number);
-
-        Pa = hw->get_pressure(2)*100000;
-        Pb = hw->get_pressure(3)*100000;
+        Pa = lowPassPa->process(hw->get_pressure(2)*100000,hw->get_dt());
+        Pb = lowPassPb->process(hw->get_pressure(3)*100000,hw->get_dt());
 
         //Pt = hw->get_pressure(3)*100000;
         Ps = 16000000;
@@ -234,7 +237,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
             f = Be*pow(Aa,2)*(pow(alfa,2)/Vb + 1/Va)*dx;
 
-            d_disturb = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
+            d_disturb = (lambda/((g)*Kpc))*(dtau + f*Kvc - (g/1000)*last_out*Kpc + B_int*hw->get_dd_theta(0) - (g)*disturb*Kpc);
 
             //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
@@ -311,19 +314,19 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
             h2 =  Ap*Be*(1/Va + alfa/Vb)*(sqrt(Ps - Pa) - sqrt(Pa - Pt) + sqrt(Pb - Pt) - sqrt(Ps - Pb));
 
-            d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+            d_disturb1 = (lambda/((h1)))*(dtau + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
             //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
             disturb1 = disturb1 + d_disturb1*(hw->get_dt());
 
-            d_disturb2 = (lambda/((h2)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+            d_disturb2 = (lambda/((h2)))*(dtau + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
             //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
             disturb2 = disturb2 + d_disturb2*(hw->get_dt());
 
-            d_disturb3 = (lambda/((g)*Kpc))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
+            d_disturb3 = (lambda/((g)*Kpc))*(dtau + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1 - h2*disturb2 - (g)*disturb3*Kpc);
 
             //float dz = -lambda*z - (lambda/((g)*Kpc))*(lambda*tau- f*Kvc + (g)*Kpc*(hw->get_tau_m(0)/1000));
 
@@ -364,7 +367,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
             h1 = Ap*Be*(Pb - Pa)*(1/Va + alfa/Vb);
 
-            d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1);
+            d_disturb1 = (lambda/((h1)))*(dtau + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1);
 
 
             dz = -lambda*z - (lambda/((h1)))*((lambda*tau)- f*Kvc + (g)*Kpc*(last_out/1000));
@@ -410,7 +413,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
 
             h1 = Ap*Be*(Pb - Pa)*(1/Va + alfa/Vb);
 
-            d_disturb1 = (lambda/((h1)))*(deriv_force + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1);
+            d_disturb1 = (lambda/((h1)))*(dtau + f*Kvc - (g/1000)*last_out*Kpc - h1*disturb1);
 
 
             dz = -lambda*z - (lambda)*((lambda*tau)- f*Kvc + (g)*Kpc*(last_out/1000));
@@ -485,7 +488,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         }
 
         if(fl == 1){
-            out = (1000*(v + deriv_force_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
+            out = (1000*(v + dtau_desejada))/(g*Kpc) + (f*Kvc*1000)/(g*Kpc) + B_int*hw->get_dd_theta(0)*1000/(g*Kpc) - disturb*1000 + leak_fix;
         }
         else{
             out = v;
@@ -505,7 +508,7 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
             d_force = -f*Kvc + (g*Kpc*(last_out/1000 + disturb)) - B_int*hw->get_dd_theta(0);
         }
 
-        //expected_force = expected_force + deriv_force*hw->get_dt();
+        //expected_force = expected_force + dtau*hw->get_dt();
         //expected_force = tau;
 
 
@@ -523,12 +526,12 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         //*(hw->var4) = out;
 
         //Lucca: Adicionado filtro na saída. Vai dar merda?
-        if(hw->get_current_time() > 5 && once_rise_time_flag == 0 && tau > ref[0]*0.1){
+        if(hw->get_current_time() > 5 && once_rise_time_flag == 0 && tau_no_filt > ref[0]*0.1){
                 once_rise_time_flag = 1;
                 rise_time_start = hw->get_current_time();
         }
 
-        else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 5 && tau > ref[0]*0.9){
+        else if(once_2_rise_time_flag == 0 && once_rise_time_flag == 1 && hw->get_current_time() > 5 && tau_no_filt > ref[0]*0.9){
                 rise_time_end = hw->get_current_time();
                 once_2_rise_time_flag = 1;
         }
@@ -538,18 +541,18 @@ float FeedbackLin::process(const IHardware *hw, std::vector<float> ref)
         //*(hw->var4) = out;
 
         //Lucca: Adicionado filtro na saída. Vai dar merda?
-        if(filter_out == 1){
-            out = lowPass->process(out,hw->get_dt());
-        }
+
 
         if(tau > Mv && hw->get_current_time() > 5){
             Mv = tau;
         }
 
         *(hw->var1) = tau;
-        *(hw->var2) = disturb;
+        *(hw->var2) = dtau;
         *(hw->var3) = ref[0];
-        *(hw->var7) = expected_force - tau;
+        *(hw->var4) = disturb;
+
+        *(hw->var7) = d_force;
         *(hw->var6) = Mv;
         *(hw->var8) = -rise_time_start + rise_time_end;
         *(hw->var9) = reference;

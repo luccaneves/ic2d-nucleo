@@ -29,7 +29,7 @@ public:
   ImpAdapt(float kp = 0, float learn_rate = 0, float learn_rate_h = 0, 
   float learn_rate_ap = 0, float gain_out = 0, float limit = 0,
    float start_h = 0, float start_disturb = 0, float start_ap = 0,
-                   float Kdes = 0, float Bdes = 0, float Mdes = 0);
+                   float Kdes = 0, float Bdes = 0, float Mdes = 0, float sensor_select = 0, float freq = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -51,6 +51,7 @@ protected:
   float d_h = 0;
   float d_disturb = 0;  
   uint32_t force_sensor_id = 1;
+  float sensor_select = 0;
 
   float max_f = 0;
   float min_f = 0;
@@ -204,6 +205,7 @@ protected:
   float last_out = 0.0;
   float dob_formulation = 0;
   float pressure_predict = 0;
+  float freq = 0;
 
   float last_erro_imp = 0;
 
@@ -230,13 +232,15 @@ inline ControllerFactory::Builder make_ImpAdapt_builder() {
 
     return new ImpAdapt(params[0], params[1], params[2], params[3],
                                 params[4],params[5],params[6],params[7],params[8],params[9],params[10],
-                                params[11]);
+                                params[11],
+                                params[12],
+                                params[13]);
   };
 
   return {
       fn,
       {"kp", "learn_rate_d","learn_rate_h","learn_rate_ap","gain_out","limit","start_h","start_disturb",
-      "start_ap","Kdes","Bdes","Mdes"},
+      "start_ap","Kdes","Bdes","Mdes","sensor_select","freq"},
       {"reference"}};
 }
 

@@ -33,7 +33,7 @@ public:
                    float filter_out = 0, float dob_formulation = 0, float pressure_predict = 0, float Ml = 0, float Kl = 0,
                    float Kdes = 0, float Bdes = 0, float Mdes = 0,
                    float K1 = 0, float K2 = 0, float massa_total = 0, float F_fric = 0, float psi_compliant = 0,
-                   float a_max = 0, float a_min = 0, float m_max = 0, float m_min = 0);
+                   float a_max = 0, float a_min = 0, float m_max = 0, float m_min = 0, float freq = 0);
 
   virtual float process(const IHardware *hw, std::vector<float> ref) override;
 
@@ -237,6 +237,7 @@ protected:
   float new_forca_desejada = 0;
   float last_new_forca_desejada = 0;
   float d_new_forca_desejada = 0;
+  float freq = 0;
 
 
   //Novos parametros
@@ -283,7 +284,7 @@ inline ControllerFactory::Builder make_CompliantHelioFL_builder() {
                                 , params[19], params[20]
                                 , params[21], params[22], params[23]
                                 , params[24], params[25], params[26], params[27], params[28]
-                                , params[29], params[30], params[31], params[32]);
+                                , params[29], params[30], params[31], params[32], params[33]);
   };
 
   return {
@@ -291,7 +292,8 @@ inline ControllerFactory::Builder make_CompliantHelioFL_builder() {
       {"Kp", "Kd", "Ki", "gainF", "gainG","B", "Fix_Leak","limit","lambda","gain dob","limit dob","gain_vc","limit_vc",
       "start_x","use_fl","gain_out","filter_out","dob_formulation", "pressure_predict","Ml","Kl","Kdes","Bdes","Mdes",
       "K1","K2","M","F_FRIC","psi_comp",
-      "a_max","a_min","m_max","m_min"},
+      "a_max","a_min","m_max","m_min",
+      "freq"},
       {"reference"}};
 }
 

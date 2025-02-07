@@ -3,7 +3,7 @@
 using namespace forecast;
 
 ImpAdapt::ImpAdapt(float kp, float learn_rate,float learn_rate_h, float lear_rate_ap, float gain_out, float limit, float start_h, float start_disturb, float start_ap
- , float Kdes, float Bdes,float Mdes)
+ , float Kdes, float Bdes,float Mdes, float sensor_select,float freq)
     : 
       tau(0.0f),
       dtau(0.0f),
@@ -38,25 +38,27 @@ ImpAdapt::ImpAdapt(float kp, float learn_rate,float learn_rate_h, float lear_rat
       hat_disturb(start_disturb),
       Kdes(Kdes),
       Bdes(Bdes),
-      Mdes(Mdes)
+      Mdes(Mdes),
+      sensor_select(sensor_select),
+      freq(freq)
 {
-    float freq = 40.0;
-    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq);
-    lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq);
+    float freq_corte = freq;
+    lowPass = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassDx = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPa = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPb = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPs = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassPt = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
+    lowPassD_ErroImp = utility::AnalogFilter::getLowPassFilterHz(freq_corte);
     
     Be = 1.31E+9f; // Bulk modulus [Pa]
     De = 0.016f;  // Piston diameter [m]
     Dh = 0.01f; //  Rod diameter [m]
     L_cyl = 0.08f; // Stroke [m]
     //L_cyl = 0.32f; // Stroke [m]
-    Vpl = 1.21E-3f; // Volume Pipeline [m^3]
+    Vpl = 0.00121f; // Volume Pipeline [m^3]
     In = 0.05f; //  Nominal valve input for Moog 24 [A]
     pn = 70.0E+5f; // Nominal pressure drop for Moog 24 [Pa]
     qn = 0.0001666f; // Nominal flow for Moog 24 [m^3/s]
@@ -75,8 +77,8 @@ float ImpAdapt::ForceController(const IHardware *hw, float ref){
 
     float deriv_force = hw->get_d_tau_s(force_sensor_id);
 
-    Pa = hw->get_pressure(2)*100000;
-    Pb = hw->get_pressure(3)*100000;
+    Pa = lowPassPa->process(hw->get_pressure(2)*100000,hw->get_dt());
+    Pb = lowPassPb->process(hw->get_pressure(3)*100000,hw->get_dt());
     Ps = 16000000;
     Pt = 0; // Sensor de pressão com problema
 
@@ -180,8 +182,8 @@ float ImpAdapt::ForceController(const IHardware *hw, float ref){
 
 float ImpAdapt::process(const IHardware *hw, std::vector<float> ref)
 {
-    float start_time = 1.5;
-    force_sensor_id = 1;
+    float start_time = 0;
+    force_sensor_id = sensor_select;
 
     reference = ref[0];
 
@@ -192,8 +194,8 @@ float ImpAdapt::process(const IHardware *hw, std::vector<float> ref)
     }
 
     if(hw->get_current_time() > start_time){
-        tau = hw->get_tau_s(force_sensor_id) - once_force;
-        dtau = hw->get_d_tau_s(force_sensor_id);
+        tau = lowPass->process(hw->get_tau_s(force_sensor_id),hw->get_dt());
+        dtau = lowPassD->process(hw->get_d_tau_s(force_sensor_id),hw->get_dt());
 
         x = hw->get_theta(1) - offset_x;
         dx = hw->get_d_theta(1);
