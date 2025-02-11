@@ -175,9 +175,9 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
     prev_ref_2 = prev_ref_1;
     prev_ref_1 = ref;
 
-    float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g + kp*(ref - tau) + ki*ierr + kd*derr);
+    float u = (deriv_force_desejada - gain_f_med*f + disturb_model_gain*dist_gain_med*g);
 
-    float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + (beta - 1)*abs(u) + beta*(abs(dist_gain_max - dist_gain_med)*(g)));
+    float k = (beta*(abs((max_f - gain_f_med)*(f)) + etta) + abs(beta - 1)*abs(u) + beta*(abs(dist_gain_max - dist_gain_med)*(g)) + kp*(ref - tau) + ki*ierr + kd*derr);
 
     float sat_ = 0;
     float s = tau - ref;
@@ -196,7 +196,7 @@ float ImpSlide::ForceController(const IHardware *hw, float ref){
     
 
     //current = 1/(0.86*g)*(u - k*sign(s));
-    out = ((u - k*sat_)*1000)/(gain_g_med*g);
+    out = ((u + kp*(ref - tau) + ki*ierr + kd*derr - k*sat_)*1000)/(gain_g_med*g);
 
     if(out > limit){
         out = limit;
